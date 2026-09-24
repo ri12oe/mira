@@ -1,5 +1,7 @@
-import { StyleSheet, View, Text } from "react-native";
+import { StyleSheet, View,  } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { AppText } from '@/components/app-text';
+import { FontFamily } from '@/constants/theme';
 
 import { PuffyCloud } from "@/components/puffy-cloud";
 
@@ -8,7 +10,7 @@ export default function HomeScreen() {
     <View style={styles.screen}>
       {/* {Clouds display on top} */}
       <PuffyCloud style={styles.topCloud} contentStyle={styles.cloudContent}>
-        <Text style={styles.wordmark}>MIRA</Text>
+        <AppText style={styles.wordmark}>MIRA</AppText>
       </PuffyCloud>
       <SafeAreaView style={styles.content}>
         {/* {Content goes here} */}
@@ -48,5 +50,6 @@ const styles = StyleSheet.create({
     letterSpacing: 2,
     lineHeight: 96,
     textAlign: "center",
+    fontFamily: FontFamily.regular,
   },
 });
