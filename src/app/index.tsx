@@ -71,23 +71,6 @@ export default function WelcomeScreen() {
           </Pressable>
         </View>
 
-        {/* <View style={styles.actions}>
-          <Pressable
-            accessibilityRole="button"
-            style={({ pressed }) => [styles.button, pressed && styles.pressed]}
-            onPress={() => {}}
-          >
-            <AppText maxFontSizeMultiplier={1.6} style={[styles.buttonText, { fontSize: 22 * s }]}>
-              Get started
-            </AppText>
-          </Pressable>
-
-          <Pressable accessibilityRole="link" hitSlop={12} onPress={() => {}}>
-            <AppText maxFontSizeMultiplier={1.8} style={[styles.link, { fontSize: 18 * s }]}>
-              I already have an account
-            </AppText>
-          </Pressable>
-        </View> */}
       </ScrollView>
     </View>
   );
@@ -138,7 +121,10 @@ const styles = StyleSheet.create({
     boxShadow: '0px 6px 8px rgba(0, 0, 0, 0.25)',
   },
   pressed: {
-
+    transform: [{ scale: 0.97 }],
+    boxShadow: '0px 2px 3px rgba(0, 0, 0, 0.25)',
+    backgroundColor: "#32CBFF",
+    
   },
   buttonText: {
     fontSize: 24,
