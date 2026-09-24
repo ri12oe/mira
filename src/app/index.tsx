@@ -4,7 +4,7 @@ import {
   TopCloud,
   useCloudSizes,
 } from "@/components/puffy-cloudv2";
-import { ScrollView, StyleSheet, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const INK = "#0B2A4A";
@@ -50,14 +50,26 @@ export default function WelcomeScreen() {
         bounces={false}
         showsVerticalScrollIndicator={false}
       >
-        {/* <View style={styles.copy}>
-          <AppText maxFontSizeMultiplier={1.6} style={[styles.tagline, { fontSize: 24 * s }]}>
-            A daily check-in that keeps your family close.
-          </AppText>
-          <AppText maxFontSizeMultiplier={1.8} style={[styles.support, { fontSize: 17 * s }]}>
-            One tap a day lets the people who love you know you're okay.
-          </AppText>
-        </View> */}
+        <View style={styles.buttonsArea}>
+          <Pressable
+            accessibilityRole="button"
+            style={({ pressed }) => [styles.button, pressed && styles.pressed]}
+            onPress={() => {}}
+            >
+              <AppText style={styles.buttonText}>
+                Get Started
+              </AppText>
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            style={({ pressed }) => [styles.button2, pressed && styles.pressed]}
+            onPress={() => {}}
+            >
+              <AppText style={styles.buttonText}>
+                Sign-IN
+              </AppText>
+          </Pressable>
+        </View>
 
         {/* <View style={styles.actions}>
           <Pressable
@@ -99,51 +111,41 @@ const styles = StyleSheet.create({
   },
   body: {
     flexGrow: 1,
-    justifyContent: "space-between",
+    alignItems: "center",
+    justifyContent: "center",
     paddingHorizontal: 32,
     paddingTop: 24,
   },
-  copy: {
-    gap: 12,
-    alignItems: "center",
-  },
-  tagline: {
-    color: INK,
-    fontWeight: "800",
-    textAlign: "center",
-  },
-  support: {
-    color: SUBTLE,
-    textAlign: "center",
-  },
-  actions: {
-    gap: 20,
-    alignItems: "center",
-    marginTop: 32,
+  buttonsArea: {
+    gap: 25,
   },
   button: {
-    width: "100%",
-    maxWidth: 380,
-    minHeight: 64, // grows with large text instead of clipping it
-    paddingVertical: 16,
-    borderRadius: 999,
-    backgroundColor: PINK,
-    alignItems: "center",
+    backgroundColor: "#FECEF1",
+    borderRadius: 45,
+    width: 325,
+    height: 93,
     justifyContent: "center",
-    shadowColor: "#D65AAA",
-    shadowOpacity: 0.28,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 4,
+    alignItems: "center",
+    boxShadow: '0px 6px 8px rgba(0, 0, 0, 0.25)',
   },
-  pressed: { opacity: 0.85, transform: [{ scale: 0.98 }] },
+  button2: {
+    backgroundColor: "#fff",
+    borderRadius: 45,
+    width: 325,
+    height: 93,
+    justifyContent: "center",
+    alignItems: "center",
+    boxShadow: '0px 6px 8px rgba(0, 0, 0, 0.25)',
+  },
+  pressed: {
+
+  },
   buttonText: {
-    color: INK,
-    fontWeight: "800",
-  },
-  link: {
-    color: INK,
-    fontWeight: "700",
-    textDecorationLine: "underline",
+    fontSize: 24,
+    color: "#0B2A4A",
+    fontWeight: 500,
+    lineHeight: 55,
+    letterSpacing: 2,
+    textTransform: "uppercase",
   },
 });
