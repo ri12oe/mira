@@ -1,7 +1,11 @@
-import { Pressable, ScrollView, StyleSheet, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AppText } from "@/components/app-text";
-import { BottomCloud, TopCloud, useCloudSizes } from "@/components/puffy-cloudv2";
+import {
+  BottomCloud,
+  TopCloud,
+  useCloudSizes,
+} from "@/components/puffy-cloudv2";
+import { ScrollView, StyleSheet, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const INK = "#0B2A4A";
 const WHITE = "#FFF";
@@ -29,7 +33,10 @@ export default function WelcomeScreen() {
         <AppText
           accessibilityRole="header"
           maxFontSizeMultiplier={1}
-          style={[styles.logo, { fontSize: logoSize, lineHeight: logoSize * 1.05 }]}
+          style={[
+            styles.logo,
+            { fontSize: logoSize, lineHeight: logoSize * 1.05 },
+          ]}
         >
           MIRA
         </AppText>
