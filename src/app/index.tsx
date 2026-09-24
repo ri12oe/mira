@@ -12,6 +12,7 @@ export default function HomeScreen() {
       <PuffyCloud style={styles.topCloud} contentStyle={styles.cloudContent}>
         <AppText style={styles.wordmark}>MIRA</AppText>
       </PuffyCloud>
+      <PuffyCloud style={styles.bottomCloud} contentStyle={styles.cloudContent} />
       <SafeAreaView style={styles.content}>
         {/* {Content goes here} */}
       </SafeAreaView>
@@ -31,7 +32,7 @@ const styles = StyleSheet.create({
   },
   bottomCloud: {
     left: -199,
-    top: -552,
+    top: 652,
   },
   content: {
     flex: 1,
