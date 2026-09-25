@@ -1,7 +1,7 @@
 import { StyleSheet, useWindowDimensions, View } from "react-native";
 import Svg, { Circle, Rect } from "react-native-svg";
 
-const CLOUD_BLUE = "#32CBFF";
+const CLOUD_BLUE = "#414DC7";
 
 // The clouds were designed on a 390pt-wide screen.
 const DESIGN_WIDTH = 390;

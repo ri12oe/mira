@@ -15,8 +15,14 @@ import { MorphOverlay, MorphRect } from "@/components/morph-overlay";
 type ButtonId = "start" | "signin";
 type Morph = MorphRect & { id: ButtonId, color: string, label: string, href: Href}; 
 
-const PINK = "#FECEF1";
 const WHITE = "#FFF";
+
+//  New Colors to test out
+const lightGreen = "#A8D130";
+const darkBlue = "#1C2E9D";
+const lightBlue = "#414DC7";
+const lightPurple = "#B024F1";
+const lighterBlue = "#349AD5";
 
 
 
@@ -95,7 +101,7 @@ export default function WelcomeScreen() {
             accessibilityRole="button"
             style={({ pressed }) => [styles.button, pressed && styles.pressed, morph?.id === "start" && styles.hidden,]}
             onPress={() =>
-              startMorph("start", startRef, PINK, "Get Started", "/get-started" )
+              startMorph("start", startRef, lighterBlue, "Get Started", "/get-started" )
             }
             >
               <AppText style={styles.buttonText}>
@@ -107,7 +113,7 @@ export default function WelcomeScreen() {
             accessibilityRole="button"
             style={({ pressed }) => [styles.button2, pressed && styles.pressed, morph?.id === "signin" && styles.hidden]}
             onPress={() => 
-              startMorph("signin", signInRef, WHITE, "Sign-IN", "/sign-in")
+              startMorph("signin", signInRef, lightGreen, "Sign-IN", "/sign-in")
             }
             >
               <AppText style={styles.buttonText}>
@@ -157,7 +163,7 @@ const styles = StyleSheet.create({
     gap: 25,
   },
   button: {
-    backgroundColor: "#FECEF1",
+    backgroundColor: lighterBlue,
     borderRadius: 45,
     width: 325,
     height: 93,
@@ -166,7 +172,7 @@ const styles = StyleSheet.create({
     boxShadow: '0px 6px 8px rgba(0, 0, 0, 0.25)',
   },
   button2: {
-    backgroundColor: "#fff",
+    backgroundColor: lightGreen,
     borderRadius: 45,
     width: 325,
     height: 93,
@@ -177,12 +183,12 @@ const styles = StyleSheet.create({
   pressed: {
     transform: [{ scale: 0.97 }],
     boxShadow: '0px 2px 3px rgba(0, 0, 0, 0.25)',
-    backgroundColor: "#32CBFF",
+    backgroundColor: darkBlue,
 
   },
   buttonText: {
     fontSize: 24,
-    color: "#0B2A4A",
+    color: "#fff",
     fontWeight: 500,
     lineHeight: 55,
     letterSpacing: 2,
