@@ -6,11 +6,19 @@ import {
 } from "@/components/puffy-cloudv2";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useReducedMotion } from "react-native-reanimated";
+import { RefObject, useCallback, useRef, useState } from "react";
+import { Href, router, useFocusEffect } from "expo-router";
+import { MorphOverlay, MorphRect } from "@/components/morph-overlay";
 
-const INK = "#0B2A4A";
-const WHITE = "#FFF";
-const SUBTLE = "#3D4F63";
+
+type ButtonId = "start" | "signin";
+type Morph = MorphRect & { id: ButtonId, color: string, label: string, href: Href}; 
+
 const PINK = "#FECEF1";
+const WHITE = "#FFF";
+
+
 
 export default function WelcomeScreen() {
   const insets = useSafeAreaInsets();
@@ -22,6 +30,37 @@ export default function WelcomeScreen() {
 
   // The logo must fit inside the top cloud (below the status bar).
   const logoSize = Math.min(96 * s, (top - insets.top) * 0.55);
+
+  // The button that's currently turning into a circle, if any
+  const [morph, setMorph] = useState<Morph | null>(null);
+  const reduceMotion = useReducedMotion();
+  const startRef = useRef<View>(null);
+  const signInRef = useRef<View>(null);
+
+  // coming back to this screen clears the circle
+  useFocusEffect(
+    useCallback(() => {
+      setMorph(null);
+    }, [])
+  );
+
+  // measure the tapped button, then start the animation there
+  function startMorph(
+    id: ButtonId,
+    ref: RefObject<View | null>,
+    color: string,
+    label: string,
+    href: Href
+  ) {
+    if (morph) return; // ignore extra taps while it's running
+    if (reduceMotion) {
+      router.push(href); // skip the effect when "reduce motion" is on
+      return;
+    }
+    ref.current?.measureInWindow((x, y, width, height) => {
+      setMorph({ id, x, y, width, height, color, label, href });
+    });
+  }
 
   return (
     <View style={styles.screen}>
@@ -52,18 +91,24 @@ export default function WelcomeScreen() {
       >
         <View style={styles.buttonsArea}>
           <Pressable
+            ref={startRef}
             accessibilityRole="button"
-            style={({ pressed }) => [styles.button, pressed && styles.pressed]}
-            onPress={() => {}}
+            style={({ pressed }) => [styles.button, pressed && styles.pressed, morph?.id === "start" && styles.hidden,]}
+            onPress={() =>
+              startMorph("start", startRef, PINK, "Get Started", "/get-started" )
+            }
             >
               <AppText style={styles.buttonText}>
                 Get Started
               </AppText>
           </Pressable>
           <Pressable
+            ref={signInRef}
             accessibilityRole="button"
-            style={({ pressed }) => [styles.button2, pressed && styles.pressed]}
-            onPress={() => {}}
+            style={({ pressed }) => [styles.button2, pressed && styles.pressed, morph?.id === "signin" && styles.hidden]}
+            onPress={() => 
+              startMorph("signin", signInRef, WHITE, "Sign-IN", "/sign-in")
+            }
             >
               <AppText style={styles.buttonText}>
                 Sign-IN
@@ -72,6 +117,15 @@ export default function WelcomeScreen() {
         </View>
 
       </ScrollView>
+      {morph && (
+        <MorphOverlay
+          from={morph}
+          color={morph.color}
+          label={morph.label}
+          labelStyle={styles.buttonText}
+          onCovered={() => router.push(morph.href)}
+        />
+      )}
     </View>
   );
 }
@@ -88,7 +142,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   logo: {
-    color: WHITE,
+    color: "#fff",
     letterSpacing: 2,
     textAlign: "center",
   },
@@ -124,7 +178,7 @@ const styles = StyleSheet.create({
     transform: [{ scale: 0.97 }],
     boxShadow: '0px 2px 3px rgba(0, 0, 0, 0.25)',
     backgroundColor: "#32CBFF",
-    
+
   },
   buttonText: {
     fontSize: 24,
@@ -133,5 +187,8 @@ const styles = StyleSheet.create({
     lineHeight: 55,
     letterSpacing: 2,
     textTransform: "uppercase",
+  },
+  hidden: {
+    opacity: 0,
   },
 });
