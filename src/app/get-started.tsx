@@ -1,5 +1,6 @@
 import { AppText } from "@/components/app-text";
 import { CornerClouds, useCornerCloudSize } from "@/components/conor_clouds";
+import { WhiteArcSection } from "@/components/white_arc";
 import { ScrollView, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -9,6 +10,8 @@ const darkBlue = "#1C2E9D";
 const lightBlue = "#414DC7";
 const lightPurple = "#B024F1";
 const lighterBlue = "#349AD5";
+const WHITE = "#FFF";
+
 
 export default function GetStarted() {
   const insets = useSafeAreaInsets();
@@ -28,9 +31,16 @@ export default function GetStarted() {
           <AppText style={styles.headerBrand}>Mira</AppText>
         </View>
         <AppText style={styles.calloutText}>
-            A short check-in each day so the people who care for you know you’re
-            okay.
+          A short check-in each day so the people who care for you know you’re
+          okay.
         </AppText>
+        <WhiteArcSection
+          style={{ marginTop: 32, paddingBottom: insets.bottom + 24 }}
+        >
+          <AppText style={styles.question}>Who is using Mira?</AppText>
+          {/* caregiver card */}
+          {/* checking-in card */}
+        </WhiteArcSection>
       </ScrollView>
     </View>
   );
@@ -66,5 +76,12 @@ const styles = StyleSheet.create({
     fontWeight: 500,
     textAlign: "center",
     padding: 20,
+  },
+  question: {
+    textAlign: "center",
+    fontSize: 32,
+    color: WHITE,
+    lineHeight: 40,
+    fontWeight: "500",
   },
 });
