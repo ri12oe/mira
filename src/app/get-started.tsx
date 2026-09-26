@@ -1,7 +1,7 @@
-import { CornerClouds, useCornerCloudSize } from "@/components/conor_clouds";
-import { ScrollView, StyleSheet, View, Text } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AppText } from "@/components/app-text";
+import { CornerClouds, useCornerCloudSize } from "@/components/conor_clouds";
+import { ScrollView, StyleSheet, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 //  New Colors to test out
 const lightGreen = "#A8D130";
@@ -24,10 +24,13 @@ export default function GetStarted() {
         }}
       >
         <View style={styles.header}>
-            <AppText style={styles.headerText}>welcome to</AppText>
-            <AppText style={styles.headerBrand}>Mira</AppText>
+          <AppText style={styles.headerText}>welcome to</AppText>
+          <AppText style={styles.headerBrand}>Mira</AppText>
         </View>
-        
+        <AppText style={styles.calloutText}>
+            A short check-in each day so the people who care for you know you’re
+            okay.
+        </AppText>
       </ScrollView>
     </View>
   );
@@ -48,7 +51,6 @@ const styles = StyleSheet.create({
     fontSize: 24,
     color: darkBlue,
     fontWeight: "500",
-    
   },
   headerBrand: {
     fontSize: 120,
@@ -56,5 +58,13 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     lineHeight: 96,
     letterSpacing: 2,
+  },
+  calloutText: {
+    color: "black",
+    fontSize: 22,
+    lineHeight: 28,
+    fontWeight: 500,
+    textAlign: "center",
+    padding: 20,
   },
 });
