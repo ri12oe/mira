@@ -101,7 +101,7 @@ export default function WelcomeScreen() {
             accessibilityRole="button"
             style={({ pressed }) => [styles.button, pressed && styles.pressed, morph?.id === "start" && styles.hidden,]}
             onPress={() =>
-              startMorph("start", startRef, lighterBlue, "Get Started", "/get-started" )
+              startMorph("start", startRef, darkBlue, "Get Started", "/get-started" )
             }
             >
               <AppText style={styles.buttonText}>
@@ -163,7 +163,7 @@ const styles = StyleSheet.create({
     gap: 25,
   },
   button: {
-    backgroundColor: lighterBlue,
+    backgroundColor: darkBlue,
     borderRadius: 45,
     width: 325,
     height: 93,
@@ -184,7 +184,6 @@ const styles = StyleSheet.create({
     transform: [{ scale: 0.97 }],
     boxShadow: '0px 2px 3px rgba(0, 0, 0, 0.25)',
     backgroundColor: darkBlue,
-
   },
   buttonText: {
     fontSize: 24,
