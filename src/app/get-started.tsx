@@ -3,8 +3,15 @@ import { CornerClouds, useCornerCloudSize } from "@/components/conor_clouds";
 import { WhiteArcSection } from "@/components/white_arc";
 import Entypo from "@expo/vector-icons/Entypo";
 import Feather from "@expo/vector-icons/Feather";
-import { ComponentProps } from "react";
-import { ScrollView, StyleSheet, View, Pressable } from "react-native";
+import { router } from "expo-router";
+import { ComponentProps, useEffect, useState } from "react";
+import {
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  useWindowDimensions,
+  View,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 //  New Colors to test out
 const lightGreen = "#A8D130";
@@ -15,6 +22,8 @@ const lighterBlue = "#349AD5";
 const WHITE = "#FFF";
 const SUBTLE = "#4A5575";
 
+// The smallest the layout is allowed to shrink (75% of the design size).
+const MIN_FIT = 0.75;
 
 type OptionCardProps = {
   icon: ComponentProps<typeof Feather>["name"];
@@ -22,6 +31,7 @@ type OptionCardProps = {
   title: string;
   subtitle: string;
   onPress: () => void;
+  sz: (n: number) => number; // scales a design size to fit the screen
 };
 
 function OptionCard({
@@ -30,6 +40,7 @@ function OptionCard({
   title,
   subtitle,
   onPress,
+  sz,
 }: OptionCardProps) {
   return (
     <Pressable
@@ -38,61 +49,160 @@ function OptionCard({
       accessibilityLabel={`${title}. ${subtitle}`}
       style={({ pressed }) => [
         styles.buttonOption,
+        {
+          gap: sz(16),
+          minHeight: sz(96),
+          paddingVertical: sz(16),
+          paddingHorizontal: sz(18),
+          borderRadius: sz(28),
+        },
         pressed && styles.buttonPressed,
       ]}
     >
-      <View style={[styles.iconCircle, { backgroundColor: iconColor }]}>
-        <Feather name={icon} size={26} color={WHITE} />
+      <View
+        style={[
+          styles.iconCircle,
+          {
+            width: sz(56),
+            height: sz(56),
+            borderRadius: sz(28),
+            backgroundColor: iconColor,
+          },
+        ]}
+      >
+        <Feather name={icon} size={sz(26)} color={WHITE} />
       </View>
 
-      <View style={styles.buttonTextContainer}>
-        <AppText maxFontSizeMultiplier={1.6} style={styles.buttonTitle}>
+      <View style={[styles.buttonTextContainer, { gap: sz(4) }]}>
+        <AppText
+          maxFontSizeMultiplier={1.4}
+          style={[styles.buttonTitle, { fontSize: sz(22) }]}
+        >
           {title}
         </AppText>
-        <AppText maxFontSizeMultiplier={1.8} style={styles.buttonSubtitle}>
+        <AppText
+          maxFontSizeMultiplier={1.4}
+          style={[
+            styles.buttonSubtitle,
+            { fontSize: sz(16), lineHeight: sz(22) },
+          ]}
+        >
           {subtitle}
         </AppText>
       </View>
 
-      <Entypo name="chevron-right" size={26} color={darkBlue} />
+      <Entypo name="chevron-right" size={sz(26)} color={darkBlue} />
     </Pressable>
   );
 }
 
 export default function GetStarted() {
   const insets = useSafeAreaInsets();
+  const { width: screenW, height: screenH } = useWindowDimensions();
   const { height: cloudH } = useCornerCloudSize();
+
+  // fit = how much to shrink everything so it fits on this screen.
+  // Starts at full size; the layout measures itself and shrinks if needed.
+  const [fit, setFit] = useState(1);
+  const [viewportH, setViewportH] = useState(0);
+  const [contentH, setContentH] = useState(0);
+
+  // Start over at full size if the screen size changes.
+  useEffect(() => setFit(1), [screenW, screenH]);
+
+  // If the content is taller than the screen, shrink proportionally.
+  useEffect(() => {
+    if (!viewportH || !contentH) return;
+    if (contentH > viewportH + 1 && fit > MIN_FIT) {
+      setFit(Math.max(MIN_FIT, fit * (viewportH / contentH)));
+    }
+  }, [contentH, viewportH]);
+
+  // Last resort (e.g. huge system text): allow scrolling so nothing is hidden.
+  const mustScroll = fit <= MIN_FIT && contentH > viewportH + 1;
+
+  const sz = (n: number) => Math.round(n * fit);
+  const brandSize = sz(Math.min(120, screenH * 0.14));
+
   return (
     <View style={styles.screen}>
       <CornerClouds />
+
       <ScrollView
-        contentContainerStyle={{
-          paddingTop: Math.max(cloudH * 0.6, insets.top + 16),
-          paddingHorizontal: 23,
-          flexGrow: 1,
-        }}
+        scrollEnabled={mustScroll}
+        bounces={false}
+        showsVerticalScrollIndicator={mustScroll}
+        onLayout={(e) => setViewportH(e.nativeEvent.layout.height)}
+        onContentSizeChange={(_, h) => setContentH(h)}
+        contentContainerStyle={{ flexGrow: 1 }}
       >
-        <View style={styles.header}>
-          <AppText style={styles.headerText}>welcome to</AppText>
-          <AppText style={styles.headerBrand}>Mira</AppText>
-        </View>
-        <AppText style={styles.calloutText}>
-          A short check-in each day so the people who care for you know you’re
-          okay.
-        </AppText>
-        <WhiteArcSection
-          style={{ marginTop: 32, paddingBottom: insets.bottom + 24 }}
+        {/* Top part */}
+        <View
+          style={[
+            styles.top,
+            { paddingTop: Math.max(cloudH * 0.6 * fit, insets.top + 12) },
+          ]}
         >
-          <AppText style={styles.question}>Who is using Mira?</AppText>
-          <View style={styles.buttonContainer}>
+          <View style={[styles.header, { gap: sz(13), marginBottom: sz(16) }]}>
+            <AppText
+              maxFontSizeMultiplier={1}
+              style={[styles.headerText, { fontSize: sz(24) }]}
+            >
+              welcome to
+            </AppText>
+            <AppText
+              maxFontSizeMultiplier={1}
+              style={[
+                styles.headerBrand,
+                { fontSize: brandSize, lineHeight: brandSize * 0.85, marginTop: -brandSize * 0.12, paddingTop: 4,},
+              ]}
+            >
+              Mira
+            </AppText>
+          </View>
+          <AppText
+            maxFontSizeMultiplier={1.3}
+            style={[
+              styles.calloutText,
+              { fontSize: sz(22), lineHeight: sz(28), padding: sz(16) },
+            ]}
+          >
+            A short check-in each day so the people who care for you know
+            you’re okay.
+          </AppText>
+        </View>
+
+        {/* Bottom part: fills all remaining space to the bottom edge */}
+        <WhiteArcSection
+          style={{
+            marginTop: sz(24),
+            paddingTop: sz(50),
+            paddingBottom: insets.bottom + sz(20),
+            paddingHorizontal: 23,
+          }}
+        >
+          <AppText
+            maxFontSizeMultiplier={1.3}
+            style={[
+              styles.question,
+              { fontSize: sz(32), lineHeight: sz(40), marginBottom: sz(20) },
+            ]}
+          >
+            Who is using Mira?
+          </AppText>
+          <View style={[styles.buttonContainer, { gap: sz(18) }]}>
             <OptionCard
+              sz={sz}
               icon="heart"
               iconColor={lightBlue}
               title="I'm a caregiver"
               subtitle="I'm setting up Mira for someone I look after."
-              onPress={() => {}}
+              onPress={() => {
+                // TODO: router.push("/caregiver-setup")
+              }}
             />
-             <OptionCard
+            <OptionCard
+              sz={sz}
               icon="check-circle"
               iconColor={lightBlue}
               title="I'm checking in"
@@ -102,8 +212,18 @@ export default function GetStarted() {
               }}
             />
           </View>
-          <Pressable>
-            <AppText style={styles.backText}>Back</AppText>
+          <Pressable
+            accessibilityRole="link"
+            hitSlop={12}
+            onPress={() => router.back()}
+            style={[styles.backLink, { marginTop: sz(20) }]}
+          >
+            <AppText
+              maxFontSizeMultiplier={1.3}
+              style={[styles.backText, { fontSize: sz(28) }]}
+            >
+              Back
+            </AppText>
           </Pressable>
         </WhiteArcSection>
       </ScrollView>
@@ -116,42 +236,35 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     backgroundColor: "#FFF8FC",
   },
+  top: {
+    paddingHorizontal: 23,
+  },
   header: {
     alignItems: "center",
     justifyContent: "center",
-    gap: 13,
-    marginBottom: 24,
+    gap: 8,
   },
   headerText: {
-    fontSize: 24,
     color: darkBlue,
     fontWeight: "500",
   },
   headerBrand: {
-    fontSize: 120,
     color: "black",
     fontWeight: "800",
-    lineHeight: 96,
     letterSpacing: 2,
+    marginTop: 10,
   },
   calloutText: {
     color: "black",
-    fontSize: 22,
-    lineHeight: 28,
-    fontWeight: 500,
+    fontWeight: "500",
     textAlign: "center",
-    padding: 20,
   },
   question: {
     textAlign: "center",
-    fontSize: 32,
     color: WHITE,
-    lineHeight: 40,
     fontWeight: "500",
-    marginBottom: 24,
   },
   buttonContainer: {
-    gap: 18,
     width: "100%",
     maxWidth: 420, // keeps cards from stretching too wide on big screens
     alignSelf: "center",
@@ -159,11 +272,6 @@ const styles = StyleSheet.create({
   buttonOption: {
     flexDirection: "row", // icon | text | chevron in one row
     alignItems: "center",
-    gap: 16,
-    minHeight: 104, // grows with large text instead of clipping
-    paddingVertical: 18,
-    paddingHorizontal: 18,
-    borderRadius: 28,
     borderWidth: 2,
     borderColor: lighterBlue,
     backgroundColor: WHITE,
@@ -180,31 +288,25 @@ const styles = StyleSheet.create({
     opacity: 0.9,
   },
   iconCircle: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
     alignItems: "center",
     justifyContent: "center",
   },
   buttonTextContainer: {
     flex: 1, // takes the space between icon and chevron, lets text wrap
-    gap: 4,
   },
   buttonTitle: {
-    fontSize: 22,
     fontWeight: "800",
     color: "black",
   },
   buttonSubtitle: {
-    fontSize: 16,
-    lineHeight: 22,
     color: "black",
   },
+  backLink: {
+    alignSelf: "center",
+  },
   backText: {
-    fontSize: 32,
     textDecorationLine: "underline",
     color: WHITE,
     textAlign: "center",
-    marginTop: 24,
   },
 });
