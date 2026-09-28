@@ -9,6 +9,7 @@ import Svg, { ClipPath, Defs, G, Path, Rect } from "react-native-svg";
 const INK = "#15163A";
 const SUBTITLE = "#54566E";
 const PRIMARY = "#4338CA";
+const BACKGROUND = "#F5F4FA";
 
 export default function HomeScreen() {
   return (
@@ -78,6 +79,7 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
+    backgroundColor: BACKGROUND,
   },
   logoheader: {
     flexDirection: "row",
