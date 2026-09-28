@@ -41,7 +41,10 @@ export default function whoUsesMira() {
           </AppText>
         </View>
         <View style={styles.optionsContainer}>
-          <Pressable style={styles.optionButton}>
+          <Pressable 
+            style={({ pressed }) => [styles.optionButton, pressed && styles.pressed]}
+            accessibilityLabel="button"
+            >
             <View style={styles.optionButtonContent}>
               <View style={styles.optionButtonIcon}>
                 <Svg width={28} height={28} viewBox="0 0 28 28" fill="none">
@@ -75,7 +78,10 @@ export default function whoUsesMira() {
               </View>
             </View>
           </Pressable>
-          <Pressable style={styles.optionButton}>
+          <Pressable 
+            style={({ pressed }) => [styles.optionButton, pressed && styles.pressed]}
+            accessibilityLabel="button"
+            >
             <View style={styles.optionButtonContent}>
               <View style={styles.optionButtonIcon2}>
                 <Svg width={28} height={28} viewBox="0 0 28 28" fill="none">
@@ -261,5 +267,9 @@ const styles = StyleSheet.create({
     fontSize: 15,
     lineHeight: 21,
     color: CALM,
+  },
+  pressed: {
+    transform: [{ scale: 0.97 }],
+    opacity: 0.9,
   },
 });
