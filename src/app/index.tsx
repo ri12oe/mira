@@ -1,6 +1,7 @@
 import { AppText } from "@/components/app-test";
 import { FontFamily } from "@/constants/fonts";
 import { StyleSheet, View } from "react-native";
+import { WelcomeHero } from "@/components/welcome-hero"; 
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { ClipPath, Defs, G, Path, Rect } from "react-native-svg";
 
@@ -11,7 +12,7 @@ export default function HomeScreen() {
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
         <View style={styles.logoheader}>
-          <View style={styles.logo}>
+          <View>
             <Svg width={30} height={30} viewBox="0 0 30 30" fill="none">
               <G clipPath="url(#clip0_2_8)">
                 <Path
@@ -33,6 +34,9 @@ export default function HomeScreen() {
           </View>
           <AppText style={styles.headerTitle}>mira</AppText>
         </View>
+        <View style={styles.welcomeHero}>
+          <WelcomeHero />
+        </View>
       </View>
     </SafeAreaView>
   );
@@ -43,17 +47,22 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 24,
   },
-  content: {},
+  content: {
+    flex: 1,
+  },
   logoheader: {
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
     marginTop: 64,
   },
-  logo: {},
   headerTitle: {
     fontFamily: FontFamily.extraBold,
     fontSize: 28,
     color: INK,
   },
+  welcomeHero: {
+    marginTop: 48.2,
+    alignItems: "center",
+  }
 });
