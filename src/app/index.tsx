@@ -1,11 +1,12 @@
 import { AppText } from "@/components/app-test";
-import { FontFamily } from "@/constants/fonts";
+import { WelcomeHero } from "@/components/welcome-hero";
+import { FontFamily, FigtreeFont } from "@/constants/fonts";
 import { StyleSheet, View } from "react-native";
-import { WelcomeHero } from "@/components/welcome-hero"; 
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { ClipPath, Defs, G, Path, Rect } from "react-native-svg";
 
 const INK = "#15163A";
+const SUBTITLE = "#54566E";
 
 export default function HomeScreen() {
   return (
@@ -37,6 +38,14 @@ export default function HomeScreen() {
         <View style={styles.welcomeHero}>
           <WelcomeHero />
         </View>
+        <View style={styles.callout}>
+          <AppText style={styles.calloutHeader}>
+            A daily check-in that keeps family close.
+          </AppText>
+          <AppText style={styles.calloutBody}>
+            One tap a day lets the people who love you know you're okay.
+          </AppText>
+        </View>
       </View>
     </SafeAreaView>
   );
@@ -64,5 +73,23 @@ const styles = StyleSheet.create({
   welcomeHero: {
     marginTop: 48.2,
     alignItems: "center",
-  }
+  },
+  callout: {
+    gap: 14,
+    marginTop: 48.5,
+  },
+  calloutHeader: {
+    color: INK,
+    fontSize: 38,
+    fontWeight: 700,
+    lineHeight: 41.04,
+    letterSpacing: -1,
+    fontFamily: FontFamily.bold,
+  }, 
+  calloutBody: {
+    fontSize: 17,
+    fontFamily: FigtreeFont.medium,
+    color: SUBTITLE,
+    lineHeight: 24.65,
+  },
 });

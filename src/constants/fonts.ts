@@ -7,3 +7,10 @@ export const FontFamily = {
   bold: 'BricolageGrotesque-Bold',
   extraBold: 'BricolageGrotesque-ExtraBold',
 } as const;
+
+export const FigtreeFont = {
+  regular: 'Figtree',
+  medium: 'Figtree-Medium',
+  semiBold: 'Figtree-SemiBold',
+  bold: 'Figtree-Bold',
+} as const;

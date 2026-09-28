@@ -6,13 +6,19 @@ import {
   BricolageGrotesque_600SemiBold,
   BricolageGrotesque_700Bold,
   BricolageGrotesque_800ExtraBold,
-} from '@expo-google-fonts/bricolage-grotesque';
-import { useFonts } from 'expo-font';
-import { Stack } from 'expo-router';
-import * as SplashScreen from 'expo-splash-screen';
-import { useEffect } from 'react';
+} from "@expo-google-fonts/bricolage-grotesque";
+import {
+  Figtree_400Regular,
+  Figtree_500Medium,
+  Figtree_600SemiBold,
+  Figtree_700Bold,
+} from "@expo-google-fonts/figtree";
+import { useFonts } from "expo-font";
+import { Stack } from "expo-router";
+import * as SplashScreen from "expo-splash-screen";
+import { useEffect } from "react";
 
-import { FontFamily } from '@/constants/fonts';
+import { FigtreeFont, FontFamily } from "@/constants/fonts";
 
 // Keep the splash screen up until the fonts are ready
 SplashScreen.preventAutoHideAsync();
@@ -26,6 +32,11 @@ export default function RootLayout() {
     [FontFamily.semiBold]: BricolageGrotesque_600SemiBold,
     [FontFamily.bold]: BricolageGrotesque_700Bold,
     [FontFamily.extraBold]: BricolageGrotesque_800ExtraBold,
+    
+    [FigtreeFont.regular]: Figtree_400Regular,
+    [FigtreeFont.medium]: Figtree_500Medium,
+    [FigtreeFont.semiBold]: Figtree_600SemiBold,
+    [FigtreeFont.bold]: Figtree_700Bold,
   });
 
   useEffect(() => {
