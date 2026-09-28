@@ -51,7 +51,7 @@ export default function HomeScreen() {
           <Pressable style={styles.button}>
             <AppText style={styles.buttonText}>Get Started</AppText>
           </Pressable>
-          <Pressable style={styles.buttonSecondary}>
+          <Pressable>
             <AppText style={styles.buttonTextSecondary}>
               I already have an account
             </AppText>
@@ -118,7 +118,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignSelf: "stretch",
   },
-  buttonSecondary: {},
   buttonText: {
     color: "#fff",
     fontFamily: FigtreeFont.bold,
