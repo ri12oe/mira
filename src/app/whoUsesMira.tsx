@@ -10,7 +10,9 @@ const SUBTITLE = "#54566E";
 const PRIMARY = "#4338CA";
 const BACKGROUND = "#F5F4FA";
 const BORDERCOLOR = "#E6E4EF";
+const MINT = "#DDF3EE";
 const SUN = "#FFE8DB";
+const CALM = "#134A40";
 export default function whoUsesMira() {
   return (
     <SafeAreaView style={styles.container}>
@@ -114,6 +116,28 @@ export default function whoUsesMira() {
               </View>
             </View>
           </Pressable>
+        </View>
+        <View style={styles.info}>
+          <Svg width={44} height={44} viewBox="0 0 22 22" fill="none">
+            <Path
+              d="M15.5833 10.0833H6.41665C5.40412 10.0833 4.58331 10.9041 4.58331 11.9166V16.5C4.58331 17.5125 5.40412 18.3333 6.41665 18.3333H15.5833C16.5958 18.3333 17.4166 17.5125 17.4166 16.5V11.9166C17.4166 10.9041 16.5958 10.0833 15.5833 10.0833Z"
+              stroke="#0B7A66"
+              strokeWidth={2.01667}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+            <Path
+              d="M7.33331 10.0834V7.33335C7.33331 6.36089 7.71962 5.42826 8.40725 4.74063C9.09489 4.053 10.0275 3.66669 11 3.66669C11.9724 3.66669 12.9051 4.053 13.5927 4.74063C14.2803 5.42826 14.6666 6.36089 14.6666 7.33335V10.0834"
+              stroke="#0B7A66"
+              strokeWidth={2.01667}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </Svg>
+          <AppText style={styles.infoText}>
+            Mira only shares whether a check-in happened. Never messages or
+            location.
+          </AppText>
         </View>
       </View>
     </SafeAreaView>
@@ -220,5 +244,22 @@ const styles = StyleSheet.create({
     height: 22,
     justifyContent: "center",
     alignItems: "center",
+  },
+  info: {
+    backgroundColor: MINT,
+    borderRadius: 18,
+    paddingVertical: 16,
+    paddingHorizontal: 18,
+    flexDirection: "row",
+    alignSelf: "stretch",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 14,
+  },
+  infoText: {
+    fontFamily: FigtreeFont.bold,
+    fontSize: 15,
+    lineHeight: 21,
+    color: CALM,
   },
 });
