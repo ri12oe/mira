@@ -1,11 +1,39 @@
-import { StyleSheet, View } from 'react-native';
-import { SafeAreaView,} from 'react-native-safe-area-context';
+import { AppText } from "@/components/app-test";
+import { FontFamily } from "@/constants/fonts";
+import { StyleSheet, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import Svg, { ClipPath, Defs, G, Path, Rect } from "react-native-svg";
 
+const INK = "#15163A";
 
 export default function HomeScreen() {
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.content}></View>
+      <View style={styles.content}>
+        <View style={styles.logoheader}>
+          <View style={styles.logo}>
+            <Svg width={30} height={30} viewBox="0 0 30 30" fill="none">
+              <G clipPath="url(#clip0_2_8)">
+                <Path
+                  d="M15 28C22.1797 28 28 22.1797 28 15C28 7.8203 22.1797 2 15 2C7.8203 2 2 7.8203 2 15C2 22.1797 7.8203 28 15 28Z"
+                  stroke="#4338CA"
+                  strokeWidth={3}
+                />
+                <Path
+                  d="M15 20.5C18.0376 20.5 20.5 18.0376 20.5 15C20.5 11.9624 18.0376 9.5 15 9.5C11.9624 9.5 9.5 11.9624 9.5 15C9.5 18.0376 11.9624 20.5 15 20.5Z"
+                  fill="#FF9F6B"
+                />
+              </G>
+              <Defs>
+                <ClipPath id="clip0_2_8">
+                  <Rect width={30} height={30} fill="white" />
+                </ClipPath>
+              </Defs>
+            </Svg>
+          </View>
+          <AppText style={styles.headerTitle}>mira</AppText>
+        </View>
+      </View>
     </SafeAreaView>
   );
 }
@@ -13,10 +41,19 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
-    flexDirection: 'row',
+    padding: 24,
   },
-  content: {
-
+  content: {},
+  logoheader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    marginTop: 64,
+  },
+  logo: {},
+  headerTitle: {
+    fontFamily: FontFamily.extraBold,
+    fontSize: 28,
+    color: INK,
   },
 });
