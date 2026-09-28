@@ -1,12 +1,13 @@
 import { AppText } from "@/components/app-test";
 import { WelcomeHero } from "@/components/welcome-hero";
-import { FontFamily, FigtreeFont } from "@/constants/fonts";
-import { StyleSheet, View } from "react-native";
+import { FigtreeFont, FontFamily } from "@/constants/fonts";
+import { Pressable, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { ClipPath, Defs, G, Path, Rect } from "react-native-svg";
 
 const INK = "#15163A";
 const SUBTITLE = "#54566E";
+const PRIMARY = "#4338CA";
 
 export default function HomeScreen() {
   return (
@@ -45,6 +46,16 @@ export default function HomeScreen() {
           <AppText style={styles.calloutBody}>
             One tap a day lets the people who love you know you're okay.
           </AppText>
+        </View>
+        <View style={styles.buttons}>
+          <Pressable style={styles.button}>
+            <AppText style={styles.buttonText}>Get Started</AppText>
+          </Pressable>
+          <Pressable style={styles.buttonSecondary}>
+            <AppText style={styles.buttonTextSecondary}>
+              I already have an account
+            </AppText>
+          </Pressable>
         </View>
       </View>
     </SafeAreaView>
@@ -85,11 +96,42 @@ const styles = StyleSheet.create({
     lineHeight: 41.04,
     letterSpacing: -1,
     fontFamily: FontFamily.bold,
-  }, 
+  },
   calloutBody: {
     fontSize: 17,
     fontFamily: FigtreeFont.medium,
     color: SUBTITLE,
     lineHeight: 24.65,
+  },
+  buttons: {
+    marginTop: 28,
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 8,
+  },
+  button: {
+    borderRadius: 18,
+    backgroundColor: PRIMARY,
+    paddingVertical: 18.5,
+    paddingHorizontal: 121,
+    alignItems: "center",
+    justifyContent: "center",
+    alignSelf: "stretch",
+  },
+  buttonSecondary: {},
+  buttonText: {
+    color: "#fff",
+    fontFamily: FigtreeFont.bold,
+    fontSize: 19,
+    lineHeight: 22.8,
+  },
+  buttonTextSecondary: {
+    color: INK,
+    fontFamily: FigtreeFont.bold,
+    lineHeight: 22.1,
+    fontSize: 17,
+    textDecorationLine: "underline",
+    textDecorationStyle: "solid",
+    marginTop: 8,
   },
 });
