@@ -1,6 +1,7 @@
 import { AppText } from "@/components/app-test";
 import { WelcomeHero } from "@/components/welcome-hero";
 import { FigtreeFont, FontFamily } from "@/constants/fonts";
+import { router } from "expo-router";
 import { Pressable, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { ClipPath, Defs, G, Path, Rect } from "react-native-svg";
@@ -48,10 +49,18 @@ export default function HomeScreen() {
           </AppText>
         </View>
         <View style={styles.buttons}>
-          <Pressable style={styles.button}>
+          <Pressable
+            style={({ pressed }) => [styles.button, pressed && styles.pressed]}
+            accessibilityLabel="button"
+            onPress={() => router.push("/whoUsesMira")}
+          >
             <AppText style={styles.buttonText}>Get Started</AppText>
           </Pressable>
-          <Pressable>
+          <Pressable
+            style={({ pressed }) => [styles.buttonSecondary, pressed && styles.pressed]}
+            accessibilityLabel="button"
+            onPress={() => router.push("/whoUsesMira")}
+          >
             <AppText style={styles.buttonTextSecondary}>
               I already have an account
             </AppText>
@@ -132,5 +141,11 @@ const styles = StyleSheet.create({
     textDecorationLine: "underline",
     textDecorationStyle: "solid",
     marginTop: 8,
+  },
+  pressed: {
+    transform: [{ scale: 0.97 }],
+    opacity: 0.9,
+  },
+  buttonSecondary: {
   },
 });
