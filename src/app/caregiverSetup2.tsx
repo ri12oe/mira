@@ -1,6 +1,7 @@
 import { AppText } from "@/components/app-test";
 import { BottomSheet } from "@/components/bottom-sheet";
 import { RadioCircle } from "@/components/radio-circle";
+import { ITEM_H, WheelColumn } from "@/components/wheels-column";
 import { FigtreeFont, FontFamily } from "@/constants/fonts";
 import { useCaregiverSetup } from "@/context/caregiver-setup";
 import { router } from "expo-router";
@@ -24,12 +25,25 @@ const PURPLE = "#2D2A8C";
 const ALERT = "#C43A2B";
 
 const WINDOWS = [
-  { id: "early", label: "7–9 AM", range: "7:00 AM – 9:00 AM", end: 9 * 60 },
-  { id: "mid", label: "9–11 AM", range: "9:00 AM – 11:00 AM", end: 11 * 60 },
+  {
+    id: "early",
+    label: "7–9 AM",
+    range: "7:00 AM – 9:00 AM",
+    start: 7 * 60,
+    end: 9 * 60,
+  },
+  {
+    id: "mid",
+    label: "9–11 AM",
+    range: "9:00 AM – 11:00 AM",
+    start: 9 * 60,
+    end: 11 * 60,
+  },
   {
     id: "late",
     label: "11 AM – 1 PM",
     range: "11:00 AM – 1:00 PM",
+    start: 11 * 60,
     end: 13 * 60,
   },
   // add the third one yourself
@@ -65,9 +79,11 @@ function describeDays(days: number[]): string {
 const EXTRA_OPTIONS = [15, 30, 60, 120];
 
 function formatMinutes(min: number): string {
-  if (min < 60) return `${min} minutes`;
-  const hours = min / 60;
-  return hours === 1 ? "1 hour" : `${hours} hours`;
+  const h = Math.floor(min / 60);
+  const m = min % 60;
+  if (h === 0) return `${m} minutes`;
+  const hourText = h === 1 ? "1 hour" : `${h} hours`;
+  return m === 0 ? hourText : `${hourText} ${m} min`;
 }
 
 function formatTime(totalMinutes: number): string {
@@ -82,6 +98,28 @@ function formatTime(totalMinutes: number): string {
   return `${h12}:${mm} ${period}`;
 }
 
+const HOURS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+const MINUTES = [0, 15, 30, 45];
+const PERIODS = ["AM", "PM"] as const;
+
+type Period = (typeof PERIODS)[number]; // "AM" | "PM"
+
+function toParts(total: number) {
+  const h24 = Math.floor(total / 60);
+  const minute = total % 60;
+  const period: Period = h24 < 12 ? "AM" : "PM";
+  const hour = h24 % 12 === 0 ? 12 : h24 % 12;
+  return { hour, minute, period };
+}
+
+function fromParts(hour: number, minute: number, period: Period) {
+  const h24 = (hour % 12) + (period === "PM" ? 12 : 0);
+  return h24 * 60 + minute;
+}
+
+const EXTRA_HOURS = [0, 1, 2, 3];
+const EXTRA_MINUTES = [0, 15, 30, 45];
+
 export default function CaregiverSetup2() {
   const goBack = () => {
     if (router.canGoBack()) {
@@ -91,8 +129,18 @@ export default function CaregiverSetup2() {
     }
   };
   const { displayName } = useCaregiverSetup();
-  const [windowId, setWindowId] = useState("mid");
-  const currentWindow = WINDOWS.find((w) => w.id === windowId)!;
+
+  const [start, setStart] = useState(9 * 60);
+  const [end, setEnd] = useState(11 * 60);
+  const [editing, setEditing] = useState<"from" | "until">("from");
+
+  // Which chip matches the current times? (undefined if the user picked custom times)
+  const matchingWindowId = WINDOWS.find(
+    (w) => w.start === start && w.end === end,
+  )?.id;
+  const rangeText = `${formatTime(start)} – ${formatTime(end)}`;
+  const isValid = end > start;
+
   const [days, setDays] = useState<number[]>([0, 1, 2, 3, 4, 5, 6]);
   const toggleDay = (i: number) => {
     setDays((prev) =>
@@ -103,8 +151,24 @@ export default function CaregiverSetup2() {
   };
   const [sheet, setSheet] = useState<null | "window" | "extraTime">(null);
   const [extraMinutes, setExtraMinutes] = useState(30);
-  const windowEnds = currentWindow.end;
+  const extraHour = Math.floor(extraMinutes / 60);
+  const extraMin = extraMinutes % 60;
+
+  const setExtra = (hour: number, minute: number) => {
+    const total = hour * 60 + minute;
+    setExtraMinutes(Math.max(15, total)); // never allow 0 minutes
+  };
+  const windowEnds = end;
   const alertAt = windowEnds + extraMinutes;
+
+  const editingValue = editing === "from" ? start : end;
+  const parts = toParts(editingValue);
+
+  const setEditingValue = (hour: number, minute: number, period: Period) => {
+    const next = fromParts(hour, minute, period);
+    if (editing === "from") setStart(next);
+    else setEnd(next);
+  };
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
@@ -144,12 +208,14 @@ export default function CaregiverSetup2() {
           <AppText style={styles.checkInWindowText}>Check-in window</AppText>
           <View style={styles.chips}>
             {WINDOWS.map((w) => {
-              const selected = windowId === w.id;
-
+              const selected = matchingWindowId === w.id;
               return (
                 <Pressable
                   key={w.id}
-                  onPress={() => setWindowId(w.id)}
+                  onPress={() => {
+                    setStart(w.start);
+                    setEnd(w.end);
+                  }}
                   style={[styles.chip, selected && styles.chipSelected]}
                   accessibilityRole="radio"
                   accessibilityState={{ checked: selected }}
@@ -198,9 +264,7 @@ export default function CaregiverSetup2() {
                 <AppText style={styles.windowSummaryHeader}>
                   {displayName} checks in between
                 </AppText>
-                <AppText style={styles.windowSummaryBody}>
-                  {currentWindow.range}
-                </AppText>
+                <AppText style={styles.windowSummaryBody}>{rangeText}</AppText>
               </View>
             </View>
             <Pressable
@@ -341,11 +405,14 @@ export default function CaregiverSetup2() {
       >
         <View style={styles.chips}>
           {WINDOWS.map((w) => {
-            const selected = windowId === w.id;
+            const selected = matchingWindowId === w.id;
             return (
               <Pressable
                 key={w.id}
-                onPress={() => setWindowId(w.id)}
+                onPress={() => {
+                  setStart(w.start);
+                  setEnd(w.end);
+                }}
                 style={[styles.chip, selected && styles.chipSelected]}
                 accessibilityRole="radio"
                 accessibilityState={{ checked: selected }}
@@ -359,10 +426,58 @@ export default function CaregiverSetup2() {
             );
           })}
         </View>
+        <View style={styles.fromUntil}>
+          {(["from", "until"] as const).map((which) => {
+            const active = editing === which;
+            const value = which === "from" ? start : end;
+            return (
+              <Pressable
+                key={which}
+                onPress={() => setEditing(which)}
+                style={[styles.timeBox, active && styles.timeBoxActive]}
+                accessibilityRole="button"
+                accessibilityState={{ selected: active }}
+                accessibilityLabel={`${which === "from" ? "From" : "Until"} ${formatTime(value)}`}
+              >
+                <AppText style={styles.timeBoxLabel}>
+                  {which === "from" ? "From" : "Until"}
+                </AppText>
+                <AppText style={styles.timeBoxValue}>
+                  {formatTime(value)}
+                </AppText>
+              </Pressable>
+            );
+          })}
+        </View>
 
-        <AppText style={styles.sheetNote}>
-          {displayName} checks in between {currentWindow.range}
-        </AppText>
+        <View style={styles.wheel}>
+          <View style={[styles.wheelHighlight, { pointerEvents: "none" }]} />
+          <WheelColumn
+            label="Hour"
+            items={HOURS}
+            selectedIndex={HOURS.indexOf(parts.hour)}
+            onChange={(i) =>
+              setEditingValue(HOURS[i], parts.minute, parts.period)
+            }
+          />
+          <WheelColumn
+            label="Minute"
+            items={MINUTES}
+            selectedIndex={Math.max(0, MINUTES.indexOf(parts.minute))}
+            onChange={(i) =>
+              setEditingValue(parts.hour, MINUTES[i], parts.period)
+            }
+            format={(m) => String(m).padStart(2, "0")}
+          />
+          <WheelColumn
+            label="AM or PM"
+            items={[...PERIODS]}
+            selectedIndex={PERIODS.indexOf(parts.period)}
+            onChange={(i) =>
+              setEditingValue(parts.hour, parts.minute, PERIODS[i])
+            }
+          />
+        </View>
 
         <Pressable
           style={styles.nextButton}
@@ -408,6 +523,28 @@ export default function CaregiverSetup2() {
               </Pressable>
             );
           })}
+        </View>
+
+        <AppText style={styles.orCustom}>Or pick your own</AppText>
+
+        <View style={styles.wheel}>
+          <View style={[styles.wheelHighlight, { pointerEvents: "none" }]} />
+          <WheelColumn
+            label="Hours"
+            items={EXTRA_HOURS}
+            selectedIndex={Math.max(0, EXTRA_HOURS.indexOf(extraHour))}
+            onChange={(i) => setExtra(EXTRA_HOURS[i], extraMin)}
+            format={(h) => `${h} hr`}
+            width={90}
+          />
+          <WheelColumn
+            label="Minutes"
+            items={EXTRA_MINUTES}
+            selectedIndex={Math.max(0, EXTRA_MINUTES.indexOf(extraMin))}
+            onChange={(i) => setExtra(extraHour, EXTRA_MINUTES[i])}
+            format={(m) => `${String(m).padStart(2, "0")} min`}
+            width={100}
+          />
         </View>
 
         <View style={styles.timeSummary}>
@@ -841,5 +978,59 @@ const styles = StyleSheet.create({
     lineHeight: 22.1,
     fontFamily: FigtreeFont.extraBold,
     color: ALERT,
+  },
+  fromUntil: {
+    flexDirection: "row",
+    gap: 10,
+  },
+  timeBox: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: SURFACE,
+    backgroundColor: "#fff",
+    gap: 2,
+  },
+  timeBoxActive: {
+    borderWidth: 2,
+    borderColor: PRIMARY,
+    backgroundColor: SELECTED_BG,
+    paddingVertical: 11, // 1px less, because the border grew by 1px
+    paddingHorizontal: 15,
+  },
+  timeBoxLabel: {
+    fontFamily: FigtreeFont.bold,
+    fontSize: 14,
+    color: SUBTITLE,
+    lineHeight: 18.2,
+  },
+  timeBoxValue: {
+    fontFamily: FigtreeFont.extraBold,
+    fontSize: 24,
+    color: INK,
+    lineHeight: 27.6,
+    letterSpacing: -0.4,
+  },
+  wheel: {
+    flexDirection: "row",
+    justifyContent: "center",
+    gap: 28,
+    position: "relative",
+  },
+  wheelHighlight: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    top: ITEM_H * 2,
+    height: ITEM_H,
+    borderRadius: 16,
+    backgroundColor: SELECTED_BG,
+  },
+  orCustom: {
+    fontFamily: FigtreeFont.bold,
+    fontSize: 15,
+    color: SUBTITLE,
   },
 });
