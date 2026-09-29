@@ -1,7 +1,7 @@
 import { AppText } from "@/components/app-test";
 import { FigtreeFont, FontFamily } from "@/constants/fonts";
 import { router } from "expo-router";
-import { Pressable, StyleSheet, View } from "react-native";
+import { Pressable, StyleSheet, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
 
@@ -46,6 +46,33 @@ export default function CaregiverSetup1() {
             </View>
           </View>
         </View>
+        <View style={styles.callout}>
+          <AppText style={styles.calloutText}>Who are you caring for?</AppText>
+        </View>
+        <View style={styles.information}>
+          <View style={styles.NameContainer}>
+            <AppText style={styles.inputLabel}>First Name</AppText>
+            <TextInput
+              style={styles.inputField}
+              placeholder="e.x. John"
+              accessibilityLabel="First Name"
+              placeholderTextColor="#8B8DA3"
+              autoCapitalize="words"
+              autoComplete="family-name"
+            />
+          </View>
+          <View style={styles.NameContainer}>
+            <AppText style={styles.inputLabel}>Their Phone Number</AppText>
+            <TextInput
+              style={styles.inputField}
+              placeholder="(555) 123-4567"
+              accessibilityLabel="Their Phone Number"
+              placeholderTextColor="#8B8DA3"
+              autoCapitalize="none"
+              autoComplete="tel"
+            />
+          </View>
+        </View>
       </View>
     </SafeAreaView>
   );
@@ -70,20 +97,19 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     flexShrink: 0,
-    marginTop: 36,
   },
   header: {
     flexDirection: "row",
     gap: 16,
     alignSelf: "stretch",
     alignItems: "center",
+    marginTop: 36,
   },
   barContainer: {
     alignItems: "flex-start",
     gap: 8,
     flexDirection: "column",
     flex: 1,
-    paddingTop: 24,
   },
   barText: {
     fontFamily: FigtreeFont.bold,
@@ -115,5 +141,48 @@ const styles = StyleSheet.create({
     backgroundColor: SURFACE,
     borderRadius: 3,
     flex: 1,
+  },
+  callout: {
+    alignSelf: "stretch",
+    marginTop: 24,
+  },
+  calloutText: {
+    color: INK,
+    fontFamily: FontFamily.extraBold,
+    fontSize: 32,
+    lineHeight: 35.2,
+    letterSpacing: -0.7,
+  },
+  information: {
+    marginTop: 24,
+    gap: 16,
+    flexDirection: "column",
+    alignItems: "flex-start",
+    alignSelf: "stretch",
+  },
+  NameContainer: {
+    flexDirection: "column",
+    gap: 8,
+    alignSelf: "stretch",
+    alignItems: "flex-start",
+  },
+  inputLabel: {
+    fontFamily: FigtreeFont.bold,
+    fontSize: 17,
+    color: INK,
+    lineHeight: 22.1,
+  },
+  inputField: {
+    height: 56,
+    paddingHorizontal: 16,
+    alignSelf: "stretch",
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: SURFACE,
+    backgroundColor: "#fff",
+    color: INK,
+    fontSize: 18,
+    fontFamily: FigtreeFont.bold,
+    lineHeight: 23.4,
   },
 });
