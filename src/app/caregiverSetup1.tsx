@@ -216,6 +216,17 @@ export default function CaregiverSetup1() {
             <MethodOption key={m.id} method={m} selected={method === m.id} onSelect={() => setMethod(m.id)} />
           ))}
         </View>
+
+        <View style={styles.buttons}>
+            <Pressable
+              style={({ pressed }) => [styles.nextButton, pressed && styles.pressed]}
+              accessibilityLabel="Next"
+              accessibilityRole="button"
+              onPress={() => router.push("/caregiverSetup2")}
+            >
+              <AppText style={styles.nextButtonText}>Next</AppText>
+            </Pressable>
+        </View>
       </View>
     </SafeAreaView>
   );
@@ -386,5 +397,28 @@ const styles = StyleSheet.create({
     fontFamily: FigtreeFont.medium,
     fontSize: 15,
     lineHeight: 21,
+  },
+  buttons: {
+    marginTop: 49,
+  },
+  nextButton: {
+    height: 60,
+    justifyContent: "center",
+    alignItems: "center",
+    alignSelf: "stretch",
+    flexShrink: 0,
+    borderRadius: 18,
+    backgroundColor: PRIMARY,
+  },
+  nextButtonText: {
+    color: "#fff",
+    fontFamily: FigtreeFont.bold,
+    fontSize: 19,
+    lineHeight: 22.8,
+
+  },
+  pressed: {
+    transform: [{ scale: 0.97 }],
+    opacity: 0.9,
   },
 });
