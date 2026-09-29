@@ -5,7 +5,7 @@ import { router } from "expo-router";
 import { Pressable, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
-
+import { useState } from "react";
 const INK = "#15163A";
 const SUBTITLE = "#54566E";
 const PRIMARY = "#4338CA";
@@ -18,6 +18,14 @@ const SURFACE = "#DCD9E8";
 const LILAC = "#E7E4FB";
 const SELECTED_BG = "#F1EFFD";
 const MUTED = "#8B8DA3";
+const PURPLE = "#2D2A8C";
+
+const WINDOWS = [
+  { id: "early", label: "7–9 AM", range: "7:00 AM – 9:00 AM" },
+  { id: "mid",   label: "9–11 AM", range: "9:00 AM – 11:00 AM" },
+  { id: "late",  label: "11 AM – 1 PM", range: "11:00 AM – 1:00 PM" },
+  // add the third one yourself
+];
 
 export default function CaregiverSetup2() {
   const goBack = () => {
@@ -28,6 +36,9 @@ export default function CaregiverSetup2() {
     }
   };
   const { displayName } = useCaregiverSetup();
+  const [windowId, setWindowId] = useState("mid");
+  const currentWindow = WINDOWS.find((w) => w.id === windowId)!;
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
@@ -66,15 +77,29 @@ export default function CaregiverSetup2() {
         <View style={styles.checkInWindow}>
           <AppText style={styles.checkInWindowText}>Check-in window</AppText>
           <View style={styles.chips}>
-            <Pressable style={styles.chip}>
-              <AppText style={styles.chipText}>7-9 AM</AppText>
-            </Pressable>
-            <Pressable style={styles.chip}>
-              <AppText style={styles.chipText}>9-11 AM</AppText>
-            </Pressable>
-            <Pressable style={styles.chip}>
-              <AppText style={styles.chipText}>11AM - 1PM</AppText>
-            </Pressable>
+            {WINDOWS.map((w) => {
+              const selected = windowId === w.id;
+
+              return (
+                <Pressable
+                  key={w.id}
+                  onPress={() => setWindowId(w.id)}
+                  style={[styles.chip, selected && styles.chipSelected]}
+                  accessibilityRole="radio"
+                  accessibilityState={{ checked: selected }}
+                  accessibilityLabel={w.label}
+                >
+                  <AppText
+                    style={[
+                      styles.chipText,
+                      selected && styles.chipTextSelected,
+                    ]}
+                  >
+                    {w.label}
+                  </AppText>
+                </Pressable>
+              );
+            })}
           </View>
           <View style={styles.windowSummary}>
             <View style={styles.windowSummaryContent}>
@@ -109,7 +134,7 @@ export default function CaregiverSetup2() {
                   {displayName} checks in between
                 </AppText>
                 <AppText style={styles.windowSummaryBody}>
-                  9:00 AM - 11:00 AM
+                  {currentWindow.range}
                 </AppText>
               </View>
             </View>
@@ -327,6 +352,14 @@ const styles = StyleSheet.create({
     color: INK,
     fontSize: 16,
     fontFamily: FigtreeFont.bold,
+  },
+  chipSelected: {
+    borderWidth: 2,
+    borderColor: PRIMARY,
+    backgroundColor: SELECTED_BG,
+  },
+  chipTextSelected: {
+    color: PURPLE,
   },
   windowSummary: {
     paddingVertical: 14,
