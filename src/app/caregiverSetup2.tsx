@@ -12,6 +12,7 @@ const PRIMARY = "#4338CA";
 const BACKGROUND = "#F5F4FA";
 const BORDERCOLOR = "#E6E4EF";
 const MINT = "#DDF3EE";
+const GREEN = "#075E4F";
 const SUN = "#FFE8DB";
 const SURFACE = "#DCD9E8";
 const LILAC = "#E7E4FB";
@@ -144,8 +145,87 @@ export default function CaregiverSetup2() {
             <Pressable style={styles.days}>
               <AppText style={styles.daysText}>S</AppText>
             </Pressable>
-
           </View>
+        </View>
+        <View style={styles.ifdontCheckIn}>
+          <AppText style={styles.ifdontCheckInText}>
+            If {displayName} doesn't check in
+          </AppText>
+          <View style={styles.methods}>
+            <View style={styles.reminder}>
+              <View style={styles.reminderIcon}>
+                <Svg width={22} height={22} viewBox="0 0 22 22" fill="none">
+                  <Path
+                    d="M5.5 14.6667V10.0834C5.5 8.62468 6.07946 7.22574 7.11091 6.19429C8.14236 5.16284 9.54131 4.58337 11 4.58337C12.4587 4.58337 13.8576 5.16284 14.8891 6.19429C15.9205 7.22574 16.5 8.62468 16.5 10.0834V14.6667L17.875 16.5H4.125L5.5 14.6667Z"
+                    stroke="#9A6408"
+                    strokeWidth={2.01667}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                  <Path
+                    d="M9.16669 18.7916C9.16669 19.2779 9.35984 19.7442 9.70366 20.088C10.0475 20.4318 10.5138 20.625 11 20.625C11.4863 20.625 11.9526 20.4318 12.2964 20.088C12.6402 19.7442 12.8334 19.2779 12.8334 18.7916"
+                    stroke="#9A6408"
+                    strokeWidth={2.01667}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </Svg>
+              </View>
+              <AppText style={styles.reminderText}>
+                We send {displayName} a gentle reminder
+              </AppText>
+            </View>
+            <View style={styles.divider}></View>
+            <View style={styles.alert}>
+              <View style={styles.alertIcon}>
+                <Svg width={22} height={22} viewBox="0 0 22 22" fill="none">
+                  <Path
+                    d="M11 19.25C15.5563 19.25 19.25 15.5563 19.25 11C19.25 6.44365 15.5563 2.75 11 2.75C6.44365 2.75 2.75 6.44365 2.75 11C2.75 15.5563 6.44365 19.25 11 19.25Z"
+                    stroke="#4338CA"
+                    strokeWidth={2.01667}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                  <Path
+                    d="M11 6.41663V11L13.75 12.8333"
+                    stroke="#4338CA"
+                    strokeWidth={2.01667}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </Svg>
+              </View>
+              <View style={styles.alertLabel}>
+                <AppText style={styles.alertLabelHeader}>
+                  Then wait before alerting you
+                </AppText>
+                <View style={styles.alertLabelDescription}>
+                  <AppText style={styles.alertLabelDescriptionText}>
+                    30 minutes
+                  </AppText>
+                  <AppText style={styles.alertLabelRecommend}>
+                    Recommended
+                  </AppText>
+                </View>
+              </View>
+              <Pressable>
+                <AppText style={styles.windowSummaryButtonText}>Change</AppText>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+        <View style={styles.buttons}>
+          <Pressable
+            style={({ pressed }) => [
+              styles.nextButton,
+              pressed && styles.pressed,
+            ]}
+            accessibilityLabel="Next"
+            accessibilityRole="button"
+            onPress={() => router.push("/caregiverSetup2")}
+          >
+            <AppText style={styles.nextButtonText}>Next</AppText>
+          </Pressable>
         </View>
       </View>
     </SafeAreaView>
@@ -335,5 +415,121 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: FigtreeFont.bold,
     fontWeight: 800,
+  },
+  ifdontCheckIn: {
+    marginTop: 24,
+    gap: 10,
+    flexDirection: "column",
+  },
+  ifdontCheckInText: {
+    color: INK,
+    fontSize: 17,
+    lineHeight: 22.1,
+    fontFamily: FigtreeFont.bold,
+  },
+  methods: {
+    flexDirection: "column",
+    alignItems: "flex-start",
+    alignSelf: "stretch",
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: BORDERCOLOR,
+    backgroundColor: "#fff",
+  },
+  reminder: {
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    alignItems: "center",
+    gap: 14,
+    alignSelf: "stretch",
+    flexDirection: "row",
+  },
+  reminderIcon: {
+    width: 42,
+    height: 42,
+    justifyContent: "center",
+    alignItems: "center",
+    borderRadius: 13,
+    backgroundColor: "#FFF3D1",
+  },
+  reminderText: {
+    color: INK,
+    fontSize: 16,
+    fontFamily: FigtreeFont.bold,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: "#EFEDF5",
+  },
+  alert: {
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    gap: 14,
+    alignItems: "center",
+    alignSelf: "stretch",
+    flexDirection: "row",
+  },
+  alertIcon: {
+    width: 42,
+    height: 42,
+    justifyContent: "center",
+    alignItems: "center",
+    borderRadius: 13,
+    backgroundColor: LILAC,
+  },
+  alertLabel: {
+    flexDirection: "column",
+    alignItems: "flex-start",
+    gap: 2,
+    flex: 1,
+  },
+  alertLabelHeader: {
+    alignSelf: "stretch",
+    fontSize: 16,
+    fontFamily: FigtreeFont.bold,
+    color: INK,
+  },
+  alertLabelDescription: {
+    alignItems: "center",
+    gap: 8,
+    flexDirection: "row",
+  },
+  alertLabelDescriptionText: {
+    color: SUBTITLE,
+    fontSize: 15,
+    fontFamily: FigtreeFont.bold,
+  },
+  alertLabelRecommend: {
+    paddingVertical: 2,
+    paddingHorizontal: 8,
+    alignItems: "flex-start",
+    borderRadius: 999,
+    backgroundColor: MINT,
+    color: GREEN,
+    fontFamily: FigtreeFont.bold,
+    fontWeight: 800,
+    fontSize: 12,
+  },
+  buttons: {
+    marginTop: 49,
+  },
+  nextButton: {
+    height: 60,
+    justifyContent: "center",
+    alignItems: "center",
+    alignSelf: "stretch",
+    flexShrink: 0,
+    borderRadius: 18,
+    backgroundColor: PRIMARY,
+  },
+  nextButtonText: {
+    color: "#fff",
+    fontFamily: FigtreeFont.bold,
+    fontSize: 19,
+    lineHeight: 22.8,
+  },
+  pressed: {
+    transform: [{ scale: 0.97 }],
+    opacity: 0.9,
   },
 });
