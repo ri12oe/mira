@@ -44,6 +44,7 @@ export default function whoUsesMira() {
           <Pressable 
             style={({ pressed }) => [styles.optionButton, pressed && styles.pressed]}
             accessibilityLabel="button"
+            onPress={() => router.push("/caregiverSetup1")}
             >
             <View style={styles.optionButtonContent}>
               <View style={styles.optionButtonIcon}>
@@ -169,7 +170,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     flexShrink: 0,
-    marginTop: 56,
+    marginTop: 36,
   },
   callout: {
     marginTop: 32,
