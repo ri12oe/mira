@@ -78,39 +78,73 @@ export default function CaregiverSetup2() {
           <View style={styles.windowSummary}>
             <View style={styles.windowSummaryContent}>
               <View style={styles.windowSummaryIcon}>
-              <Svg width={22} height={22} viewBox="0 0 22 22" fill="none">
-                <Path
-                  d="M3.66669 15.5834H18.3334"
-                  stroke="#C2551F"
-                  strokeWidth={2.01667}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-                <Path
-                  d="M6.41669 15.5833C6.41669 14.3678 6.89957 13.202 7.75911 12.3424C8.61866 11.4829 9.78444 11 11 11C12.2156 11 13.3814 11.4829 14.2409 12.3424C15.1005 13.202 15.5834 14.3678 15.5834 15.5833"
-                  stroke="#C2551F"
-                  strokeWidth={2.01667}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-                <Path
-                  d="M11 4.58337V7.33337M5.04169 8.70837L6.69169 9.90004M16.9584 8.70837L15.3084 9.90004"
-                  stroke="#C2551F"
-                  strokeWidth={2.01667}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </Svg>
+                <Svg width={22} height={22} viewBox="0 0 22 22" fill="none">
+                  <Path
+                    d="M3.66669 15.5834H18.3334"
+                    stroke="#C2551F"
+                    strokeWidth={2.01667}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                  <Path
+                    d="M6.41669 15.5833C6.41669 14.3678 6.89957 13.202 7.75911 12.3424C8.61866 11.4829 9.78444 11 11 11C12.2156 11 13.3814 11.4829 14.2409 12.3424C15.1005 13.202 15.5834 14.3678 15.5834 15.5833"
+                    stroke="#C2551F"
+                    strokeWidth={2.01667}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                  <Path
+                    d="M11 4.58337V7.33337M5.04169 8.70837L6.69169 9.90004M16.9584 8.70837L15.3084 9.90004"
+                    stroke="#C2551F"
+                    strokeWidth={2.01667}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </Svg>
               </View>
-          
+
               <View style={styles.windowSummaryLabel}>
-              <AppText style={styles.windowSummaryHeader}>{displayName} checks in between</AppText>
-              <AppText style={styles.windowSummaryBody}>9:00 AM - 11:00 AM</AppText>
+                <AppText style={styles.windowSummaryHeader}>
+                  {displayName} checks in between
+                </AppText>
+                <AppText style={styles.windowSummaryBody}>
+                  9:00 AM - 11:00 AM
+                </AppText>
               </View>
             </View>
             <Pressable>
               <AppText style={styles.windowSummaryButtonText}>Change</AppText>
             </Pressable>
+          </View>
+        </View>
+        <View style={styles.whichDays}>
+          <View style={styles.whichDaysHeader}>
+            <AppText style={styles.whichDaysHeaderText}>Which days</AppText>
+            <AppText style={styles.whichDaysHeaderSubText}>Every Day</AppText>
+          </View>
+          <View style={styles.whichDaysContent}>
+            <Pressable style={styles.days}>
+              <AppText style={styles.daysText}>M</AppText>
+            </Pressable>
+            <Pressable style={styles.days}>
+              <AppText style={styles.daysText}>T</AppText>
+            </Pressable>
+            <Pressable style={styles.days}>
+              <AppText style={styles.daysText}>W</AppText>
+            </Pressable>
+            <Pressable style={styles.days}>
+              <AppText style={styles.daysText}>T</AppText>
+            </Pressable>
+            <Pressable style={styles.days}>
+              <AppText style={styles.daysText}>F</AppText>
+            </Pressable>
+            <Pressable style={styles.days}>
+              <AppText style={styles.daysText}>S</AppText>
+            </Pressable>
+            <Pressable style={styles.days}>
+              <AppText style={styles.daysText}>S</AppText>
+            </Pressable>
+
           </View>
         </View>
       </View>
@@ -261,5 +295,45 @@ const styles = StyleSheet.create({
     fontFamily: FigtreeFont.bold,
     fontWeight: 800,
     fontSize: 16,
+  },
+  whichDays: {
+    marginTop: 24,
+    gap: 10,
+  },
+  whichDaysHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  whichDaysHeaderText: {
+    color: INK,
+    fontSize: 17,
+    fontFamily: FigtreeFont.bold,
+    lineHeight: 22.1,
+  },
+  whichDaysHeaderSubText: {
+    color: SUBTITLE,
+    fontSize: 15,
+    lineHeight: 21,
+    fontFamily: FigtreeFont.bold,
+  },
+  whichDaysContent: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  days: {
+    width: 44,
+    height: 44,
+    justifyContent: "center",
+    alignItems: "center",
+    borderRadius: 22,
+    backgroundColor: PRIMARY,
+  },
+  daysText: {
+    color: "#fff",
+    fontSize: 16,
+    fontFamily: FigtreeFont.bold,
+    fontWeight: 800,
   },
 });
