@@ -19,6 +19,7 @@ import * as SplashScreen from "expo-splash-screen";
 import { useEffect } from "react";
 
 import { FigtreeFont, FontFamily } from "@/constants/fonts";
+import { CaregiverSetupProvider } from "@/context/caregiver-setup";
 
 // Keep the splash screen up until the fonts are ready
 SplashScreen.preventAutoHideAsync();
@@ -32,7 +33,7 @@ export default function RootLayout() {
     [FontFamily.semiBold]: BricolageGrotesque_600SemiBold,
     [FontFamily.bold]: BricolageGrotesque_700Bold,
     [FontFamily.extraBold]: BricolageGrotesque_800ExtraBold,
-    
+
     [FigtreeFont.regular]: Figtree_400Regular,
     [FigtreeFont.medium]: Figtree_500Medium,
     [FigtreeFont.semiBold]: Figtree_600SemiBold,
@@ -46,10 +47,12 @@ export default function RootLayout() {
   if (!loaded && !error) return null;
 
   return (
-    <Stack
-      screenOptions={{
-        headerShown: false,
-      }}
-    />
+    <CaregiverSetupProvider>
+      <Stack
+        screenOptions={{
+          headerShown: false,
+        }}
+      />
+    </CaregiverSetupProvider>
   );
 }

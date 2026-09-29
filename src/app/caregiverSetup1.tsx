@@ -1,11 +1,10 @@
 import { AppText } from "@/components/app-test";
 import { FigtreeFont, FontFamily } from "@/constants/fonts";
 import { router } from "expo-router";
-import { useState } from "react";
 import { Pressable, StyleSheet, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Circle, Path } from "react-native-svg";
-
+import { useCaregiverSetup } from "@/context/caregiver-setup";
 const INK = "#15163A";
 const SUBTITLE = "#54566E";
 const PRIMARY = "#4338CA";
@@ -131,11 +130,7 @@ function MethodOption({
 }
 
 export default function CaregiverSetup1() {
-  const [firstName, setFirstName] = useState("");
-  const [phone, setPhone] = useState("");
-  const [method, setMethod] = useState<MethodId>("text");
-
-  const who = firstName.trim() || "they";
+  const { firstName, phone, method, update, displayName } = useCaregiverSetup();
   const goBack = () => {
   if (router.canGoBack()) {
     router.back();
@@ -185,7 +180,7 @@ export default function CaregiverSetup1() {
             <TextInput
               style={styles.inputField}
               value={firstName}
-              onChangeText={setFirstName}
+              onChangeText={(text) => update({ firstName: text })}
               placeholder="e.g. John"
               accessibilityLabel="First Name"
               placeholderTextColor={MUTED}
@@ -199,7 +194,7 @@ export default function CaregiverSetup1() {
             <TextInput
               style={styles.inputField}
               value={phone}
-              onChangeText={setPhone}
+              onChangeText={(text) => update({ phone: text })}
               placeholder="(555) 123-4567"
               accessibilityLabel="Their Phone Number"
               placeholderTextColor={MUTED}
@@ -211,9 +206,9 @@ export default function CaregiverSetup1() {
         </View>
 
         <View style={styles.methods} accessibilityRole="radiogroup">
-          <AppText style={styles.methodCallout}>How will {who} check in?</AppText>
+          <AppText style={styles.methodCallout}>How will {displayName} check in?</AppText>
           {METHODS.map((m) => (
-            <MethodOption key={m.id} method={m} selected={method === m.id} onSelect={() => setMethod(m.id)} />
+            <MethodOption key={m.id} method={m} selected={method === m.id} onSelect={() => update({ method: m.id })}/>
           ))}
         </View>
 
