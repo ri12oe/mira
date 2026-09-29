@@ -12,6 +12,7 @@ import {
   Figtree_500Medium,
   Figtree_600SemiBold,
   Figtree_700Bold,
+  Figtree_800ExtraBold,
 } from "@expo-google-fonts/figtree";
 import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
@@ -38,6 +39,7 @@ export default function RootLayout() {
     [FigtreeFont.medium]: Figtree_500Medium,
     [FigtreeFont.semiBold]: Figtree_600SemiBold,
     [FigtreeFont.bold]: Figtree_700Bold,
+    [FigtreeFont.extraBold]: Figtree_800ExtraBold,
   });
 
   useEffect(() => {

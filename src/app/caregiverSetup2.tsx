@@ -1,11 +1,13 @@
 import { AppText } from "@/components/app-test";
+import { BottomSheet } from "@/components/bottom-sheet";
+import { RadioCircle } from "@/components/radio-circle";
 import { FigtreeFont, FontFamily } from "@/constants/fonts";
 import { useCaregiverSetup } from "@/context/caregiver-setup";
 import { router } from "expo-router";
+import { useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
-import { useState } from "react";
 const INK = "#15163A";
 const SUBTITLE = "#54566E";
 const PRIMARY = "#4338CA";
@@ -19,13 +21,66 @@ const LILAC = "#E7E4FB";
 const SELECTED_BG = "#F1EFFD";
 const MUTED = "#8B8DA3";
 const PURPLE = "#2D2A8C";
+const ALERT = "#C43A2B";
 
 const WINDOWS = [
-  { id: "early", label: "7–9 AM", range: "7:00 AM – 9:00 AM" },
-  { id: "mid",   label: "9–11 AM", range: "9:00 AM – 11:00 AM" },
-  { id: "late",  label: "11 AM – 1 PM", range: "11:00 AM – 1:00 PM" },
+  { id: "early", label: "7–9 AM", range: "7:00 AM – 9:00 AM", end: 9 * 60 },
+  { id: "mid", label: "9–11 AM", range: "9:00 AM – 11:00 AM", end: 11 * 60 },
+  {
+    id: "late",
+    label: "11 AM – 1 PM",
+    range: "11:00 AM – 1:00 PM",
+    end: 13 * 60,
+  },
   // add the third one yourself
 ];
+const DAY_LETTERS = ["M", "T", "W", "T", "F", "S", "S"];
+const DAY_NAMES = [
+  "Monday",
+  "Tuesday",
+  "Wednesday",
+  "Thursday",
+  "Friday",
+  "Saturday",
+  "Sunday",
+];
+
+function describeDays(days: number[]): string {
+  const key = days.join(",");
+
+  if (days.length === 7) return "Every day";
+  if (days.length === 0) return "Pick at least one day";
+  if (key === "0,1,2,3,4") return "Weekdays";
+  if (key === "5,6") return "Weekends";
+
+  const names = days.map((i) => DAY_NAMES[i]);
+
+  if (names.length === 1) return `Every ${names[0]}`;
+
+  const allButLast = names.slice(0, -1).join(", ");
+  const last = names[names.length - 1];
+  return `Every ${allButLast} and ${last}`;
+}
+
+const EXTRA_OPTIONS = [15, 30, 60, 120];
+
+function formatMinutes(min: number): string {
+  if (min < 60) return `${min} minutes`;
+  const hours = min / 60;
+  return hours === 1 ? "1 hour" : `${hours} hours`;
+}
+
+function formatTime(totalMinutes: number): string {
+  const inDay = ((totalMinutes % 1440) + 1440) % 1440;
+  const h24 = Math.floor(inDay / 60);
+  const m = inDay % 60;
+
+  const period = h24 < 12 ? "AM" : "PM";
+  const h12 = h24 % 12 === 0 ? 12 : h24 % 12;
+  const mm = m.toString().padStart(2, "0");
+
+  return `${h12}:${mm} ${period}`;
+}
 
 export default function CaregiverSetup2() {
   const goBack = () => {
@@ -38,7 +93,18 @@ export default function CaregiverSetup2() {
   const { displayName } = useCaregiverSetup();
   const [windowId, setWindowId] = useState("mid");
   const currentWindow = WINDOWS.find((w) => w.id === windowId)!;
-
+  const [days, setDays] = useState<number[]>([0, 1, 2, 3, 4, 5, 6]);
+  const toggleDay = (i: number) => {
+    setDays((prev) =>
+      prev.includes(i)
+        ? prev.filter((d) => d !== i)
+        : [...prev, i].sort((a, b) => a - b),
+    );
+  };
+  const [sheet, setSheet] = useState<null | "window" | "extraTime">(null);
+  const [extraMinutes, setExtraMinutes] = useState(30);
+  const windowEnds = currentWindow.end;
+  const alertAt = windowEnds + extraMinutes;
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
@@ -128,7 +194,6 @@ export default function CaregiverSetup2() {
                   />
                 </Svg>
               </View>
-
               <View style={styles.windowSummaryLabel}>
                 <AppText style={styles.windowSummaryHeader}>
                   {displayName} checks in between
@@ -138,7 +203,11 @@ export default function CaregiverSetup2() {
                 </AppText>
               </View>
             </View>
-            <Pressable>
+            <Pressable
+              onPress={() => setSheet("window")}
+              hitSlop={10}
+              accessibilityRole="button"
+            >
               <AppText style={styles.windowSummaryButtonText}>Change</AppText>
             </Pressable>
           </View>
@@ -146,30 +215,34 @@ export default function CaregiverSetup2() {
         <View style={styles.whichDays}>
           <View style={styles.whichDaysHeader}>
             <AppText style={styles.whichDaysHeaderText}>Which days</AppText>
-            <AppText style={styles.whichDaysHeaderSubText}>Every Day</AppText>
+            <AppText style={styles.whichDaysHeaderSubText}>
+              {describeDays(days)}
+            </AppText>
           </View>
           <View style={styles.whichDaysContent}>
-            <Pressable style={styles.days}>
-              <AppText style={styles.daysText}>M</AppText>
-            </Pressable>
-            <Pressable style={styles.days}>
-              <AppText style={styles.daysText}>T</AppText>
-            </Pressable>
-            <Pressable style={styles.days}>
-              <AppText style={styles.daysText}>W</AppText>
-            </Pressable>
-            <Pressable style={styles.days}>
-              <AppText style={styles.daysText}>T</AppText>
-            </Pressable>
-            <Pressable style={styles.days}>
-              <AppText style={styles.daysText}>F</AppText>
-            </Pressable>
-            <Pressable style={styles.days}>
-              <AppText style={styles.daysText}>S</AppText>
-            </Pressable>
-            <Pressable style={styles.days}>
-              <AppText style={styles.daysText}>S</AppText>
-            </Pressable>
+            {DAY_LETTERS.map((letter, i) => {
+              const on = days.includes(i);
+
+              return (
+                <Pressable
+                  key={i}
+                  onPress={() => toggleDay(i)}
+                  style={[styles.days, on ? styles.dayOn : styles.dayOff]}
+                  accessibilityRole="checkbox"
+                  accessibilityState={{ checked: on }}
+                  accessibilityLabel={DAY_NAMES[i]}
+                >
+                  <AppText
+                    style={[
+                      styles.daysText,
+                      on ? styles.dayTextOn : styles.dayTextOff,
+                    ]}
+                  >
+                    {letter}
+                  </AppText>
+                </Pressable>
+              );
+            })}
           </View>
         </View>
         <View style={styles.ifdontCheckIn}>
@@ -226,14 +299,20 @@ export default function CaregiverSetup2() {
                 </AppText>
                 <View style={styles.alertLabelDescription}>
                   <AppText style={styles.alertLabelDescriptionText}>
-                    30 minutes
+                    {formatMinutes(extraMinutes)}
                   </AppText>
-                  <AppText style={styles.alertLabelRecommend}>
-                    Recommended
-                  </AppText>
+                  {extraMinutes === 30 && (
+                    <AppText style={styles.alertLabelRecommend}>
+                      Recommended
+                    </AppText>
+                  )}
                 </View>
               </View>
-              <Pressable>
+              <Pressable
+                onPress={() => setSheet("extraTime")}
+                hitSlop={10}
+                accessibilityRole="button"
+              >
                 <AppText style={styles.windowSummaryButtonText}>Change</AppText>
               </Pressable>
             </View>
@@ -241,9 +320,11 @@ export default function CaregiverSetup2() {
         </View>
         <View style={styles.buttons}>
           <Pressable
+            disabled={days.length === 0}
             style={({ pressed }) => [
               styles.nextButton,
               pressed && styles.pressed,
+              days.length === 0 && styles.disabled,
             ]}
             accessibilityLabel="Next"
             accessibilityRole="button"
@@ -253,6 +334,114 @@ export default function CaregiverSetup2() {
           </Pressable>
         </View>
       </View>
+      <BottomSheet
+        visible={sheet === "window"}
+        title="Check-in window"
+        onClose={() => setSheet(null)}
+      >
+        <View style={styles.chips}>
+          {WINDOWS.map((w) => {
+            const selected = windowId === w.id;
+            return (
+              <Pressable
+                key={w.id}
+                onPress={() => setWindowId(w.id)}
+                style={[styles.chip, selected && styles.chipSelected]}
+                accessibilityRole="radio"
+                accessibilityState={{ checked: selected }}
+              >
+                <AppText
+                  style={[styles.chipText, selected && styles.chipTextSelected]}
+                >
+                  {w.label}
+                </AppText>
+              </Pressable>
+            );
+          })}
+        </View>
+
+        <AppText style={styles.sheetNote}>
+          {displayName} checks in between {currentWindow.range}
+        </AppText>
+
+        <Pressable
+          style={styles.nextButton}
+          onPress={() => setSheet(null)}
+          accessibilityRole="button"
+        >
+          <AppText style={styles.nextButtonText}>Save</AppText>
+        </Pressable>
+      </BottomSheet>
+      <BottomSheet
+        visible={sheet === "extraTime"}
+        title="Extra time before alerts"
+        subtitle="After the window ends, how long should we wait before alerting you?"
+        onClose={() => setSheet(null)}
+      >
+        <View style={styles.optionList}>
+          {EXTRA_OPTIONS.map((min, index) => {
+            const selected = extraMinutes === min;
+            const isLast = index === EXTRA_OPTIONS.length - 1;
+            return (
+              <Pressable
+                key={min}
+                onPress={() => setExtraMinutes(min)}
+                style={[
+                  styles.optionRow,
+                  selected && styles.optionRowSelected,
+                  !isLast && styles.optionRowDivider,
+                ]}
+                accessibilityRole="radio"
+                accessibilityState={{ checked: selected }}
+              >
+                <View style={styles.optionLabel}>
+                  <AppText style={styles.optionText}>
+                    {formatMinutes(min)}
+                  </AppText>
+                  {min === 30 && (
+                    <AppText style={styles.alertLabelRecommend}>
+                      Recommended
+                    </AppText>
+                  )}
+                </View>
+                <RadioCircle selected={selected} />
+              </Pressable>
+            );
+          })}
+        </View>
+
+        <View style={styles.timeSummary}>
+          <View style={styles.timeSummaryEnds}>
+            <AppText style={styles.timeSummaryText}>Windows ends</AppText>
+            <AppText style={styles.timeSummaryTime}>
+              {formatTime(windowEnds)}
+            </AppText>
+          </View>
+          <Svg width={48} height={12} viewBox="0 0 48 12" fill="none">
+            <Path
+              d="M2 6H42M36 11L42 6L36 1"
+              stroke="#8B8DA3"
+              strokeWidth={2}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </Svg>
+          <View style={styles.timeSummaryAlert}>
+            <AppText style={styles.timeSummaryText}>You're alerted</AppText>
+            <AppText style={styles.timeSummaryTimeHightlighted}>
+              {formatTime(alertAt)}
+            </AppText>
+          </View>
+        </View>
+
+        <Pressable
+          style={styles.nextButton}
+          onPress={() => setSheet(null)}
+          accessibilityRole="button"
+        >
+          <AppText style={styles.nextButtonText}>Save</AppText>
+        </Pressable>
+      </BottomSheet>
     </SafeAreaView>
   );
 }
@@ -400,13 +589,11 @@ const styles = StyleSheet.create({
   windowSummaryBody: {
     color: INK,
     fontSize: 18,
-    fontFamily: FigtreeFont.bold,
-    fontWeight: 800,
+    fontFamily: FigtreeFont.extraBold,
   },
   windowSummaryButtonText: {
     color: PRIMARY,
-    fontFamily: FigtreeFont.bold,
-    fontWeight: 800,
+    fontFamily: FigtreeFont.extraBold,
     fontSize: 16,
   },
   whichDays: {
@@ -429,6 +616,9 @@ const styles = StyleSheet.create({
     fontSize: 15,
     lineHeight: 21,
     fontFamily: FigtreeFont.bold,
+    flexShrink: 1,
+    textAlign: "right",
+    marginLeft: 12,
   },
   whichDaysContent: {
     flexDirection: "row",
@@ -441,13 +631,24 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     borderRadius: 22,
+  },
+  dayOn: {
     backgroundColor: PRIMARY,
   },
+  dayOff: {
+    backgroundColor: "#fff",
+    borderWidth: 1,
+    borderColor: SURFACE,
+  },
   daysText: {
-    color: "#fff",
     fontSize: 16,
     fontFamily: FigtreeFont.bold,
-    fontWeight: 800,
+  },
+  dayTextOn: {
+    color: "#fff",
+  },
+  dayTextOff: {
+    color: INK,
   },
   ifdontCheckIn: {
     marginTop: 24,
@@ -539,8 +740,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     backgroundColor: MINT,
     color: GREEN,
-    fontFamily: FigtreeFont.bold,
-    fontWeight: 800,
+    fontFamily: FigtreeFont.extraBold,
     fontSize: 12,
   },
   buttons: {
@@ -564,5 +764,82 @@ const styles = StyleSheet.create({
   pressed: {
     transform: [{ scale: 0.97 }],
     opacity: 0.9,
+  },
+  disabled: {
+    opacity: 0.4,
+  },
+  sheetNote: {
+    fontFamily: FigtreeFont.medium,
+    fontSize: 16,
+    color: SUBTITLE,
+  },
+  optionList: {
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: BORDERCOLOR,
+    overflow: "hidden",
+  },
+  optionRow: {
+    height: 56,
+    paddingHorizontal: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: "#fff",
+  },
+  optionRowSelected: {
+    backgroundColor: SELECTED_BG,
+  },
+  optionRowDivider: {
+    borderBottomWidth: 1,
+    borderBottomColor: "#EFEDF5",
+  },
+  optionLabel: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  optionText: {
+    fontFamily: FigtreeFont.bold,
+    fontSize: 17,
+    color: INK,
+  },
+  timeSummary: {
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    justifyContent: "space-between",
+    alignItems: "center",
+    alignSelf: "stretch",
+    flexDirection: "row",
+    borderRadius: 16,
+    backgroundColor: BACKGROUND,
+  },
+  timeSummaryEnds: {
+    flexDirection: "column",
+    alignItems: "flex-start",
+    gap: 2,
+  },
+  timeSummaryText: {
+    fontFamily: FigtreeFont.extraBold,
+    fontSize: 13,
+    lineHeight: 16.9,
+    color: SUBTITLE,
+  },
+  timeSummaryTime: {
+    color: INK,
+    fontSize: 17,
+    lineHeight: 22.1,
+    fontFamily: FigtreeFont.extraBold,
+  },
+  timeSummaryAlert: {
+    flexDirection: "column",
+    alignItems: "flex-end",
+    gap: 2,
+  },
+  timeSummaryTimeHightlighted: {
+    fontSize: 17,
+    lineHeight: 22.1,
+    fontFamily: FigtreeFont.extraBold,
+    color: ALERT,
   },
 });

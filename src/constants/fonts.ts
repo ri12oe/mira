@@ -13,4 +13,5 @@ export const FigtreeFont = {
   medium: 'Figtree-Medium',
   semiBold: 'Figtree-SemiBold',
   bold: 'Figtree-Bold',
+  extraBold: "Figtree_800ExtraBold",
 } as const;
