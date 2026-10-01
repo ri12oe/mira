@@ -392,7 +392,7 @@ export default function CaregiverSetup2() {
             ]}
             accessibilityLabel="Next"
             accessibilityRole="button"
-            onPress={() => router.push("/caregiverSetup2")}
+            onPress={() => router.push("/caregiverSetup3")}
           >
             <AppText style={styles.nextButtonText}>Next</AppText>
           </Pressable>
@@ -643,7 +643,7 @@ const styles = StyleSheet.create({
   },
   calloutText: {
     color: INK,
-    fontFamily: FontFamily.extraBold,
+    fontFamily: FontFamily.bold,
     fontSize: 32,
     lineHeight: 35.2,
     letterSpacing: -0.7,

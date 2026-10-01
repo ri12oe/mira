@@ -280,7 +280,7 @@ const styles = StyleSheet.create({
   },
   calloutText: {
     color: INK,
-    fontFamily: FontFamily.extraBold,
+    fontFamily: FontFamily.bold,
     fontSize: 32,
     lineHeight: 35.2,
     letterSpacing: -0.7,
