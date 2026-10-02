@@ -1,4 +1,5 @@
 import { AppText } from "@/components/app-test";
+import { BottomSheet } from "@/components/bottom-sheet";
 import { FigtreeFont, FontFamily } from "@/constants/fonts";
 import { CheckInMethod, useCaregiverSetup } from "@/context/caregiver-setup";
 import { router } from "expo-router";
@@ -33,21 +34,20 @@ type BackupContact = {
 };
 
 export default function CaregiverSetup3() {
-  const { firstName, method } = useCaregiverSetup();
+  const { firstName, phone, method, update, displayName } = useCaregiverSetup();
   const recipientName = firstName.trim() || "Caregiver";
   const [backups, setBackups] = useState<BackupContact[]>([]);
-  const [isEditingBackup, setIsEditingBackup] = useState(false);
+  const [sheet, setSheet] = useState<null | "backup">(null);
   const [editingBackupIndex, setEditingBackupIndex] = useState<number | null>(
     null,
   );
   const [backupName, setBackupName] = useState("");
   const [backupRelationship, setBackupRelationship] = useState("");
-
   const startEditingBackup = (index: number) => {
     setBackupName(backups[index].name);
     setBackupRelationship(backups[index].relationship);
     setEditingBackupIndex(index);
-    setIsEditingBackup(true);
+    setSheet("backup");
   };
 
   const saveBackup = () => {
@@ -63,7 +63,14 @@ export default function CaregiverSetup3() {
             index === editingBackupIndex ? backup : item,
           ),
     );
-    setIsEditingBackup(false);
+    setSheet(null);
+  };
+
+  const openAddBackup = () => {
+    setBackupName("");
+    setBackupRelationship("");
+    setEditingBackupIndex(null);
+    setSheet("backup");
   };
 
   return (
@@ -157,50 +164,12 @@ export default function CaregiverSetup3() {
               </View>
             ))}
           </View>
-          {isEditingBackup && (
-            <View style={styles.backupForm}>
-              <TextInput
-                style={styles.backupInput}
-                value={backupName}
-                onChangeText={setBackupName}
-                placeholder="Backup contact name"
-                placeholderTextColor={MUTED}
-                accessibilityLabel="Backup contact name"
-                autoCapitalize="words"
-              />
-              <TextInput
-                style={styles.backupInput}
-                value={backupRelationship}
-                onChangeText={setBackupRelationship}
-                placeholder="Relationship to them"
-                placeholderTextColor={MUTED}
-                accessibilityLabel="Relationship to care recipient"
-                autoCapitalize="words"
-              />
-              <View style={styles.backupFormActions}>
-                <Pressable
-                  onPress={() => setIsEditingBackup(false)}
-                  accessibilityRole="button"
-                >
-                  <AppText style={styles.editButtonText}>Cancel</AppText>
-                </Pressable>
-                <Pressable
-                  onPress={saveBackup}
-                  disabled={!backupName.trim() || !backupRelationship.trim()}
-                  accessibilityRole="button"
-                  accessibilityLabel="Save backup contact"
-                  style={[
-                    styles.saveBackupButton,
-                    (!backupName.trim() || !backupRelationship.trim()) &&
-                      styles.saveBackupButtonDisabled,
-                  ]}
-                >
-                  <AppText style={styles.saveBackupButtonText}>Save</AppText>
-                </Pressable>
-              </View>
-            </View>
-          )}
-          <Pressable style={styles.addButton}>
+          <Pressable
+            style={styles.addButton}
+            onPress={openAddBackup}
+            accessibilityRole="button"
+            accessibilityLabel="Add another backup"
+          >
             <Svg width={20} height={20} viewBox="0 0 20 20" fill="none">
               <Path
                 d="M9.99996 4.16663V15.8333M4.16663 9.99996H15.8333"
@@ -214,6 +183,43 @@ export default function CaregiverSetup3() {
           </Pressable>
         </View>
       </View>
+      <BottomSheet
+        visible={sheet === "backup"}
+        title="Add a backup contact"
+        subtitle="If Lin misses a check-in and you don't respond, we'll tell them."
+        onClose={() => setSheet(null)}
+      >
+        <View style={styles.userInfo}>
+          <View style={styles.nameField}>
+            <AppText style={styles.headerText}>Name</AppText>
+            <TextInput
+              style={styles.inputField}
+              value={firstName}
+              onChangeText={(text) => update({ firstName: text })}
+              placeholder="e.g. John"
+              accessibilityLabel="First Name"
+              placeholderTextColor={MUTED}
+              autoCapitalize="words"
+              autoComplete="given-name"
+              textContentType="givenName"
+            />
+          </View>
+          <View style={styles.nameField}>
+            <AppText style={styles.headerText}>Phone</AppText>
+            <TextInput
+              style={styles.inputField}
+              value={phone}
+              onChangeText={(text) => update({ phone: text })}
+              placeholder="(555) 123-4567"
+              accessibilityLabel="Their Phone Number"
+              placeholderTextColor={MUTED}
+              keyboardType="phone-pad"
+              autoComplete="tel"
+              textContentType="telephoneNumber"
+            />
+          </View>
+        </View>
+      </BottomSheet>
     </SafeAreaView>
   );
 }
@@ -399,47 +405,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: FigtreeFont.extraBold,
   },
-  backupForm: {
-    alignSelf: "stretch",
-    gap: 10,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: BORDERCOLOR,
-    borderRadius: 16,
-    backgroundColor: "#fff",
-  },
-  backupInput: {
-    minHeight: 48,
-    paddingHorizontal: 14,
-    borderWidth: 1,
-    borderColor: BORDERCOLOR,
-    borderRadius: 12,
-    color: INK,
-    fontFamily: FigtreeFont.medium,
-    fontSize: 16,
-  },
-  backupFormActions: {
-    flexDirection: "row",
-    justifyContent: "flex-end",
-    alignItems: "center",
-    gap: 20,
-    paddingTop: 4,
-  },
-  saveBackupButton: {
-    minHeight: 42,
-    justifyContent: "center",
-    paddingHorizontal: 18,
-    borderRadius: 12,
-    backgroundColor: PRIMARY,
-  },
-  saveBackupButtonDisabled: {
-    opacity: 0.45,
-  },
-  saveBackupButtonText: {
-    color: "#fff",
-    fontFamily: FigtreeFont.extraBold,
-    fontSize: 15,
-  },
+ 
   addButton: {
     height: 52,
     justifyContent: "center",
@@ -456,5 +422,34 @@ const styles = StyleSheet.create({
     color: PRIMARY,
     fontSize: 17,
     fontFamily: FigtreeFont.extraBold,
+  },
+  userInfo: {
+    alignItems: "flex-start",
+    gap: 10,
+    alignSelf: "stretch",
+    flexDirection: "row",
+  },
+  nameField: {
+    flexDirection: "column",
+    alignItems: "flex-start",
+    gap: 8,
+    flex: 1,
+  },
+  headerText: {
+    color: INK,
+    fontSize: 16,
+    lineHeight: 20.8,
+    fontFamily: FigtreeFont.bold,
+  },
+  inputField: {
+    height: 54,
+    paddingVertical: 0,
+    paddingHorizontal: 14,
+    alignItems: "center",
+    alignSelf: "stretch",
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: SURFACE,
+    backgroundColor: "#fff",
   },
 });
