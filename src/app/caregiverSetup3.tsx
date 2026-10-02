@@ -59,7 +59,7 @@ function moveItem<T>(arr: T[], from: number, to: number): T[] {
 }
 
 export default function CaregiverSetup3() {
-  const { firstName, method, displayName } = useCaregiverSetup();
+  const { firstName, method, displayName, phone } = useCaregiverSetup();
   const recipientName = firstName.trim() || "Caregiver";
   const [rows, setRows] = useState<Row[]>([{ id: "you", kind: "you" }]);
   const nextId = useRef(0);
@@ -327,6 +327,35 @@ export default function CaregiverSetup3() {
             </Svg>
             <AppText style={styles.addButtonText}>Add another backup</AppText>
           </Pressable>
+        </View>
+        <View style={styles.invites}>
+          <View style={styles.labelRow}>
+            <AppText style={styles.labelText}>
+              We'll text {displayName} this invite
+            </AppText>
+            <Pressable>
+              <AppText style={styles.editInviteText}>Edit</AppText>
+            </Pressable>
+          </View>
+          <View style={styles.messagePreview}>
+            <View style={styles.messageToPreview}>
+              <Svg width={16} height={16} viewBox="0 0 22 22" fill="none">
+                <Path
+                  d="M3.66666 4.58337H18.3333V14.6667H8.25L3.66666 18.3334V4.58337Z"
+                  stroke="#54566E"
+                  strokeWidth={2.01667}
+                  strokeLinejoin="round"
+                />
+              </Svg>
+              <AppText style={styles.phonePreview}>TEXT TO {phone}</AppText>
+            </View>
+            <View style={styles.messageContent}>
+              <AppText style={styles.messageText}>
+                Hi {displayName}, it's Jordan. I set up Mira so I know you're
+                okay each day. Reply YES to start.
+              </AppText>
+            </View>
+          </View>
         </View>
       </View>
       <BottomSheet
@@ -769,5 +798,68 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
     gap: 8,
     alignSelf: "stretch",
+  },
+  invites: {
+    marginTop: 22,
+    flexDirection: "column",
+    alignItems: "flex-start",
+    gap: 10,
+    alignSelf: "stretch",
+  },
+  labelRow: {
+    justifyContent: "space-between",
+    alignItems: "center",
+    alignSelf: "stretch",
+    flexDirection: "row",
+  },
+  labelText: {
+    color: INK,
+    fontSize: 17,
+    lineHeight: 22.1,
+    fontFamily: FigtreeFont.bold,
+  },
+  editInviteText: {
+    color: PRIMARY,
+    fontSize: 15,
+    fontFamily: FigtreeFont.extraBold,
+  },
+  messagePreview: {
+    padding: 16,
+    flexDirection: "column",
+    alignItems: "flex-start",
+    gap: 10,
+    alignSelf: "stretch",
+    borderRadius: 20,
+    borderWidth: 1,
+    backgroundColor: "#fff",
+    borderColor: BORDERCOLOR,
+  },
+  messageToPreview: {
+    alignItems: "center",
+    gap: 8,
+    flexDirection: "row",
+  },
+  phonePreview: {
+    color: SUBTITLE,
+    fontSize: 13,
+    letterSpacing: 0.4,
+    fontFamily: FigtreeFont.extraBold,
+  },
+  messageContent: {
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    alignItems: "flex-start",
+    alignSelf: "stretch",
+    borderTopLeftRadius: 18,
+    borderTopRightRadius: 18,
+    borderBottomRightRadius: 18,
+    borderBottomLeftRadius: 6,
+    backgroundColor: SELECTED_BG,
+  },
+  messageText: {
+    color: INK,
+    fontSize: 16,
+    lineHeight: 23.2,
+    fontFamily: FigtreeFont.bold,
   },
 });
