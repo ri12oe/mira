@@ -19,6 +19,8 @@ export type CaregiverSetupData = {
   phone: string;
   yourFirstName: string;
   yourPhone: string;
+  windowStart: number; // minutes after midnight
+  windowEnd: number;
   method: CheckInMethod;
 };
 
@@ -36,6 +38,8 @@ const INITIAL: CaregiverSetupData = {
   phone: "",
   yourFirstName: "",
   yourPhone: "",
+  windowStart: 9 * 60,
+  windowEnd: 11 * 60,
   method: "text",
 };
 

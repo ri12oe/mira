@@ -4,6 +4,7 @@ import { RadioCircle } from "@/components/radio-circle";
 import { ITEM_H, WheelColumn } from "@/components/wheels-column";
 import { FigtreeFont, FontFamily } from "@/constants/fonts";
 import { useCaregiverSetup } from "@/context/caregiver-setup";
+import { formatTime } from "@/utils/format-time";
 import { router } from "expo-router";
 import { useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
@@ -86,18 +87,6 @@ function formatMinutes(min: number): string {
   return m === 0 ? hourText : `${hourText} ${m} min`;
 }
 
-function formatTime(totalMinutes: number): string {
-  const inDay = ((totalMinutes % 1440) + 1440) % 1440;
-  const h24 = Math.floor(inDay / 60);
-  const m = inDay % 60;
-
-  const period = h24 < 12 ? "AM" : "PM";
-  const h12 = h24 % 12 === 0 ? 12 : h24 % 12;
-  const mm = m.toString().padStart(2, "0");
-
-  return `${h12}:${mm} ${period}`;
-}
-
 const HOURS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
 const MINUTES = [0, 15, 30, 45];
 const PERIODS = ["AM", "PM"] as const;
@@ -128,10 +117,15 @@ export default function CaregiverSetup2() {
       router.replace("/whoUsesMira");
     }
   };
-  const { displayName } = useCaregiverSetup();
+  const {
+    displayName,
+    windowStart: start,
+    windowEnd: end,
+    update,
+  } = useCaregiverSetup();
 
-  const [start, setStart] = useState(9 * 60);
-  const [end, setEnd] = useState(11 * 60);
+  const setStart = (value: number) => update({ windowStart: value });
+  const setEnd = (value: number) => update({ windowEnd: value });
   const [editing, setEditing] = useState<"from" | "until">("from");
 
   // Which chip matches the current times? (undefined if the user picked custom times)
