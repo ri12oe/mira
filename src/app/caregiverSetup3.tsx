@@ -1,10 +1,13 @@
 import { AppText } from "@/components/app-test";
 import { BottomSheet } from "@/components/bottom-sheet";
+import { DragHandle } from "@/components/drag-handle";
+import { SegmentedSlider } from "@/components/segmented-slider";
+import { SwipeToDelete } from "@/components/swipe-to-delete";
 import { FigtreeFont, FontFamily } from "@/constants/fonts";
 import { CheckInMethod, useCaregiverSetup } from "@/context/caregiver-setup";
 import { router } from "expo-router";
-import { useState } from "react";
-import { Pressable, StyleSheet, TextInput, View } from "react-native";
+import { useRef, useState } from "react";
+import { Animated, Pressable, StyleSheet, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
 const INK = "#15163A";
@@ -28,48 +31,126 @@ const CHECK_IN_METHOD_LABELS: Record<CheckInMethod, string> = {
   app: "Mira app",
 };
 
+const RELATIONSHIPS = ["Family", "Friend", "Neighbor"];
+
+const ALERT_DELAYS = [
+  { label: "15 min", value: 15 },
+  { label: "30 min", value: 30 },
+  { label: "1 hour", value: 60 },
+];
+
 type BackupContact = {
   name: string;
+  phone: string;
   relationship: string;
+  alertAfter: number;
 };
 
+// The caregiver is a row too, so anyone can be dragged to first.
+type Row =
+  | { id: string; kind: "you" }
+  | ({ id: string; kind: "backup" } & BackupContact);
+
+function moveItem<T>(arr: T[], from: number, to: number): T[] {
+  const next = [...arr];
+  const [item] = next.splice(from, 1);
+  next.splice(to, 0, item);
+  return next;
+}
+
 export default function CaregiverSetup3() {
-  const { firstName, phone, method, update, displayName } = useCaregiverSetup();
+  const { firstName, method, displayName } = useCaregiverSetup();
   const recipientName = firstName.trim() || "Caregiver";
-  const [backups, setBackups] = useState<BackupContact[]>([]);
+  const [rows, setRows] = useState<Row[]>([{ id: "you", kind: "you" }]);
+  const nextId = useRef(0);
   const [sheet, setSheet] = useState<null | "backup">(null);
-  const [editingBackupIndex, setEditingBackupIndex] = useState<number | null>(
-    null,
-  );
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [backupName, setBackupName] = useState("");
+  const [backupPhone, setBackupPhone] = useState("");
   const [backupRelationship, setBackupRelationship] = useState("");
-  const startEditingBackup = (index: number) => {
-    setBackupName(backups[index].name);
-    setBackupRelationship(backups[index].relationship);
-    setEditingBackupIndex(index);
+  const [isCustomRelationship, setIsCustomRelationship] = useState(false);
+  const [alertAfter, setAlertAfter] = useState(30);
+
+  const [drag, setDrag] = useState<{ id: string; from: number } | null>(null);
+  const [hoverIndex, setHoverIndex] = useState(0);
+  const dragY = useRef(new Animated.Value(0)).current;
+  const rowHeight = useRef(0);
+
+  const targetIndex = (from: number, dy: number) =>
+    Math.min(
+      Math.max(Math.round(from + dy / (rowHeight.current || 1)), 0),
+      rows.length - 1,
+    );
+
+  const startDrag = (id: string, from: number) => {
+    dragY.setValue(0);
+    setHoverIndex(from);
+    setDrag({ id, from });
+  };
+
+  const moveDrag = (dy: number) => {
+    if (!drag) return;
+    dragY.setValue(dy);
+    const target = targetIndex(drag.from, dy);
+    if (target !== hoverIndex) setHoverIndex(target);
+  };
+
+  const endDrag = (dy: number) => {
+    if (!drag) return;
+    const target = targetIndex(drag.from, dy);
+    setRows((current) => moveItem(current, drag.from, target));
+    setDrag(null);
+    dragY.setValue(0);
+  };
+
+  const nudgeRow = (index: number, delta: -1 | 1) => {
+    const to = index + delta;
+    if (to < 0 || to >= rows.length) return;
+    setRows((current) => moveItem(current, index, to));
+  };
+
+  const startEditingBackup = (row: Extract<Row, { kind: "backup" }>) => {
+    setBackupName(row.name);
+    setBackupPhone(row.phone);
+    setBackupRelationship(row.relationship);
+    setAlertAfter(row.alertAfter);
+    setIsCustomRelationship(!RELATIONSHIPS.includes(row.relationship)); // a saved custom role reopens as Custom
+    setEditingId(row.id);
     setSheet("backup");
   };
 
   const saveBackup = () => {
     const name = backupName.trim();
+    const phone = backupPhone.trim();
     const relationship = backupRelationship.trim();
-    if (!name || !relationship) return;
+    if (!name || !phone || !relationship) return;
 
-    const backup = { name, relationship };
-    setBackups((current) =>
-      editingBackupIndex === null
-        ? [...current, backup]
-        : current.map((item, index) =>
-            index === editingBackupIndex ? backup : item,
+    const backup = { name, phone, relationship, alertAfter };
+    setRows((current) =>
+      editingId === null
+        ? [
+            ...current,
+            { id: `backup-${nextId.current++}`, kind: "backup", ...backup },
+          ]
+        : current.map((row) =>
+            row.id === editingId && row.kind === "backup"
+              ? { ...row, ...backup }
+              : row,
           ),
     );
     setSheet(null);
   };
 
+  const canSave =
+    !!backupName.trim() && !!backupPhone.trim() && !!backupRelationship.trim();
+
   const openAddBackup = () => {
     setBackupName("");
+    setBackupPhone("");
     setBackupRelationship("");
-    setEditingBackupIndex(null);
+    setIsCustomRelationship(false);
+    setAlertAfter(30);
+    setEditingId(null);
     setSheet("backup");
   };
 
@@ -106,63 +187,128 @@ export default function CaregiverSetup3() {
         <View style={styles.callout}>
           <AppText style={styles.calloutText}>Who should we alert?</AppText>
           <AppText style={styles.calloutSubtext}>
-            If Lin misses a check-in, we'll reach out in this order.
+            If {recipientName} misses a check-in, we'll reach out in this order.
           </AppText>
         </View>
         <View style={styles.alertOrder}>
           <View style={styles.list}>
-            <View style={styles.listItemYou}>
-              <View style={styles.listOrder}>
-                <AppText style={styles.listOrderText}>1</AppText>
-              </View>
-              <View style={styles.listAvatar}>
-                <AppText style={styles.listAvatarText}>
-                  {recipientName.charAt(0).toUpperCase()}
-                </AppText>
-              </View>
-              <View style={styles.listContent}>
-                <AppText style={styles.listContentHeader}>
-                  {recipientName}
-                </AppText>
-                <AppText style={styles.listContentSubtext}>
-                  {CHECK_IN_METHOD_LABELS[method]}
-                </AppText>
-              </View>
-              <View style={styles.pill}>
-                <AppText style={styles.pillText}>First</AppText>
-              </View>
-            </View>
-            <View style={styles.divider}></View>
-            {backups.map((backup, index) => (
-              <View key={`${backup.name}-${index}`}>
-                {index > 0 && <View style={styles.divider} />}
-                <View style={styles.listItem}>
-                  <View style={styles.listOrder}>
-                    <AppText style={styles.listOrderText}>{index + 2}</AppText>
+            {rows.map((row, index) => {
+              const isDragging = drag?.id === row.id;
+              let shift = 0;
+              if (drag && !isDragging) {
+                const h = rowHeight.current;
+                if (
+                  drag.from < hoverIndex &&
+                  index > drag.from &&
+                  index <= hoverIndex
+                )
+                  shift = -h;
+                if (
+                  drag.from > hoverIndex &&
+                  index < drag.from &&
+                  index >= hoverIndex
+                )
+                  shift = h;
+              }
+              const label = row.kind === "you" ? recipientName : row.name;
+              const handle = (
+                <DragHandle
+                  label={label}
+                  onStart={() => startDrag(row.id, index)}
+                  onMove={moveDrag}
+                  onEnd={endDrag}
+                  onNudge={(delta) => nudgeRow(index, delta)}
+                />
+              );
+              const content =
+                row.kind === "you" ? (
+                  <View style={styles.listItemYou}>
+                    <View style={styles.listOrder}>
+                      <AppText style={styles.listOrderText}>
+                        {index + 1}
+                      </AppText>
+                    </View>
+                    <View style={styles.listAvatar}>
+                      <AppText style={styles.listAvatarText}>
+                        {recipientName.charAt(0).toUpperCase()}
+                      </AppText>
+                    </View>
+                    <View style={styles.listContent}>
+                      <AppText style={styles.listContentHeader}>
+                        {recipientName}
+                      </AppText>
+                      <AppText style={styles.listContentSubtext}>
+                        {CHECK_IN_METHOD_LABELS[method]}
+                      </AppText>
+                    </View>
+                    <View style={styles.pill}>
+                      <AppText style={styles.pillText}>
+                        {index === 0 ? "First" : "Backup"}
+                      </AppText>
+                    </View>
+                    {handle}
                   </View>
-                  <View style={styles.listAvatar2}>
-                    <AppText style={styles.listAvatarText2}>
-                      {backup.name.charAt(0).toUpperCase()}
-                    </AppText>
-                  </View>
-                  <View style={styles.listContent}>
-                    <AppText style={styles.listContentHeader}>
-                      {backup.name}
-                    </AppText>
-                    <AppText style={styles.listContentSubtext}>
-                      {recipientName}'s {backup.relationship} · Backup
-                    </AppText>
-                  </View>
-                  <Pressable
-                    onPress={() => startEditingBackup(index)}
-                    accessibilityRole="button"
-                    accessibilityLabel={`Edit ${backup.name}`}
+                ) : (
+                  <SwipeToDelete
+                    label={row.name}
+                    onDelete={() =>
+                      setRows((current) =>
+                        current.filter((r) => r.id !== row.id),
+                      )
+                    }
                   >
-                    <AppText style={styles.editButtonText}>Edit</AppText>
-                  </Pressable>
-                </View>
-              </View>
-            ))}
+                    <View style={styles.listItem}>
+                      <View style={styles.listOrder}>
+                        <AppText style={styles.listOrderText}>
+                          {index + 1}
+                        </AppText>
+                      </View>
+                      <View style={styles.listAvatar2}>
+                        <AppText style={styles.listAvatarText2}>
+                          {row.name.charAt(0).toUpperCase()}
+                        </AppText>
+                      </View>
+                      <View style={styles.listContent}>
+                        <AppText style={styles.listContentHeader}>
+                          {row.name}
+                        </AppText>
+                        <AppText style={styles.listContentSubtext}>
+                          {recipientName}'s {row.relationship}
+                          {index > 0 && " · Backup"}
+                        </AppText>
+                      </View>
+                      <Pressable
+                        onPress={() => startEditingBackup(row)}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Edit ${row.name}`}
+                      >
+                        <AppText style={styles.editButtonText}>Edit</AppText>
+                      </Pressable>
+                      {handle}
+                    </View>
+                  </SwipeToDelete>
+                );
+              return (
+                <Animated.View
+                  key={row.id}
+                  onLayout={(e) => {
+                    rowHeight.current = e.nativeEvent.layout.height;
+                  }}
+                  style={[
+                    styles.rowWrap,
+                    isDragging
+                      ? [
+                          styles.rowDragging,
+                          { transform: [{ translateY: dragY }] },
+                        ]
+                      : { transform: [{ translateY: shift }] },
+                  ]}
+                >
+                  {index > 0 && <View style={styles.divider} />}
+                  {content}
+                </Animated.View>
+              );
+            })}
           </View>
           <Pressable
             style={styles.addButton}
@@ -185,39 +331,129 @@ export default function CaregiverSetup3() {
       </View>
       <BottomSheet
         visible={sheet === "backup"}
-        title="Add a backup contact"
-        subtitle="If Lin misses a check-in and you don't respond, we'll tell them."
+        title={
+          editingId === null ? "Add a backup contact" : "Edit backup contact"
+        }
+        subtitle={`If ${recipientName} misses a check-in and you don't respond, we'll tell them.`}
         onClose={() => setSheet(null)}
       >
-        <View style={styles.userInfo}>
-          <View style={styles.nameField}>
-            <AppText style={styles.headerText}>Name</AppText>
-            <TextInput
-              style={styles.inputField}
-              value={firstName}
-              onChangeText={(text) => update({ firstName: text })}
-              placeholder="e.g. John"
-              accessibilityLabel="First Name"
-              placeholderTextColor={MUTED}
-              autoCapitalize="words"
-              autoComplete="given-name"
-              textContentType="givenName"
+        <View style={styles.userInfoContainer}>
+          <View style={styles.userInfo}>
+            <View style={styles.nameField}>
+              <AppText style={styles.headerText}>Name</AppText>
+              <TextInput
+                style={styles.inputField}
+                value={backupName}
+                onChangeText={setBackupName}
+                placeholder="e.g. John"
+                accessibilityLabel="First Name"
+                placeholderTextColor={MUTED}
+                autoCapitalize="words"
+                autoComplete="given-name"
+                textContentType="givenName"
+              />
+            </View>
+            <View style={styles.nameField}>
+              <AppText style={styles.headerText}>Phone</AppText>
+              <TextInput
+                style={styles.inputField}
+                value={backupPhone}
+                onChangeText={setBackupPhone}
+                placeholder="(555) 123-4567"
+                accessibilityLabel="Their Phone Number"
+                placeholderTextColor={MUTED}
+                keyboardType="phone-pad"
+                autoComplete="tel"
+                textContentType="telephoneNumber"
+              />
+            </View>
+          </View>
+          <View style={styles.relationship}>
+            <AppText style={styles.headerText}>
+              They are {displayName}'s
+            </AppText>
+            <View style={styles.chips}>
+              {RELATIONSHIPS.map((option) => {
+                const selected =
+                  !isCustomRelationship && backupRelationship === option;
+                return (
+                  <Pressable
+                    key={option}
+                    onPress={() => {
+                      setIsCustomRelationship(false);
+                      setBackupRelationship(option);
+                    }}
+                    style={[styles.chip, selected && styles.chipSelected]}
+                    accessibilityRole="radio"
+                    accessibilityState={{ checked: selected }}
+                    accessibilityLabel={option}
+                  >
+                    <AppText
+                      style={[
+                        styles.chipText,
+                        selected && styles.chipTextSelected,
+                      ]}
+                    >
+                      {option}
+                    </AppText>
+                  </Pressable>
+                );
+              })}
+              <Pressable
+                onPress={() => {
+                  setIsCustomRelationship(true);
+                  setBackupRelationship(""); // clear a preset so the user types their own
+                }}
+                style={[
+                  styles.chip,
+                  isCustomRelationship && styles.chipSelected,
+                ]}
+                accessibilityRole="radio"
+                accessibilityState={{ checked: isCustomRelationship }}
+                accessibilityLabel="Custom"
+              >
+                <AppText
+                  style={[
+                    styles.chipText,
+                    isCustomRelationship && styles.chipTextSelected,
+                  ]}
+                >
+                  Custom
+                </AppText>
+              </Pressable>
+            </View>
+            {isCustomRelationship && (
+              <TextInput
+                style={styles.inputField}
+                value={backupRelationship}
+                onChangeText={setBackupRelationship}
+                placeholder="e.g. Coworker"
+                placeholderTextColor={MUTED}
+                accessibilityLabel="Custom relationship"
+                autoCapitalize="words"
+              />
+            )}
+          </View>
+          <View style={styles.alerts}>
+            <AppText style={styles.headerText}>Alert them after</AppText>
+            <SegmentedSlider
+              options={ALERT_DELAYS}
+              value={alertAfter}
+              onChange={setAlertAfter}
             />
           </View>
-          <View style={styles.nameField}>
-            <AppText style={styles.headerText}>Phone</AppText>
-            <TextInput
-              style={styles.inputField}
-              value={phone}
-              onChangeText={(text) => update({ phone: text })}
-              placeholder="(555) 123-4567"
-              accessibilityLabel="Their Phone Number"
-              placeholderTextColor={MUTED}
-              keyboardType="phone-pad"
-              autoComplete="tel"
-              textContentType="telephoneNumber"
-            />
-          </View>
+          <Pressable
+            onPress={saveBackup}
+            disabled={!canSave}
+            accessibilityRole="button"
+            accessibilityLabel="Save backup contact"
+            style={[
+              styles.saveBackupButton,
+              !canSave && styles.saveBackupButtonDisabled,
+            ]}
+          >
+            <AppText style={styles.saveBackupButtonText}>Add backup</AppText>
+          </Pressable>
         </View>
       </BottomSheet>
     </SafeAreaView>
@@ -312,6 +548,19 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: BORDERCOLOR,
     backgroundColor: "#fff",
+    overflow: "hidden",
+  },
+  rowWrap: {
+    alignSelf: "stretch",
+    backgroundColor: "#fff",
+  },
+  rowDragging: {
+    zIndex: 2,
+    shadowColor: "#14173B",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
   },
   listItemYou: {
     paddingVertical: 12,
@@ -405,7 +654,14 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: FigtreeFont.extraBold,
   },
- 
+
+  userInfoContainer: {
+    flexDirection: "column",
+    alignItems: "flex-start",
+    gap: 16,
+    alignSelf: "stretch",
+  },
+
   addButton: {
     height: 52,
     justifyContent: "center",
@@ -451,5 +707,67 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: SURFACE,
     backgroundColor: "#fff",
+  },
+  saveBackupButton: {
+    height: 60,
+    alignSelf: "stretch",
+    justifyContent: "center",
+    alignItems: "center",
+    borderRadius: 18,
+    backgroundColor: PRIMARY,
+  },
+  saveBackupButtonDisabled: {
+    opacity: 0.45,
+  },
+  saveBackupButtonText: {
+    color: "#fff",
+    fontFamily: FigtreeFont.extraBold,
+    fontSize: 19,
+    lineHeight: 22.8,
+  },
+  relationship: {
+    flexDirection: "column",
+    alignItems: "flex-start",
+    gap: 8,
+    alignSelf: "stretch",
+  },
+  chips: {
+    alignItems: "flex-start",
+    flexDirection: "row",
+    alignContent: "flex-start",
+    gap: 8,
+    alignSelf: "stretch",
+    flexWrap: "wrap",
+  },
+  chip: {
+    height: 44,
+    paddingVertical: 0,
+    paddingHorizontal: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: SURFACE,
+    backgroundColor: "#fff",
+  },
+  chipText: {
+    fontSize: 16,
+    fontFamily: FigtreeFont.bold,
+    lineHeight: 20.8,
+    color: INK,
+  },
+  chipSelected: {
+    borderColor: PRIMARY,
+    borderWidth: 2,
+    backgroundColor: SELECTED_BG,
+  },
+  chipTextSelected: {
+    fontFamily: FigtreeFont.extraBold,
+  },
+  alerts: {
+    flexDirection: "column",
+    alignItems: "flex-start",
+    gap: 8,
+    alignSelf: "stretch",
   },
 });
