@@ -1,4 +1,11 @@
-import { createContext, ReactNode, useCallback, useContext, useMemo, useState } from "react";
+import {
+    createContext,
+    ReactNode,
+    useCallback,
+    useContext,
+    useMemo,
+    useState,
+} from "react";
 
 /**
  * Holds everything the caregiver enters during setup (steps 1–3),
@@ -10,6 +17,8 @@ export type CheckInMethod = "text" | "call" | "app";
 export type CaregiverSetupData = {
   firstName: string;
   phone: string;
+  yourFirstName: string;
+  yourPhone: string;
   method: CheckInMethod;
 };
 
@@ -25,10 +34,14 @@ type CaregiverSetupContextValue = CaregiverSetupData & {
 const INITIAL: CaregiverSetupData = {
   firstName: "",
   phone: "",
+  yourFirstName: "",
+  yourPhone: "",
   method: "text",
 };
 
-const CaregiverSetupContext = createContext<CaregiverSetupContextValue | null>(null);
+const CaregiverSetupContext = createContext<CaregiverSetupContextValue | null>(
+  null,
+);
 
 export function CaregiverSetupProvider({ children }: { children: ReactNode }) {
   const [data, setData] = useState<CaregiverSetupData>(INITIAL);
@@ -40,17 +53,28 @@ export function CaregiverSetupProvider({ children }: { children: ReactNode }) {
   const reset = useCallback(() => setData(INITIAL), []);
 
   const value = useMemo(
-    () => ({ ...data, update, reset, displayName: data.firstName.trim() || "they" }),
-    [data, update, reset]
+    () => ({
+      ...data,
+      update,
+      reset,
+      displayName: data.firstName.trim() || "they",
+    }),
+    [data, update, reset],
   );
 
-  return <CaregiverSetupContext.Provider value={value}>{children}</CaregiverSetupContext.Provider>;
+  return (
+    <CaregiverSetupContext.Provider value={value}>
+      {children}
+    </CaregiverSetupContext.Provider>
+  );
 }
 
 export function useCaregiverSetup() {
   const ctx = useContext(CaregiverSetupContext);
   if (!ctx) {
-    throw new Error("useCaregiverSetup must be used inside <CaregiverSetupProvider>. Wrap your <Stack> in _layout.tsx.");
+    throw new Error(
+      "useCaregiverSetup must be used inside <CaregiverSetupProvider>. Wrap your <Stack> in _layout.tsx.",
+    );
   }
   return ctx;
 }

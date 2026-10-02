@@ -1,11 +1,17 @@
 import { AppText } from "@/components/app-test";
-import { FigtreeFont, FontFamily } from "@/constants/fonts";
-import { router } from "expo-router";
-import { Pressable, StyleSheet, TextInput, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import Svg, { Circle, Path } from "react-native-svg";
-import { useCaregiverSetup } from "@/context/caregiver-setup";
 import { RadioCircle } from "@/components/radio-circle";
+import { FigtreeFont, FontFamily } from "@/constants/fonts";
+import { useCaregiverSetup } from "@/context/caregiver-setup";
+import { router } from "expo-router";
+import {
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  View,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import Svg, { Path } from "react-native-svg";
 const INK = "#15163A";
 const SUBTITLE = "#54566E";
 const PRIMARY = "#4338CA";
@@ -87,8 +93,6 @@ const METHODS: Method[] = [
   },
 ];
 
-
-
 function MethodOption({
   method,
   selected,
@@ -111,10 +115,18 @@ function MethodOption({
       ]}
     >
       <View style={styles.methodButtonContent}>
-        <View style={[styles.methodButtonIcon, { backgroundColor: method.iconBg }]}>{method.icon}</View>
+        <View
+          style={[styles.methodButtonIcon, { backgroundColor: method.iconBg }]}
+        >
+          {method.icon}
+        </View>
         <View style={styles.methodButtonLabel}>
-          <AppText style={styles.methodButtonLabelHeader}>{method.title}</AppText>
-          <AppText style={styles.methodButtonLabelSubtext}>{method.subtitle}</AppText>
+          <AppText style={styles.methodButtonLabelHeader}>
+            {method.title}
+          </AppText>
+          <AppText style={styles.methodButtonLabelSubtext}>
+            {method.subtitle}
+          </AppText>
         </View>
         <RadioCircle selected={selected} />
       </View>
@@ -123,18 +135,32 @@ function MethodOption({
 }
 
 export default function CaregiverSetup1() {
-  const { firstName, phone, method, update, displayName } = useCaregiverSetup();
+  const {
+    firstName,
+    phone,
+    yourFirstName,
+    yourPhone,
+    method,
+    update,
+    displayName,
+  } = useCaregiverSetup();
   const goBack = () => {
-  if (router.canGoBack()) {
-    router.back();
-  } else {
-    router.replace("/whoUsesMira");
-  }
-};
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace("/whoUsesMira");
+    }
+  };
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.content}>
+      <ScrollView
+        style={styles.content}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        automaticallyAdjustKeyboardInsets
+      >
         <View style={styles.header}>
           <Pressable
             onPress={goBack}
@@ -196,26 +222,64 @@ export default function CaregiverSetup1() {
               textContentType="telephoneNumber"
             />
           </View>
+          <View style={styles.NameContainer}>
+            <AppText style={styles.inputLabel}>Your First Name</AppText>
+            <TextInput
+              style={styles.inputField}
+              value={yourFirstName}
+              onChangeText={(text) => update({ yourFirstName: text })}
+              placeholder="e.g. Sarah"
+              accessibilityLabel="Your First Name"
+              placeholderTextColor={MUTED}
+              autoCapitalize="words"
+              autoComplete="given-name"
+              textContentType="givenName"
+            />
+          </View>
+          <View style={styles.NameContainer}>
+            <AppText style={styles.inputLabel}>Your Phone Number</AppText>
+            <TextInput
+              style={styles.inputField}
+              value={yourPhone}
+              onChangeText={(text) => update({ yourPhone: text })}
+              placeholder="(555) 123-4567"
+              accessibilityLabel="Your Phone Number"
+              placeholderTextColor={MUTED}
+              keyboardType="phone-pad"
+              autoComplete="tel"
+              textContentType="telephoneNumber"
+            />
+          </View>
         </View>
 
         <View style={styles.methods} accessibilityRole="radiogroup">
-          <AppText style={styles.methodCallout}>How will {displayName} check in?</AppText>
+          <AppText style={styles.methodCallout}>
+            How will {displayName} check in?
+          </AppText>
           {METHODS.map((m) => (
-            <MethodOption key={m.id} method={m} selected={method === m.id} onSelect={() => update({ method: m.id })}/>
+            <MethodOption
+              key={m.id}
+              method={m}
+              selected={method === m.id}
+              onSelect={() => update({ method: m.id })}
+            />
           ))}
         </View>
 
         <View style={styles.buttons}>
-            <Pressable
-              style={({ pressed }) => [styles.nextButton, pressed && styles.pressed]}
-              accessibilityLabel="Next"
-              accessibilityRole="button"
-              onPress={() => router.push("/caregiverSetup2")}
-            >
-              <AppText style={styles.nextButtonText}>Next</AppText>
-            </Pressable>
+          <Pressable
+            style={({ pressed }) => [
+              styles.nextButton,
+              pressed && styles.pressed,
+            ]}
+            accessibilityLabel="Next"
+            accessibilityRole="button"
+            onPress={() => router.push("/caregiverSetup2")}
+          >
+            <AppText style={styles.nextButtonText}>Next</AppText>
+          </Pressable>
         </View>
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -228,6 +292,9 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     backgroundColor: BACKGROUND,
+  },
+  scrollContent: {
+    paddingBottom: 24,
   },
   backButton: {
     width: 48,
@@ -403,7 +470,6 @@ const styles = StyleSheet.create({
     fontFamily: FigtreeFont.bold,
     fontSize: 19,
     lineHeight: 22.8,
-
   },
   pressed: {
     transform: [{ scale: 0.97 }],
