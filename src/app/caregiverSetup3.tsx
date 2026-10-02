@@ -8,7 +8,14 @@ import { CheckInMethod, useCaregiverSetup } from "@/context/caregiver-setup";
 import { formatTime } from "@/utils/format-time";
 import { router } from "expo-router";
 import { useRef, useState } from "react";
-import { Animated, Pressable, StyleSheet, TextInput, View } from "react-native";
+import {
+  Animated,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
 const INK = "#15163A";
@@ -212,7 +219,11 @@ export default function CaregiverSetup3() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.content}>
+      <ScrollView
+        style={styles.content}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
         <View style={styles.header}>
           <Pressable
             onPress={() => router.back()}
@@ -434,7 +445,7 @@ export default function CaregiverSetup3() {
             <AppText style={styles.nextButtonText}>Send invite to {displayName}</AppText>
           </Pressable>
         </View>
-      </View>
+      </ScrollView>
       <BottomSheet
         visible={sheet === "backup"}
         title={
