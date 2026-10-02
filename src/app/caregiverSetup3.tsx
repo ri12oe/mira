@@ -76,9 +76,10 @@ export default function CaregiverSetup3() {
   const dragY = useRef(new Animated.Value(0)).current;
   const rowHeight = useRef(0);
 
+  // Index 0 is the caregiver and stays pinned, so backups can only land at 1 or later.
   const targetIndex = (from: number, dy: number) =>
     Math.min(
-      Math.max(Math.round(from + dy / (rowHeight.current || 1)), 0),
+      Math.max(Math.round(from + dy / (rowHeight.current || 1)), 1),
       rows.length - 1,
     );
 
@@ -90,7 +91,13 @@ export default function CaregiverSetup3() {
 
   const moveDrag = (dy: number) => {
     if (!drag) return;
-    dragY.setValue(dy);
+    // Keep the row visually inside the movable range (below the pinned caregiver, above the end).
+    const h = rowHeight.current;
+    const clamped = Math.min(
+      Math.max(dy, (1 - drag.from) * h),
+      (rows.length - 1 - drag.from) * h,
+    );
+    dragY.setValue(clamped);
     const target = targetIndex(drag.from, dy);
     if (target !== hoverIndex) setHoverIndex(target);
   };
@@ -105,7 +112,7 @@ export default function CaregiverSetup3() {
 
   const nudgeRow = (index: number, delta: -1 | 1) => {
     const to = index + delta;
-    if (to < 0 || to >= rows.length) return;
+    if (to < 1 || to >= rows.length) return;
     setRows((current) => moveItem(current, index, to));
   };
 
@@ -242,11 +249,8 @@ export default function CaregiverSetup3() {
                       </AppText>
                     </View>
                     <View style={styles.pill}>
-                      <AppText style={styles.pillText}>
-                        {index === 0 ? "First" : "Backup"}
-                      </AppText>
+                      <AppText style={styles.pillText}>First</AppText>
                     </View>
-                    {handle}
                   </View>
                 ) : (
                   <SwipeToDelete
@@ -273,8 +277,7 @@ export default function CaregiverSetup3() {
                           {row.name}
                         </AppText>
                         <AppText style={styles.listContentSubtext}>
-                          {recipientName}'s {row.relationship}
-                          {index > 0 && " · Backup"}
+                          {recipientName}'s {row.relationship} · Backup
                         </AppText>
                       </View>
                       <Pressable
