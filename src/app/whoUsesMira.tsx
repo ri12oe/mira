@@ -1,7 +1,8 @@
 import { AppText } from "@/components/app-test";
 import { FigtreeFont, FontFamily } from "@/constants/fonts";
+import { useScreenScale } from "@/hooks/use-screen-scale";
 import { router } from "expo-router";
-import { Pressable, StyleSheet, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
 
@@ -13,16 +14,23 @@ const BORDERCOLOR = "#E6E4EF";
 const MINT = "#DDF3EE";
 const SUN = "#FFE8DB";
 const CALM = "#134A40";
-export default function whoUsesMira() {
+export default function WhoUsesMira() {
+  const { space } = useScreenScale();
+
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.content}>
+      <ScrollView
+        style={styles.content}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        bounces={false}
+      >
         <Pressable
           onPress={() => router.back()}
           accessibilityLabel="Go Back"
           accessibilityRole="button"
           hitSlop={12}
-          style={styles.backButton}
+          style={[styles.backButton, { marginTop: space(36) }]}
         >
           <Svg width={22} height={22} viewBox="0 0 22 22" fill="none">
             <Path
@@ -34,13 +42,18 @@ export default function whoUsesMira() {
             />
           </Svg>
         </Pressable>
-        <View style={styles.callout}>
+        <View style={[styles.callout, { marginTop: space(32) }]}>
           <AppText style={styles.calloutHeader}>Who is using Mira?</AppText>
           <AppText style={styles.calloutBody}>
             Pick the one that fits. You can add more people later.
           </AppText>
         </View>
-        <View style={styles.optionsContainer}>
+        <View
+          style={[
+            styles.optionsContainer,
+            { marginTop: space(32), marginBottom: space(14) },
+          ]}
+        >
           <Pressable 
             style={({ pressed }) => [styles.optionButton, pressed && styles.pressed]}
             accessibilityLabel="button"
@@ -146,7 +159,7 @@ export default function whoUsesMira() {
             location.
           </AppText>
         </View>
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -155,10 +168,13 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 24,
+    backgroundColor: BACKGROUND,
   },
   content: {
     flex: 1,
-    backgroundColor: BACKGROUND,
+  },
+  scrollContent: {
+    flexGrow: 1,
   },
   backButton: {
     width: 48,
@@ -192,8 +208,7 @@ const styles = StyleSheet.create({
     alignSelf: "stretch",
   },
   optionsContainer: {
-    flex: 1,
-    marginTop: 32,
+    flexGrow: 1,
     gap: 14,
   },
   optionButton: {
@@ -268,6 +283,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
     lineHeight: 21,
     color: CALM,
+    flex: 1,
   },
   pressed: {
     transform: [{ scale: 0.97 }],

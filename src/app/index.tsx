@@ -1,8 +1,9 @@
 import { AppText } from "@/components/app-test";
 import { WelcomeHero } from "@/components/welcome-hero";
 import { FigtreeFont, FontFamily } from "@/constants/fonts";
+import { useScreenScale } from "@/hooks/use-screen-scale";
 import { router } from "expo-router";
-import { Pressable, StyleSheet, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { ClipPath, Defs, G, Path, Rect } from "react-native-svg";
 
@@ -12,10 +13,17 @@ const PRIMARY = "#4338CA";
 const BACKGROUND = "#F5F4FA";
 
 export default function HomeScreen() {
+  const { space, font } = useScreenScale();
+
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.content}>
-        <View style={styles.logoheader}>
+      <ScrollView
+        style={styles.content}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        bounces={false}
+      >
+        <View style={[styles.logoheader, { marginTop: space(64) }]}>
           <View>
             <Svg width={30} height={30} viewBox="0 0 30 30" fill="none">
               <G clipPath="url(#clip0_2_8)">
@@ -38,18 +46,23 @@ export default function HomeScreen() {
           </View>
           <AppText style={styles.headerTitle}>mira</AppText>
         </View>
-        <View style={styles.welcomeHero}>
+        <View style={[styles.welcomeHero, { marginTop: space(48.2) }]}>
           <WelcomeHero />
         </View>
-        <View style={styles.callout}>
-          <AppText style={styles.calloutHeader}>
+        <View style={[styles.callout, { marginTop: space(48.5), gap: space(14) }]}>
+          <AppText
+            style={[
+              styles.calloutHeader,
+              { fontSize: font(38), lineHeight: font(41.04) },
+            ]}
+          >
             A daily check-in that keeps family close.
           </AppText>
           <AppText style={styles.calloutBody}>
             One tap a day lets the people who love you know you're okay.
           </AppText>
         </View>
-        <View style={styles.buttons}>
+        <View style={[styles.buttons, { marginTop: space(28) }]}>
           <Pressable
             style={({ pressed }) => [styles.button, pressed && styles.pressed]}
             accessibilityLabel="button"
@@ -67,7 +80,7 @@ export default function HomeScreen() {
             </AppText>
           </Pressable>
         </View>
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -76,10 +89,15 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 24,
+    backgroundColor: BACKGROUND,
   },
   content: {
     flex: 1,
-    backgroundColor: BACKGROUND,
+    
+  },
+  // Fills the screen on any phone; only scrolls if a very short phone still cannot fit everything.
+  scrollContent: {
+    flexGrow: 1,
   },
   logoheader: {
     flexDirection: "row",
@@ -92,8 +110,12 @@ const styles = StyleSheet.create({
     fontSize: 28,
     color: INK,
   },
+  // Takes the space left over: 290 tall at most (the design size), shrinks on short phones.
   welcomeHero: {
-    marginTop: 48.2,
+    flexGrow: 1,
+    flexShrink: 0,
+    flexBasis: 150,
+    maxHeight: 290,
     alignItems: "center",
   },
   callout: {
@@ -124,7 +146,7 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     backgroundColor: PRIMARY,
     paddingVertical: 18.5,
-    paddingHorizontal: 121,
+    paddingHorizontal: 24,
     alignItems: "center",
     justifyContent: "center",
     alignSelf: "stretch",

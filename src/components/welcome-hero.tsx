@@ -1,4 +1,4 @@
-import { StyleSheet, useWindowDimensions, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import Svg, { Circle, G } from "react-native-svg";
 
 import { DOT_COLORS, DotShape } from "@/components/dot";
@@ -15,23 +15,11 @@ import { DOT_COLORS, DotShape } from "@/components/dot";
 const VB_W = 300;
 const VB_H = 290;
 
-type Props = {
-  /** Largest width it may grow to. 300 matches the design. */
-  maxWidth?: number;
-  /** Share of the screen height it may use, so short phones (iPhone SE) still fit the rest. */
-  maxHeightRatio?: number;
-  /** Horizontal padding of the screen, so it never touches the edges. */
-  horizontalPadding?: number;
-};
-
-export function WelcomeHero({ maxWidth = 300, maxHeightRatio = 0.36, horizontalPadding = 24 }: Props) {
-  const { width: screenW, height: screenH } = useWindowDimensions();
-
-  const byWidth = screenW - horizontalPadding * 2;
-  const byHeight = screenH * maxHeightRatio * (VB_W / VB_H);
-  const w = Math.min(maxWidth, byWidth, byHeight);
-  const h = w * (VB_H / VB_W);
-
+/**
+ * Fills the box it is placed in: the drawing keeps its proportions and shrinks
+ * to fit, up to its natural 300 x 290 size. Give the parent a height (or flex).
+ */
+export function WelcomeHero() {
   return (
     <View
       style={styles.wrap}
@@ -39,7 +27,7 @@ export function WelcomeHero({ maxWidth = 300, maxHeightRatio = 0.36, horizontalP
       accessibilityElementsHidden
       importantForAccessibility="no-hide-descendants"
     >
-      <Svg width={w} height={h} viewBox={`0 0 ${VB_W} ${VB_H}`}>
+      <Svg width="100%" height="100%" style={styles.svg} viewBox={`0 0 ${VB_W} ${VB_H}`}>
         {/* sunrise */}
         <Circle cx={182} cy={112} r={100} fill="#FFE8DB" />
 
@@ -63,7 +51,12 @@ export function WelcomeHero({ maxWidth = 300, maxHeightRatio = 0.36, horizontalP
 
 const styles = StyleSheet.create({
   wrap: {
-    alignItems: "center",
-    justifyContent: "center",
+    flex: 1,
+    width: "100%",
+    maxWidth: VB_W,
+    maxHeight: VB_H,
+  },
+  svg: {
+    flex: 1,
   },
 });

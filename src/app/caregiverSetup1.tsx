@@ -288,10 +288,10 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 24,
+    backgroundColor: BACKGROUND,
   },
   content: {
     flex: 1,
-    backgroundColor: BACKGROUND,
   },
   scrollContent: {
     paddingBottom: 24,

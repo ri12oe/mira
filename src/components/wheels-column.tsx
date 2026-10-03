@@ -108,6 +108,9 @@ export function WheelColumn({
           return (
             <View key={i} style={styles.row}>
               <AppText
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.7}
                 style={[
                   styles.text,
                   distance === 0 && styles.selected,
@@ -126,7 +129,12 @@ export function WheelColumn({
 }
 
 const styles = StyleSheet.create({
-  row: { height: ITEM_H, justifyContent: "center", alignItems: "center" },
+  row: {
+    height: ITEM_H,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 4,
+  },
   text: { fontFamily: FigtreeFont.bold },
   selected: {
     fontFamily: FigtreeFont.extraBold,

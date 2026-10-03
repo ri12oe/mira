@@ -1,7 +1,14 @@
 import { AppText } from "@/components/app-test";
 import { FigtreeFont, FontFamily } from "@/constants/fonts";
 import { ReactNode } from "react";
-import { Modal, Pressable, StyleSheet, View } from "react-native";
+import {
+  Modal,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  useWindowDimensions,
+  View,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
 
@@ -15,6 +22,7 @@ type Props = {
 
 export function BottomSheet({ visible, title, subtitle, onClose, children }: Props) {
   const insets = useSafeAreaInsets();
+  const { height: screenH } = useWindowDimensions();
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
@@ -22,7 +30,16 @@ export function BottomSheet({ visible, title, subtitle, onClose, children }: Pro
       <Pressable style={styles.scrim} onPress={onClose} accessibilityLabel="Close" />
 
       {/* 2. The white sheet, pinned to the bottom */}
-      <View style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 24) + 10 }]}>
+      <View
+        style={[
+          styles.sheet,
+          {
+            paddingBottom: Math.max(insets.bottom, 24) + 10,
+            // On short phones the sheet stops below the status bar and its content scrolls
+            maxHeight: screenH - insets.top - 8,
+          },
+        ]}
+      >
         {/* 3. Grey handle */}
         <View style={styles.handle} />
 
@@ -40,7 +57,15 @@ export function BottomSheet({ visible, title, subtitle, onClose, children }: Pro
         </View>
 
         {/* 5. Whatever you put inside <BottomSheet>...</BottomSheet> */}
-        {children}
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          bounces={false}
+          keyboardShouldPersistTaps="handled"
+          nestedScrollEnabled
+          contentContainerStyle={styles.body}
+        >
+          {children}
+        </ScrollView>
       </View>
     </Modal>
   );
@@ -61,6 +86,9 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 32,
     paddingTop: 12,
     paddingHorizontal: 24,
+    gap: 18,
+  },
+  body: {
     gap: 18,
   },
   handle: {

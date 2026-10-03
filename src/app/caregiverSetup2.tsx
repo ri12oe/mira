@@ -7,7 +7,7 @@ import { useCaregiverSetup } from "@/context/caregiver-setup";
 import { formatTime } from "@/utils/format-time";
 import { router } from "expo-router";
 import { useState } from "react";
-import { Pressable, StyleSheet, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
 const INK = "#15163A";
@@ -165,7 +165,12 @@ export default function CaregiverSetup2() {
   };
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.content}>
+      <ScrollView
+        style={styles.content}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        bounces={false}
+      >
         <View style={styles.header}>
           <Pressable
             onPress={goBack}
@@ -216,6 +221,9 @@ export default function CaregiverSetup2() {
                   accessibilityLabel={w.label}
                 >
                   <AppText
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                    minimumFontScale={0.75}
                     style={[
                       styles.chipText,
                       selected && styles.chipTextSelected,
@@ -258,7 +266,14 @@ export default function CaregiverSetup2() {
                 <AppText style={styles.windowSummaryHeader}>
                   {displayName} checks in between
                 </AppText>
-                <AppText style={styles.windowSummaryBody}>{rangeText}</AppText>
+                <AppText
+                  style={styles.windowSummaryBody}
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.75}
+                >
+                  {rangeText}
+                </AppText>
               </View>
             </View>
             <Pressable
@@ -391,7 +406,7 @@ export default function CaregiverSetup2() {
             <AppText style={styles.nextButtonText}>Next</AppText>
           </Pressable>
         </View>
-      </View>
+      </ScrollView>
       <BottomSheet
         visible={sheet === "window"}
         title="Check-in window"
@@ -412,6 +427,9 @@ export default function CaregiverSetup2() {
                 accessibilityState={{ checked: selected }}
               >
                 <AppText
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.75}
                   style={[styles.chipText, selected && styles.chipTextSelected]}
                 >
                   {w.label}
@@ -581,10 +599,13 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 24,
+    backgroundColor: BACKGROUND,
   },
   content: {
     flex: 1,
-    backgroundColor: BACKGROUND,
+  },
+  scrollContent: {
+    paddingBottom: 24,
   },
   backButton: {
     width: 48,
@@ -663,6 +684,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     flex: 1,
+    paddingHorizontal: 4,
     borderRadius: 16,
     borderWidth: 1,
     borderColor: SURFACE,
@@ -698,6 +720,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 14,
+    flex: 1,
   },
   windowSummaryIcon: {
     width: 42,
@@ -710,6 +733,7 @@ const styles = StyleSheet.create({
   windowSummaryLabel: {
     flexDirection: "column",
     gap: 2,
+    flex: 1,
   },
   windowSummaryHeader: {
     fontFamily: FigtreeFont.regular,
@@ -723,6 +747,7 @@ const styles = StyleSheet.create({
     fontFamily: FigtreeFont.extraBold,
   },
   windowSummaryButtonText: {
+    flexShrink: 0,
     color: PRIMARY,
     fontFamily: FigtreeFont.extraBold,
     fontSize: 16,
@@ -757,8 +782,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   days: {
-    width: 44,
-    height: 44,
+    flex: 1,
+    maxWidth: 44,
+    aspectRatio: 1,
     justifyContent: "center",
     alignItems: "center",
     borderRadius: 22,
@@ -818,6 +844,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFF3D1",
   },
   reminderText: {
+    flex: 1,
     color: INK,
     fontSize: 16,
     fontFamily: FigtreeFont.bold,
@@ -856,8 +883,10 @@ const styles = StyleSheet.create({
   },
   alertLabelDescription: {
     alignItems: "center",
-    gap: 8,
+    columnGap: 8,
+    rowGap: 4,
     flexDirection: "row",
+    flexWrap: "wrap",
   },
   alertLabelDescriptionText: {
     color: SUBTITLE,
