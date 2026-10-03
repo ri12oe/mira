@@ -115,7 +115,7 @@ export default function ConnectedScreen() {
             ]}
             accessibilityLabel="Next"
             accessibilityRole="button"
-            onPress={() => router.push("/connected")}
+            onPress={() => router.push("/caregiverHome")}
           >
             <AppText style={styles.nextButtonText}>
               Go to my dashboard
