@@ -14,6 +14,14 @@ import {
 
 export type CheckInMethod = "text" | "call" | "app";
 
+export type Backup = {
+  id: string;
+  name: string;
+  phone: string;
+  relationship: string;
+  alertAfter: number; // minutes
+};
+
 export type CaregiverSetupData = {
   firstName: string;
   phone: string;
@@ -22,6 +30,7 @@ export type CaregiverSetupData = {
   windowStart: number; // minutes after midnight
   windowEnd: number;
   method: CheckInMethod;
+  backups: Backup[]; // in alert order, after the caregiver
 };
 
 type CaregiverSetupContextValue = CaregiverSetupData & {
@@ -41,6 +50,7 @@ const INITIAL: CaregiverSetupData = {
   windowStart: 9 * 60,
   windowEnd: 11 * 60,
   method: "text",
+  backups: [],
 };
 
 const CaregiverSetupContext = createContext<CaregiverSetupContextValue | null>(

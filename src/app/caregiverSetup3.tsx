@@ -4,10 +4,14 @@ import { DragHandle } from "@/components/drag-handle";
 import { SegmentedSlider } from "@/components/segmented-slider";
 import { SwipeToDelete } from "@/components/swipe-to-delete";
 import { FigtreeFont, FontFamily } from "@/constants/fonts";
-import { CheckInMethod, useCaregiverSetup } from "@/context/caregiver-setup";
-import { formatTime } from "@/utils/format-time";
+import {
+  Backup,
+  CheckInMethod,
+  useCaregiverSetup,
+} from "@/context/caregiver-setup";
+import { formatTimeShort } from "@/utils/format-time-short";
 import { router } from "expo-router";
-import { useRef, useState } from "react";
+import { useState } from "react";
 import {
   Animated,
   Pressable,
@@ -62,17 +66,10 @@ const ALERT_DELAYS = [
   { label: "1 hour", value: 60 },
 ];
 
-type BackupContact = {
-  name: string;
-  phone: string;
-  relationship: string;
-  alertAfter: number;
-};
-
 // The caregiver is a row too, so anyone can be dragged to first.
 type Row =
   | { id: string; kind: "you" }
-  | ({ id: string; kind: "backup" } & BackupContact);
+  | (Backup & { kind: "backup" });
 
 function moveItem<T>(arr: T[], from: number, to: number): T[] {
   const next = [...arr];
@@ -90,10 +87,23 @@ export default function CaregiverSetup3() {
     yourFirstName,
     windowStart,
     windowEnd,
+    backups,
+    update,
   } = useCaregiverSetup();
   const recipientName = firstName.trim() || "Caregiver";
-  const [rows, setRows] = useState<Row[]>([{ id: "you", kind: "you" }]);
-  const nextId = useRef(0);
+  // Backups live in the setup context so the summary screen can read them.
+  const rows: Row[] = [
+    { id: "you", kind: "you" },
+    ...backups.map((b): Row => ({ ...b, kind: "backup" })),
+  ];
+  const setRows = (change: (current: Row[]) => Row[]) =>
+    update({
+      backups: change(rows).flatMap((row) => {
+        if (row.kind !== "backup") return [];
+        const { kind: _kind, ...backup } = row;
+        return [backup];
+      }),
+    });
   const [sheet, setSheet] = useState<null | "backup" | "editInvite">(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [backupName, setBackupName] = useState("");
@@ -176,7 +186,11 @@ export default function CaregiverSetup3() {
       editingId === null
         ? [
             ...current,
-            { id: `backup-${nextId.current++}`, kind: "backup", ...backup },
+            {
+              id: `backup-${Date.now()}`,
+              kind: "backup",
+              ...backup,
+            },
           ]
         : current.map((row) =>
             row.id === editingId && row.kind === "backup"
@@ -688,7 +702,7 @@ export default function CaregiverSetup3() {
               style={styles.optionChip}
               onPress={() =>
                 addToInvite(
-                  `Please check in between ${formatTime(windowStart)} and ${formatTime(windowEnd)} each day.`,
+                  `Please check in between ${formatTimeShort(windowStart)} and ${formatTimeShort(windowEnd)} each day.`,
                 )
               }
               accessibilityRole="button"

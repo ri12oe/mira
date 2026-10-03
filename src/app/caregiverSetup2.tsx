@@ -5,6 +5,7 @@ import { ITEM_H, WheelColumn } from "@/components/wheels-column";
 import { FigtreeFont, FontFamily } from "@/constants/fonts";
 import { useCaregiverSetup } from "@/context/caregiver-setup";
 import { formatTime } from "@/utils/format-time";
+import { formatTimeRange } from "@/utils/format-time-short";
 import { router } from "expo-router";
 import { useState } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
@@ -135,7 +136,7 @@ export default function CaregiverSetup2() {
   const matchingWindowId = WINDOWS.find(
     (w) => w.start === start && w.end === end,
   )?.id;
-  const rangeText = `${formatTime(start)} – ${formatTime(end)}`;
+  const rangeText = formatTimeRange(start, end);
   const isValid = end > start;
 
   const [days, setDays] = useState<number[]>([0, 1, 2, 3, 4, 5, 6]);
