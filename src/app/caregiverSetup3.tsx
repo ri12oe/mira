@@ -112,13 +112,13 @@ export default function CaregiverSetup3() {
   const inviteTexts = Math.max(1, Math.ceil(inviteLength / SMS_LENGTH));
   const [drag, setDrag] = useState<{ id: string; from: number } | null>(null);
   const [hoverIndex, setHoverIndex] = useState(0);
-  const dragY = useRef(new Animated.Value(0)).current;
-  const rowHeight = useRef(0);
+  const [dragY] = useState(() => new Animated.Value(0));
+  const [rowHeight, setRowHeight] = useState(0);
 
   // Index 0 is the caregiver and stays pinned, so backups can only land at 1 or later.
   const targetIndex = (from: number, dy: number) =>
     Math.min(
-      Math.max(Math.round(from + dy / (rowHeight.current || 1)), 1),
+      Math.max(Math.round(from + dy / (rowHeight || 1)), 1),
       rows.length - 1,
     );
 
@@ -131,7 +131,7 @@ export default function CaregiverSetup3() {
   const moveDrag = (dy: number) => {
     if (!drag) return;
     // Keep the row visually inside the movable range (below the pinned caregiver, above the end).
-    const h = rowHeight.current;
+    const h = rowHeight;
     const clamped = Math.min(
       Math.max(dy, (1 - drag.from) * h),
       (rows.length - 1 - drag.from) * h,
@@ -254,7 +254,8 @@ export default function CaregiverSetup3() {
         <View style={styles.callout}>
           <AppText style={styles.calloutText}>Who should we alert?</AppText>
           <AppText style={styles.calloutSubtext}>
-            If {recipientName} misses a check-in, we'll reach out in this order.
+            If {recipientName} misses a check-in, we&apos;ll reach out in this
+            order.
           </AppText>
         </View>
         <View style={styles.alertOrder}>
@@ -263,7 +264,7 @@ export default function CaregiverSetup3() {
               const isDragging = drag?.id === row.id;
               let shift = 0;
               if (drag && !isDragging) {
-                const h = rowHeight.current;
+                const h = rowHeight;
                 if (
                   drag.from < hoverIndex &&
                   index > drag.from &&
@@ -337,7 +338,7 @@ export default function CaregiverSetup3() {
                           {row.name}
                         </AppText>
                         <AppText style={styles.listContentSubtext}>
-                          {recipientName}'s {row.relationship} · Backup
+                          {recipientName}&apos;s {row.relationship} · Backup
                         </AppText>
                       </View>
                       <Pressable
@@ -355,7 +356,7 @@ export default function CaregiverSetup3() {
                 <Animated.View
                   key={row.id}
                   onLayout={(e) => {
-                    rowHeight.current = e.nativeEvent.layout.height;
+                    setRowHeight(e.nativeEvent.layout.height);
                   }}
                   style={[
                     styles.rowWrap,
@@ -394,7 +395,7 @@ export default function CaregiverSetup3() {
         <View style={styles.invites}>
           <View style={styles.labelRow}>
             <AppText style={styles.labelText}>
-              We'll text {displayName} this invite
+              We&apos;ll text {displayName} this invite
             </AppText>
             <Pressable
               onPress={openEditInvite}
@@ -431,7 +432,7 @@ export default function CaregiverSetup3() {
             ]}
             accessibilityLabel="Next"
             accessibilityRole="button"
-            onPress={() => router.push("/caregiverSetup3")}
+            onPress={() => router.push("/connected")}
           >
             <Svg width={20} height={20} viewBox="0 0 20 20" fill="none">
               <Path
@@ -487,7 +488,7 @@ export default function CaregiverSetup3() {
           </View>
           <View style={styles.relationship}>
             <AppText style={styles.headerText}>
-              They are {displayName}'s
+              They are {displayName}&apos;s
             </AppText>
             <View style={styles.chips}>
               {RELATIONSHIPS.map((option) => {

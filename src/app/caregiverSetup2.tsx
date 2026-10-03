@@ -266,14 +266,7 @@ export default function CaregiverSetup2() {
                 <AppText style={styles.windowSummaryHeader}>
                   {displayName} checks in between
                 </AppText>
-                <AppText
-                  style={styles.windowSummaryBody}
-                  numberOfLines={1}
-                  adjustsFontSizeToFit
-                  minimumFontScale={0.75}
-                >
-                  {rangeText}
-                </AppText>
+                <AppText style={styles.windowSummaryBody}>{rangeText}</AppText>
               </View>
             </View>
             <Pressable
@@ -320,7 +313,7 @@ export default function CaregiverSetup2() {
         </View>
         <View style={styles.ifdontCheckIn}>
           <AppText style={styles.ifdontCheckInText}>
-            If {displayName} doesn't check in
+            If {displayName} doesn&apos; check in
           </AppText>
           <View style={styles.methods}>
             <View style={styles.reminder}>
@@ -547,7 +540,7 @@ export default function CaregiverSetup2() {
             selectedIndex={Math.max(0, EXTRA_HOURS.indexOf(extraHour))}
             onChange={(i) => setExtra(EXTRA_HOURS[i], extraMin)}
             format={(h) => `${h} hr`}
-            width={90}
+            width={110}
           />
           <WheelColumn
             label="Minutes"
@@ -555,7 +548,7 @@ export default function CaregiverSetup2() {
             selectedIndex={Math.max(0, EXTRA_MINUTES.indexOf(extraMin))}
             onChange={(i) => setExtra(extraHour, EXTRA_MINUTES[i])}
             format={(m) => `${String(m).padStart(2, "0")} min`}
-            width={100}
+            width={130}
           />
         </View>
 
@@ -576,7 +569,7 @@ export default function CaregiverSetup2() {
             />
           </Svg>
           <View style={styles.timeSummaryAlert}>
-            <AppText style={styles.timeSummaryText}>You're alerted</AppText>
+            <AppText style={styles.timeSummaryText}>You&apos;re alerted</AppText>
             <AppText style={styles.timeSummaryTimeHightlighted}>
               {formatTime(alertAt)}
             </AppText>
@@ -720,7 +713,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 14,
-    flex: 1,
   },
   windowSummaryIcon: {
     width: 42,
@@ -733,7 +725,6 @@ const styles = StyleSheet.create({
   windowSummaryLabel: {
     flexDirection: "column",
     gap: 2,
-    flex: 1,
   },
   windowSummaryHeader: {
     fontFamily: FigtreeFont.regular,
@@ -747,7 +738,6 @@ const styles = StyleSheet.create({
     fontFamily: FigtreeFont.extraBold,
   },
   windowSummaryButtonText: {
-    flexShrink: 0,
     color: PRIMARY,
     fontFamily: FigtreeFont.extraBold,
     fontSize: 16,

@@ -59,7 +59,7 @@ export default function HomeScreen() {
             A daily check-in that keeps family close.
           </AppText>
           <AppText style={styles.calloutBody}>
-            One tap a day lets the people who love you know you're okay.
+            One tap a day lets the people who love you know you&apos;re okay.
           </AppText>
         </View>
         <View style={[styles.buttons, { marginTop: space(28) }]}>
