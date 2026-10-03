@@ -5,8 +5,7 @@ import { useScreenScale } from "@/hooks/use-screen-scale";
 import { router } from "expo-router";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import Svg, { ClipPath, Defs, G, Path, Rect } from "react-native-svg";
-
+import MiraIcon from "../components/icons/MiraIcon";
 const INK = "#15163A";
 const SUBTITLE = "#54566E";
 const PRIMARY = "#4338CA";
@@ -25,31 +24,16 @@ export default function HomeScreen() {
       >
         <View style={[styles.logoheader, { marginTop: space(64) }]}>
           <View>
-            <Svg width={30} height={30} viewBox="0 0 30 30" fill="none">
-              <G clipPath="url(#clip0_2_8)">
-                <Path
-                  d="M15 28C22.1797 28 28 22.1797 28 15C28 7.8203 22.1797 2 15 2C7.8203 2 2 7.8203 2 15C2 22.1797 7.8203 28 15 28Z"
-                  stroke="#4338CA"
-                  strokeWidth={3}
-                />
-                <Path
-                  d="M15 20.5C18.0376 20.5 20.5 18.0376 20.5 15C20.5 11.9624 18.0376 9.5 15 9.5C11.9624 9.5 9.5 11.9624 9.5 15C9.5 18.0376 11.9624 20.5 15 20.5Z"
-                  fill="#FF9F6B"
-                />
-              </G>
-              <Defs>
-                <ClipPath id="clip0_2_8">
-                  <Rect width={30} height={30} fill="white" />
-                </ClipPath>
-              </Defs>
-            </Svg>
+            <MiraIcon />
           </View>
           <AppText style={styles.headerTitle}>mira</AppText>
         </View>
         <View style={[styles.welcomeHero, { marginTop: space(48.2) }]}>
           <WelcomeHero />
         </View>
-        <View style={[styles.callout, { marginTop: space(48.5), gap: space(14) }]}>
+        <View
+          style={[styles.callout, { marginTop: space(48.5), gap: space(14) }]}
+        >
           <AppText
             style={[
               styles.calloutHeader,
@@ -71,7 +55,10 @@ export default function HomeScreen() {
             <AppText style={styles.buttonText}>Get Started</AppText>
           </Pressable>
           <Pressable
-            style={({ pressed }) => [styles.buttonSecondary, pressed && styles.pressed]}
+            style={({ pressed }) => [
+              styles.buttonSecondary,
+              pressed && styles.pressed,
+            ]}
             accessibilityLabel="button"
             onPress={() => router.push("/whoUsesMira")}
           >
@@ -93,7 +80,6 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    
   },
   // Fills the screen on any phone; only scrolls if a very short phone still cannot fit everything.
   scrollContent: {
@@ -170,6 +156,5 @@ const styles = StyleSheet.create({
     transform: [{ scale: 0.97 }],
     opacity: 0.9,
   },
-  buttonSecondary: {
-  },
+  buttonSecondary: {},
 });

@@ -10,6 +10,9 @@ import { useState } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
+import SunRiseIcon from "@/components/icons/SunRiseIcon";
+import AlarmIcon from "@/components/icons/AlarmIcon";
+import ClockIcon from "@/components/icons/ClockIcon";
 const INK = "#15163A";
 const SUBTITLE = "#54566E";
 const PRIMARY = "#4338CA";
@@ -238,29 +241,7 @@ export default function CaregiverSetup2() {
           <View style={styles.windowSummary}>
             <View style={styles.windowSummaryContent}>
               <View style={styles.windowSummaryIcon}>
-                <Svg width={22} height={22} viewBox="0 0 22 22" fill="none">
-                  <Path
-                    d="M3.66669 15.5834H18.3334"
-                    stroke="#C2551F"
-                    strokeWidth={2.01667}
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                  <Path
-                    d="M6.41669 15.5833C6.41669 14.3678 6.89957 13.202 7.75911 12.3424C8.61866 11.4829 9.78444 11 11 11C12.2156 11 13.3814 11.4829 14.2409 12.3424C15.1005 13.202 15.5834 14.3678 15.5834 15.5833"
-                    stroke="#C2551F"
-                    strokeWidth={2.01667}
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                  <Path
-                    d="M11 4.58337V7.33337M5.04169 8.70837L6.69169 9.90004M16.9584 8.70837L15.3084 9.90004"
-                    stroke="#C2551F"
-                    strokeWidth={2.01667}
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </Svg>
+                <SunRiseIcon />
               </View>
               <View style={styles.windowSummaryLabel}>
                 <AppText style={styles.windowSummaryHeader}>
@@ -318,22 +299,7 @@ export default function CaregiverSetup2() {
           <View style={styles.methods}>
             <View style={styles.reminder}>
               <View style={styles.reminderIcon}>
-                <Svg width={22} height={22} viewBox="0 0 22 22" fill="none">
-                  <Path
-                    d="M5.5 14.6667V10.0834C5.5 8.62468 6.07946 7.22574 7.11091 6.19429C8.14236 5.16284 9.54131 4.58337 11 4.58337C12.4587 4.58337 13.8576 5.16284 14.8891 6.19429C15.9205 7.22574 16.5 8.62468 16.5 10.0834V14.6667L17.875 16.5H4.125L5.5 14.6667Z"
-                    stroke="#9A6408"
-                    strokeWidth={2.01667}
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                  <Path
-                    d="M9.16669 18.7916C9.16669 19.2779 9.35984 19.7442 9.70366 20.088C10.0475 20.4318 10.5138 20.625 11 20.625C11.4863 20.625 11.9526 20.4318 12.2964 20.088C12.6402 19.7442 12.8334 19.2779 12.8334 18.7916"
-                    stroke="#9A6408"
-                    strokeWidth={2.01667}
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </Svg>
+                <AlarmIcon />
               </View>
               <AppText style={styles.reminderText}>
                 We send {displayName} a gentle reminder
@@ -342,22 +308,7 @@ export default function CaregiverSetup2() {
             <View style={styles.divider}></View>
             <View style={styles.alert}>
               <View style={styles.alertIcon}>
-                <Svg width={22} height={22} viewBox="0 0 22 22" fill="none">
-                  <Path
-                    d="M11 19.25C15.5563 19.25 19.25 15.5563 19.25 11C19.25 6.44365 15.5563 2.75 11 2.75C6.44365 2.75 2.75 6.44365 2.75 11C2.75 15.5563 6.44365 19.25 11 19.25Z"
-                    stroke="#4338CA"
-                    strokeWidth={2.01667}
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                  <Path
-                    d="M11 6.41663V11L13.75 12.8333"
-                    stroke="#4338CA"
-                    strokeWidth={2.01667}
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </Svg>
+                <ClockIcon />
               </View>
               <View style={styles.alertLabel}>
                 <AppText style={styles.alertLabelHeader}>

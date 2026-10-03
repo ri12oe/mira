@@ -5,7 +5,11 @@ import { router } from "expo-router";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
-
+import ArrowLeftIcon from "../components/icons/ArrowLeftIcon";
+import HeartIcon from "../components/icons/HeartIcon";
+import ArrowRightIcon from "../components/icons/ArrowRightIcon";
+import CheckCircleIcon from "../components/icons/CheckCircleIcon";
+import LockIcon from "../components/icons/LockIcon";
 const INK = "#15163A";
 const SUBTITLE = "#54566E";
 const PRIMARY = "#4338CA";
@@ -32,15 +36,7 @@ export default function WhoUsesMira() {
           hitSlop={12}
           style={[styles.backButton, { marginTop: space(36) }]}
         >
-          <Svg width={22} height={22} viewBox="0 0 22 22" fill="none">
-            <Path
-              d="M13.75 5.5L8.25 11L13.75 16.5"
-              stroke="#15163A"
-              strokeWidth={2.2}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </Svg>
+          <ArrowLeftIcon />
         </Pressable>
         <View style={[styles.callout, { marginTop: space(32) }]}>
           <AppText style={styles.calloutHeader}>Who is using Mira?</AppText>
@@ -61,15 +57,7 @@ export default function WhoUsesMira() {
             >
             <View style={styles.optionButtonContent}>
               <View style={styles.optionButtonIcon}>
-                <Svg width={28} height={28} viewBox="0 0 28 28" fill="none">
-                  <Path
-                    d="M14 23.3333C14 23.3333 5.83335 18.2 3.50002 13.3C2.81929 11.9076 2.71958 10.3018 3.2228 8.83592C3.72602 7.37001 4.79096 6.16405 6.18335 5.48332C7.57574 4.8026 9.18151 4.70288 10.6474 5.20611C12.1133 5.70933 13.3193 6.77427 14 8.16666C14.6807 6.77427 15.8867 5.70933 17.3526 5.20611C18.0785 4.95694 18.8463 4.85317 19.6122 4.90074C20.3782 4.9483 21.1272 5.14626 21.8167 5.48332C22.5061 5.82038 23.1224 6.28994 23.6304 6.86518C24.1384 7.44042 24.5281 8.11008 24.7772 8.83592C25.0264 9.56176 25.1302 10.3296 25.0826 11.0955C25.035 11.8615 24.8371 12.6105 24.5 13.3C22.1667 18.2 14 23.3333 14 23.3333Z"
-                    stroke="#4338CA"
-                    strokeWidth={2.56667}
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </Svg>
+                <HeartIcon />
               </View>
               <View style={styles.optionButtonLabel}>
                 <AppText style={styles.optionButtonLabelHeader}>
@@ -80,15 +68,7 @@ export default function WhoUsesMira() {
                 </AppText>
               </View>
               <View style={styles.optionButtonArrow}>
-                <Svg width={22} height={22} viewBox="0 0 22 22" fill="none">
-                  <Path
-                    d="M8.25 5.5L13.75 11L8.25 16.5"
-                    stroke="#8B8DA3"
-                    strokeWidth={2.2}
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </Svg>
+                <ArrowRightIcon />
               </View>
             </View>
           </Pressable>
@@ -98,22 +78,7 @@ export default function WhoUsesMira() {
             >
             <View style={styles.optionButtonContent}>
               <View style={styles.optionButtonIcon2}>
-                <Svg width={28} height={28} viewBox="0 0 28 28" fill="none">
-                  <Path
-                    d="M14 24.5C19.799 24.5 24.5 19.799 24.5 14C24.5 8.20101 19.799 3.5 14 3.5C8.20101 3.5 3.5 8.20101 3.5 14C3.5 19.799 8.20101 24.5 14 24.5Z"
-                    stroke="#C2551F"
-                    strokeWidth={2.56667}
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                  <Path
-                    d="M9.33331 14.5833L12.6 17.85L19.25 10.5"
-                    stroke="#C2551F"
-                    strokeWidth={2.56667}
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </Svg>
+                <CheckCircleIcon />
               </View>
               <View style={styles.optionButtonLabel}>
                 <AppText style={styles.optionButtonLabelHeader}>
@@ -124,36 +89,13 @@ export default function WhoUsesMira() {
                 </AppText>
               </View>
               <View style={styles.optionButtonArrow}>
-                <Svg width={22} height={22} viewBox="0 0 22 22" fill="none">
-                  <Path
-                    d="M8.25 5.5L13.75 11L8.25 16.5"
-                    stroke="#8B8DA3"
-                    strokeWidth={2.2}
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </Svg>
+                <ArrowRightIcon />
               </View>
             </View>
           </Pressable>
         </View>
         <View style={styles.info}>
-          <Svg width={44} height={44} viewBox="0 0 22 22" fill="none">
-            <Path
-              d="M15.5833 10.0833H6.41665C5.40412 10.0833 4.58331 10.9041 4.58331 11.9166V16.5C4.58331 17.5125 5.40412 18.3333 6.41665 18.3333H15.5833C16.5958 18.3333 17.4166 17.5125 17.4166 16.5V11.9166C17.4166 10.9041 16.5958 10.0833 15.5833 10.0833Z"
-              stroke="#0B7A66"
-              strokeWidth={2.01667}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-            <Path
-              d="M7.33331 10.0834V7.33335C7.33331 6.36089 7.71962 5.42826 8.40725 4.74063C9.09489 4.053 10.0275 3.66669 11 3.66669C11.9724 3.66669 12.9051 4.053 13.5927 4.74063C14.2803 5.42826 14.6666 6.36089 14.6666 7.33335V10.0834"
-              stroke="#0B7A66"
-              strokeWidth={2.01667}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </Svg>
+          <LockIcon size={22}/>
           <AppText style={styles.infoText}>
             Mira only shares whether a check-in happened. Never messages or
             location.

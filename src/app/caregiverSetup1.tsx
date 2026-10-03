@@ -12,6 +12,10 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
+import MessageIcon from "@/components/icons/MessageIcon";
+import PhoneIcon from "@/components/icons/PhoneIcon";
+import PhoneSquareIcon from "@/components/icons/PhoneSquareIcon";
+
 const INK = "#15163A";
 const SUBTITLE = "#54566E";
 const PRIMARY = "#4338CA";
@@ -41,14 +45,7 @@ const METHODS: Method[] = [
     subtitle: "Replies OK to a daily text",
     iconBg: LILAC,
     icon: (
-      <Svg width={22} height={22} viewBox="0 0 22 22" fill="none">
-        <Path
-          d="M3.66666 4.58337H18.3333V14.6667H8.25L3.66666 18.3334V4.58337Z"
-          stroke="#4338CA"
-          strokeWidth={2.01667}
-          strokeLinejoin="round"
-        />
-      </Svg>
+      <MessageIcon />
     ),
   },
   {
@@ -57,14 +54,7 @@ const METHODS: Method[] = [
     subtitle: "Presses 1 on a short call",
     iconBg: SUN,
     icon: (
-      <Svg width={22} height={22} viewBox="0 0 22 22" fill="none">
-        <Path
-          d="M4.58333 3.66663H8.25L10.0833 8.24996L7.79166 9.62496C8.77338 11.6155 10.3844 13.2266 12.375 14.2083L13.75 11.9166L18.3333 13.75V17.4166C18.3333 17.6597 18.2368 17.8929 18.0648 18.0648C17.8929 18.2367 17.6598 18.3333 17.4167 18.3333C13.841 18.116 10.4685 16.5976 7.93542 14.0645C5.40238 11.5315 3.88396 8.15897 3.66666 4.58329C3.66666 4.34018 3.76324 4.10702 3.93515 3.93511C4.10706 3.7632 4.34022 3.66663 4.58333 3.66663Z"
-          stroke="#C2551F"
-          strokeWidth={2.01667}
-          strokeLinejoin="round"
-        />
-      </Svg>
+      <PhoneIcon />
     ),
   },
   {
@@ -73,22 +63,7 @@ const METHODS: Method[] = [
     subtitle: "Taps one button in the app",
     iconBg: MINT,
     icon: (
-      <Svg width={22} height={22} viewBox="0 0 22 22" fill="none">
-        <Path
-          d="M13.75 2.29163H8.25C6.73122 2.29163 5.5 3.52284 5.5 5.04163V16.9583C5.5 18.4771 6.73122 19.7083 8.25 19.7083H13.75C15.2688 19.7083 16.5 18.4771 16.5 16.9583V5.04163C16.5 3.52284 15.2688 2.29163 13.75 2.29163Z"
-          stroke="#0B7A66"
-          strokeWidth={2.01667}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-        <Path
-          d="M9.625 16.9584H12.375"
-          stroke="#0B7A66"
-          strokeWidth={2.01667}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      </Svg>
+      <PhoneSquareIcon />
     ),
   },
 ];
