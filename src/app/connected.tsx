@@ -19,14 +19,8 @@ const PRIMARY = "#4338CA";
 const BACKGROUND = "#F5F4FA";
 const BORDERCOLOR = "#E6E4EF";
 const MINT = "#DDF3EE";
-const GREEN = "#075E4F";
 const SUN = "#FFE8DB";
-const SURFACE = "#DCD9E8";
 const LILAC = "#E7E4FB";
-const SELECTED_BG = "#F1EFFD";
-const MUTED = "#8B8DA3";
-const PURPLE = "#2D2A8C";
-const ALERT = "#C43A2B";
 const ORANGE = "#C2551F";
 // Row icons that never overlap with the check-in method palette above.
 const SKY = "#DCEBFA";
