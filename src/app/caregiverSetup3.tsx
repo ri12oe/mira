@@ -1,4 +1,5 @@
 import { AppText } from "@/components/app-test";
+import { BackButton } from "@/components/back-button";
 import { BottomSheet } from "@/components/bottom-sheet";
 import { DragHandle } from "@/components/drag-handle";
 import { SegmentedSlider } from "@/components/segmented-slider";
@@ -21,6 +22,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { StepProgress } from "@/components/step-progress";
 import Svg, { Path } from "react-native-svg";
 const INK = "#15163A";
 const SUBTITLE = "#54566E";
@@ -236,31 +238,8 @@ export default function CaregiverSetup3() {
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.header}>
-          <Pressable
-            onPress={() => router.back()}
-            accessibilityLabel="Go Back"
-            accessibilityRole="button"
-            hitSlop={12}
-            style={styles.backButton}
-          >
-            <Svg width={22} height={22} viewBox="0 0 22 22" fill="none">
-              <Path
-                d="M13.75 5.5L8.25 11L13.75 16.5"
-                stroke="#15163A"
-                strokeWidth={2.2}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </Svg>
-          </Pressable>
-          <View style={styles.barContainer}>
-            <AppText style={styles.barText}>Step 3 of 3</AppText>
-            <View style={styles.bar}>
-              <View style={[styles.barSegment, styles.barActive]} />
-              <View style={[styles.barSegment, styles.barActive]} />
-              <View style={[styles.barSegment, styles.barActive]} />
-            </View>
-          </View>
+          <BackButton />
+          <StepProgress step={3} total={3} />
         </View>
         <View style={styles.callout}>
           <AppText style={styles.calloutText}>Who should we alert?</AppText>
@@ -741,50 +720,12 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
   },
-  backButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 16,
-    borderColor: BORDERCOLOR,
-    borderWidth: 1,
-    backgroundColor: "#fff",
-    justifyContent: "center",
-    alignItems: "center",
-    flexShrink: 0,
-  },
   header: {
     flexDirection: "row",
     gap: 16,
     alignSelf: "stretch",
     alignItems: "center",
     marginTop: 36,
-  },
-  barContainer: {
-    alignItems: "flex-start",
-    gap: 8,
-    flexDirection: "column",
-    flex: 1,
-  },
-  barText: {
-    fontFamily: FigtreeFont.bold,
-    color: SUBTITLE,
-    fontSize: 14,
-    lineHeight: 18.2,
-  },
-  bar: {
-    alignSelf: "stretch",
-    alignItems: "flex-start",
-    gap: 6,
-    flexDirection: "row",
-  },
-  barSegment: {
-    height: 4,
-    backgroundColor: SURFACE,
-    borderRadius: 3,
-    flex: 1,
-  },
-  barActive: {
-    backgroundColor: PRIMARY,
   },
   callout: {
     alignSelf: "stretch",
