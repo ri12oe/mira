@@ -17,7 +17,7 @@ type Props = {
   title: string;
   subtitle?: string;
   onClose: () => void;
-  children: ReactNode;
+  children?: ReactNode;
 };
 
 export function BottomSheet({ visible, title, subtitle, onClose, children }: Props) {

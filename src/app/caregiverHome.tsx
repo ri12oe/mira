@@ -1,16 +1,21 @@
 import { AppText } from "@/components/app-test";
+import { BottomSheet } from "@/components/bottom-sheet";
 import { CaregiverTabBar } from "@/components/caregiver-tab-bar";
 import BellIcon from "@/components/icons/BellIcon";
-import { FigtreeFont, FontFamily } from "@/constants/fonts";
-import { CheckInMethod, useCaregiverSetup } from "@/context/caregiver-setup";
-import { formatTimeRange } from "@/utils/format-time-short";
-import { Pressable, ScrollView, StyleSheet, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import CheckBadgeIcon from "@/components/icons/CheckBadgeIcon";
 import CircleIcon from "@/components/icons/CircleIcon";
 import PhoneIcon from "@/components/icons/PhoneIcon";
 import PointerIcon from "@/components/icons/PointerIcon";
+import { StepProgress } from "@/components/step-progress";
+import { FigtreeFont, FontFamily } from "@/constants/fonts";
+import { CheckInMethod, useCaregiverSetup } from "@/context/caregiver-setup";
+import { formatTimeRange } from "@/utils/format-time-short";
 import { useState } from "react";
+import PlusIcon from "@/components/icons/PlusIcon";
+import DashedCircleIcon from "@/components/icons/DashedCircleIcon";
+import SoftCircleIcon from "@/components/icons/SoftCircleIcon";
+import { Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 const INK = "#15163A";
 const SUBTITLE = "#54566E";
@@ -34,14 +39,10 @@ const METHOD_LABELS: Record<CheckInMethod, string> = {
 const DAYS = ["M", "T", "W", "Th", "F", "S", "Su"];
 
 export default function CaregiverHome() {
-  const {
-    displayName,
-    yourFirstName,
-    method,
-    windowStart,
-    windowEnd,
-  } = useCaregiverSetup();
+  const { displayName, yourFirstName, method, windowStart, windowEnd } =
+    useCaregiverSetup();
   const [notificationsActive, setNotificationsActive] = useState(false);
+  const [addSheetOpen, setAddSheetOpen] = useState(false);
   const now = new Date();
   const hour = now.getHours();
   const greeting =
@@ -65,7 +66,8 @@ export default function CaregiverHome() {
           <View style={styles.frame}>
             <AppText style={styles.date}>{dateLabel}</AppText>
             <AppText style={styles.greeting}>
-              {greeting}{caregiverName ? `, ${caregiverName}` : ""}
+              {greeting}
+              {caregiverName ? `, ${caregiverName}` : ""}
             </AppText>
           </View>
           <Pressable
@@ -78,10 +80,7 @@ export default function CaregiverHome() {
             accessibilityLabel="Notifications"
             accessibilityState={{ selected: notificationsActive }}
           >
-            <BellIcon
-              size={22}
-              color={notificationsActive ? ORANGE : INK}
-            />
+            <BellIcon size={22} color={notificationsActive ? ORANGE : INK} />
           </Pressable>
         </View>
         <View style={styles.peopleChips}>
@@ -95,67 +94,100 @@ export default function CaregiverHome() {
               <AppText style={styles.chipLabel}>{displayName}</AppText>
             </View>
           </Pressable>
-          <Pressable>
+          <Pressable
+            onPress={() => setAddSheetOpen(true)}
+            accessibilityRole="button"
+            accessibilityLabel="Add a person"
+          >
             <View style={styles.chip2}>
               <AppText style={styles.chipLabel2}>+ Add</AppText>
             </View>
           </Pressable>
         </View>
         <View style={styles.statusCard}>
-            <View style={styles.frame3}>
-                <CheckBadgeIcon size={64} />
-                <View style={styles.texts}>
-                    <AppText style={styles.textHeader}>Checked in</AppText>
-                    <AppText style={styles.textSubHeader}>
-                      Mira checks in with {displayName}
-                    </AppText>
-                    <AppText style={styles.method}>
-                      Checks in by {METHOD_LABELS[method]}
-                    </AppText>
-                </View>
+          <View style={styles.frame3}>
+            <CheckBadgeIcon size={64} />
+            <View style={styles.texts}>
+              <AppText style={styles.textHeader}>Checked in</AppText>
+              <AppText style={styles.textSubHeader}>
+                Mira checks in with {displayName}
+              </AppText>
+              <AppText style={styles.method}>
+                Checks in by {METHOD_LABELS[method]}
+              </AppText>
             </View>
-            <View style={styles.nextCheckIn}>
-                <AppText style={styles.nextCheckInText}>Check-in window</AppText>
-                <AppText style={styles.nextCheckInTime}>{checkInWindow}</AppText>
-            </View>
+          </View>
+          <View style={styles.nextCheckIn}>
+            <AppText style={styles.nextCheckInText}>Check-in window</AppText>
+            <AppText style={styles.nextCheckInTime}>{checkInWindow}</AppText>
+          </View>
         </View>
         <View style={styles.thisWeek}>
-            <AppText style={styles.title}>This week</AppText>
-            <View style={styles.days}>
-                {DAYS.map((day) => (
-                  <View key={day} style={styles.day}>
-                    <AppText style={styles.dayLabel}>{day}</AppText>
-                    <CircleIcon size={30} outlined color={SUBTITLE} />
-                  </View>
-                ))}
+          <AppText style={styles.title}>This week</AppText>
+          <View style={styles.days}>
+            {DAYS.map((day) => (
+              <View key={day} style={styles.day}>
+                <AppText style={styles.dayLabel}>{day}</AppText>
+                <CircleIcon size={30} outlined color={SUBTITLE} />
+              </View>
+            ))}
+          </View>
+          <View style={styles.Legend}>
+            <View style={styles.legendItem}>
+              <CircleIcon size={10} />
+              <AppText style={styles.LegendLabel}>On time</AppText>
             </View>
-            <View style={styles.Legend}>
-                <View style={styles.legendItem}>
-                    <CircleIcon size={10} />
-                    <AppText style={styles.LegendLabel}>On time</AppText>
-                </View>
-                <View style={styles.legendItem}>
-                    <CircleIcon size={10} color={YELLOW} />
-                    <AppText style={styles.LegendLabel}>Late</AppText>
-                </View>
+            <View style={styles.legendItem}>
+              <CircleIcon size={10} color={YELLOW} />
+              <AppText style={styles.LegendLabel}>Late</AppText>
             </View>
+          </View>
         </View>
         <View style={styles.quickActions}>
-            <View style={styles.quickActionItem}>
-                <View style={[styles.iconTile, { backgroundColor: LILAC }]}>
-                    <PhoneIcon size={20} color={PRIMARY} />
-                </View>
-                <AppText style={styles.iconTileLabel}>Call {displayName}</AppText>
+          <View style={styles.quickActionItem}>
+            <View style={[styles.iconTile, { backgroundColor: LILAC }]}>
+              <PhoneIcon size={20} color={PRIMARY} />
             </View>
-            <View style={styles.quickActionItem}>
-                <View style={[styles.iconTile, { backgroundColor: SUN }]}>
-                    <PointerIcon size={20}  />
-                </View>
-                <AppText style={styles.iconTileLabel}>Check in now</AppText>
+            <AppText style={styles.iconTileLabel}>Call {displayName}</AppText>
+          </View>
+          <View style={styles.quickActionItem}>
+            <View style={[styles.iconTile, { backgroundColor: SUN }]}>
+              <PointerIcon size={20} />
             </View>
+            <AppText style={styles.iconTileLabel}>Check in now</AppText>
+          </View>
         </View>
       </ScrollView>
       <CaregiverTabBar />
+      <BottomSheet
+        visible={addSheetOpen}
+        title="Who else are you caring for?"
+        onClose={() => setAddSheetOpen(false)}
+      >
+        <StepProgress step={1} total={3} />
+        <View style={styles.notes}>
+          <View style={styles.avatars}>
+            <View style={styles.avatar}>
+              <View style={styles.avatarCircle}>
+                <SoftCircleIcon size={32} />
+              </View>
+              <AppText style={styles.avatarLabel}>L</AppText>
+            </View>
+            <View style={[styles.avatar, styles.avatarOverlap]}>
+              <View style={styles.avatarCircle}>
+                <DashedCircleIcon size={32} />
+              </View>
+              <View style={styles.avatarContent}>
+                <PlusIcon size={14} />
+              </View>
+            </View>
+          </View>
+          <AppText style={styles.notesText}>
+            {displayName} stays on your home screen. You&apos;ll switch between people with the
+            chips at the top.
+          </AppText>
+        </View>
+      </BottomSheet>
     </SafeAreaView>
   );
 }
@@ -233,7 +265,6 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     backgroundColor: INK,
     flexDirection: "row",
-
   },
   chip2: {
     paddingVertical: 10,
@@ -374,7 +405,7 @@ const styles = StyleSheet.create({
   },
   legendItem: {
     alignItems: "center",
-    gap: 6, 
+    gap: 6,
     flexDirection: "row",
   },
   LegendLabel: {
@@ -412,5 +443,54 @@ const styles = StyleSheet.create({
     fontSize: 16,
     lineHeight: 20.8,
     fontFamily: FigtreeFont.bold,
+  },
+  notes: {
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    alignItems: "center",
+    gap: 12,
+    alignSelf: "stretch",
+    flexDirection: "row",
+    borderRadius: 16,
+    backgroundColor: BACKGROUND,
+  },
+  avatars: {
+    width: 56, // two 32px avatars overlapping by 8px
+    height: 32,
+    flexDirection: "row",
+  },
+  avatar: {
+    width: 32,
+    height: 32,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  // Pulls the second avatar 8px over the first
+  avatarOverlap: {
+    marginLeft: -8,
+  },
+  // Circle sits behind the avatar content so the label/icon is centered on top
+  avatarCircle: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+  },
+  // Keeps the label/icon above the absolutely positioned circle (needed on web,
+  // where positioned elements paint over unpositioned ones like a raw <svg>)
+  avatarContent: {
+    position: "relative",
+    zIndex: 1,
+  },
+  avatarLabel: {
+    textAlign: "center",
+    fontSize: 14,
+    fontFamily: FigtreeFont.bold,
+    color: RISE,
+  },
+  notesText: {
+    flex: 1,
+    fontSize: 15,
+    color: SUBTITLE,
+    fontFamily: FigtreeFont.semiBold,
   },
 });
