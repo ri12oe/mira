@@ -1,17 +1,20 @@
+import { AlertOrder } from "@/components/alert-order";
 import { AppText } from "@/components/app-test";
 import { BackButton } from "@/components/back-button";
+import { BackupSheet } from "@/components/backup-sheet";
 import { BottomSheet } from "@/components/bottom-sheet";
+import { CaregiverTabBar } from "@/components/caregiver-tab-bar";
+import { Chip } from "@/components/chip";
 import {
   ExtraTimePicker,
   formatMinutes,
   RECOMMENDED_EXTRA_MINUTES,
 } from "@/components/extra-time-picker";
-import { CaregiverTabBar } from "@/components/caregiver-tab-bar";
-import { Chip } from "@/components/chip";
 import ArrowRightIcon from "@/components/icons/ArrowRightIcon";
 import BellIcon from "@/components/icons/BellIcon";
 import CheckBadgeIcon from "@/components/icons/CheckBadgeIcon";
 import CircleIcon from "@/components/icons/CircleIcon";
+import ClockIcon from "@/components/icons/ClockIcon";
 import DashedCircleIcon from "@/components/icons/DashedCircleIcon";
 import MessageIcon from "@/components/icons/MessageIcon";
 import PhoneIcon from "@/components/icons/PhoneIcon";
@@ -19,17 +22,26 @@ import PhoneSquareIcon from "@/components/icons/PhoneSquareIcon";
 import PlusIcon from "@/components/icons/PlusIcon";
 import PointerIcon from "@/components/icons/PointerIcon";
 import SoftCircleIcon from "@/components/icons/SoftCircleIcon";
+import {
+  INVITE_SUFFIX,
+  InviteEditorSheet,
+} from "@/components/invite-editor-sheet";
+import { InviteMessage } from "@/components/invite-message";
 import { SegmentedSlider } from "@/components/segmented-slider";
 import { StepProgress } from "@/components/step-progress";
 import { TimeWindowPicker } from "@/components/time-window-picker";
 import { WhichDays } from "@/components/which-days";
 import { WINDOWS } from "@/constants/check-in-windows";
 import { FigtreeFont, FontFamily } from "@/constants/fonts";
-import { CheckInMethod, useCaregiverSetup } from "@/context/caregiver-setup";
+import {
+  Backup,
+  CheckInMethod,
+  useCaregiverSetup,
+} from "@/context/caregiver-setup";
 import { formatTime } from "@/utils/format-time";
 import { formatTimeRange } from "@/utils/format-time-short";
+import { router } from "expo-router";
 import { useState } from "react";
-import Svg, { Path } from "react-native-svg";
 import {
   Pressable,
   ScrollView,
@@ -38,7 +50,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import ClockIcon from "@/components/icons/ClockIcon";
+import Svg, { Path } from "react-native-svg";
 const INK = "#15163A";
 const SUBTITLE = "#54566E";
 const PRIMARY = "#4338CA";
@@ -90,11 +102,19 @@ export default function CaregiverHome() {
     windowStart: primaryWindowStart,
     windowEnd: primaryWindowEnd,
     people,
+    backups: primaryBackups,
     addPerson,
   } = useCaregiverSetup();
   const [notificationsActive, setNotificationsActive] = useState(false);
   const [sheet, setSheet] = useState<
-    "person" | "time" | "window" | "extraTime" | "alert" | null
+    | "person"
+    | "time"
+    | "window"
+    | "extraTime"
+    | "alert"
+    | "backup"
+    | "editInvite"
+    | null
   >(null);
   const [selectedId, setSelectedId] = useState(PRIMARY_ID);
   const [newName, setNewName] = useState("");
@@ -107,6 +127,19 @@ export default function CaregiverHome() {
   const [newExtraMinutes, setNewExtraMinutes] = useState(
     RECOMMENDED_EXTRA_MINUTES,
   );
+  const [newBackups, setNewBackups] = useState<Backup[]>([]);
+  const [editingBackup, setEditingBackup] = useState<Backup | null>(null);
+  const [newInvite, setNewInvite] = useState<string | null>(null); // null = use the default
+
+  // The first person's first backup can be reused without entering them again
+  const existingBackup = primaryBackups[0];
+  const canReuseBackup =
+    !!existingBackup &&
+    !newBackups.some(
+      (b) => b.name === existingBackup.name && b.phone === existingBackup.phone,
+    );
+  const newRecipientName = newName.trim() || "They";
+  const defaultInvite = `Hi ${newName.trim() || "there"}, it's ${yourFirstName.trim() || "your caregiver"}. I set up Mira so I know you're okay each day.`;
   const matchingWindowId = customWindow
     ? undefined
     : WINDOWS.find((w) => w.start === newStart && w.end === newEnd)?.id;
@@ -130,6 +163,25 @@ export default function CaregiverHome() {
     setCustomWindow(false);
     setNewDays(ALL_DAYS);
     setNewExtraMinutes(RECOMMENDED_EXTRA_MINUTES);
+    setNewBackups([]);
+    setEditingBackup(null);
+    setNewInvite(null);
+  };
+
+  const openBackupSheet = (backup: Backup | null) => {
+    setEditingBackup(backup);
+    setSheet("backup");
+  };
+
+  const saveBackup = (data: Omit<Backup, "id">) => {
+    setNewBackups((current) =>
+      editingBackup
+        ? current.map((b) =>
+            b.id === editingBackup.id ? { ...b, ...data } : b,
+          )
+        : [...current, { id: `backup-${Date.now()}`, ...data }],
+    );
+    setSheet("alert");
   };
 
   const savePerson = () => {
@@ -142,9 +194,11 @@ export default function CaregiverHome() {
       windowEnd: newEnd,
       days: newDays,
       extraMinutes: newExtraMinutes,
+      backups: newBackups,
     });
     setSelectedId(added.id);
     closeAddSheet();
+    router.push("/connected2");
   };
 
   const now = new Date();
@@ -486,23 +540,80 @@ export default function CaregiverHome() {
       </BottomSheet>
       <BottomSheet
         visible={sheet === "alert"}
-        title="Who we alert"
-        subtitle={`If ${newName.trim() || "this person"} misses a check-in and you don't respond, we'll tell them.`}
+        title={`Who should we alert if ${newName.trim() || "this person"} misses one?`}
         onClose={closeAddSheet}
       >
         <View style={styles.sheetHeader}>
           <BackButton onPress={() => setSheet("time")} />
           <StepProgress step={3} total={3} />
         </View>
-        {/* Backup contacts go here */}
+        <AlertOrder
+          recipientName={newRecipientName}
+          method={newMethod}
+          backups={newBackups}
+          onChangeBackups={setNewBackups}
+          onEditBackup={openBackupSheet}
+          onAddBackup={() => openBackupSheet(null)}
+          suggestion={
+            canReuseBackup
+              ? {
+                  label: `Add ${existingBackup.name}`,
+                  note: `${existingBackup.name} is already a backup for ${primaryName}.`,
+                  onPress: () =>
+                    setNewBackups((current) => [
+                      ...current,
+                      { ...existingBackup, id: `backup-${Date.now()}` },
+                    ]),
+                }
+              : undefined
+          }
+        />
+        <InviteMessage
+          recipientName={newName.trim() || "them"}
+          phone={newPhone}
+          message={`${newInvite ?? defaultInvite} ${INVITE_SUFFIX}`}
+          onEdit={() => setSheet("editInvite")}
+        />
+
         <Pressable
           style={styles.nextButton}
           onPress={savePerson}
           accessibilityRole="button"
         >
-          <AppText style={styles.nextButtonText}>Add person</AppText>
+          <Svg width={20} height={20} viewBox="0 0 20 20" fill="none">
+            <Path
+              d="M3.33337 10L16.6667 3.33337L11.6667 16.6667L9.16671 10.8334L3.33337 10Z"
+              stroke="white"
+              strokeWidth={1.83333}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </Svg>
+          <AppText style={styles.nextButtonText}>
+            Send invite to {newName.trim() || "them"}
+          </AppText>
         </Pressable>
       </BottomSheet>
+      <BackupSheet
+        visible={sheet === "backup"}
+        onClose={() => setSheet("alert")}
+        recipientName={newName.trim() || "this person"}
+        backup={editingBackup}
+        onSave={saveBackup}
+      />
+      <InviteEditorSheet
+        visible={sheet === "editInvite"}
+        onClose={() => setSheet("alert")}
+        recipientName={newName.trim() || "they"}
+        defaultInvite={defaultInvite}
+        invite={newInvite ?? defaultInvite}
+        windowStart={newStart}
+        windowEnd={newEnd}
+        onSave={(text) => {
+          setNewInvite(text);
+          setSheet("alert");
+        }}
+      />
     </SafeAreaView>
   );
 }

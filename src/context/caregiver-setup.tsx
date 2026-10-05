@@ -32,6 +32,7 @@ export type Person = {
   windowEnd: number;
   days: number[]; // 0 = Monday … 6 = Sunday
   extraMinutes: number; // wait after the window ends before alerting the caregiver
+  backups: Backup[]; // in alert order, after the caregiver
 };
 
 export type CaregiverSetupData = {
