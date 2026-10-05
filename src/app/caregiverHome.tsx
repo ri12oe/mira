@@ -1,7 +1,14 @@
 import { AppText } from "@/components/app-test";
 import { BackButton } from "@/components/back-button";
 import { BottomSheet } from "@/components/bottom-sheet";
+import {
+  ExtraTimePicker,
+  formatMinutes,
+  RECOMMENDED_EXTRA_MINUTES,
+} from "@/components/extra-time-picker";
 import { CaregiverTabBar } from "@/components/caregiver-tab-bar";
+import { Chip } from "@/components/chip";
+import ArrowRightIcon from "@/components/icons/ArrowRightIcon";
 import BellIcon from "@/components/icons/BellIcon";
 import CheckBadgeIcon from "@/components/icons/CheckBadgeIcon";
 import CircleIcon from "@/components/icons/CircleIcon";
@@ -14,11 +21,15 @@ import PointerIcon from "@/components/icons/PointerIcon";
 import SoftCircleIcon from "@/components/icons/SoftCircleIcon";
 import { SegmentedSlider } from "@/components/segmented-slider";
 import { StepProgress } from "@/components/step-progress";
+import { TimeWindowPicker } from "@/components/time-window-picker";
+import { WhichDays } from "@/components/which-days";
+import { WINDOWS } from "@/constants/check-in-windows";
 import { FigtreeFont, FontFamily } from "@/constants/fonts";
 import { CheckInMethod, useCaregiverSetup } from "@/context/caregiver-setup";
+import { formatTime } from "@/utils/format-time";
 import { formatTimeRange } from "@/utils/format-time-short";
 import { useState } from "react";
-import ArrowRightIcon from "@/components/icons/ArrowRightIcon";
+import Svg, { Path } from "react-native-svg";
 import {
   Pressable,
   ScrollView,
@@ -27,6 +38,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import ClockIcon from "@/components/icons/ClockIcon";
 const INK = "#15163A";
 const SUBTITLE = "#54566E";
 const PRIMARY = "#4338CA";
@@ -40,6 +52,7 @@ const GREEN = "#075E4F";
 const YELLOW = "#F5B53D";
 const ORANGE = "#C2551F";
 const PLACEHOLDER = "#8B8DA3";
+const ALERT = "#C43A2B";
 
 const METHOD_LABELS: Record<CheckInMethod, string> = {
   text: "Text reply",
@@ -67,6 +80,7 @@ const METHOD_OPTIONS = [
 
 const DAYS = ["M", "T", "W", "Th", "F", "S", "Su"];
 const PRIMARY_ID = "primary";
+const ALL_DAYS = [0, 1, 2, 3, 4, 5, 6];
 
 export default function CaregiverHome() {
   const {
@@ -79,11 +93,23 @@ export default function CaregiverHome() {
     addPerson,
   } = useCaregiverSetup();
   const [notificationsActive, setNotificationsActive] = useState(false);
-  const [sheet, setSheet] = useState<"person" | "time" | null>(null);
+  const [sheet, setSheet] = useState<
+    "person" | "time" | "window" | "extraTime" | "alert" | null
+  >(null);
   const [selectedId, setSelectedId] = useState(PRIMARY_ID);
   const [newName, setNewName] = useState("");
   const [newPhone, setNewPhone] = useState("");
   const [newMethod, setNewMethod] = useState<CheckInMethod>("text");
+  const [newStart, setNewStart] = useState(primaryWindowStart);
+  const [newEnd, setNewEnd] = useState(primaryWindowEnd);
+  const [customWindow, setCustomWindow] = useState(false);
+  const [newDays, setNewDays] = useState<number[]>(ALL_DAYS);
+  const [newExtraMinutes, setNewExtraMinutes] = useState(
+    RECOMMENDED_EXTRA_MINUTES,
+  );
+  const matchingWindowId = customWindow
+    ? undefined
+    : WINDOWS.find((w) => w.start === newStart && w.end === newEnd)?.id;
 
   const selectedPerson = people.find((p) => p.id === selectedId);
   const displayName = selectedPerson?.firstName ?? primaryName;
@@ -99,6 +125,11 @@ export default function CaregiverHome() {
     setNewName("");
     setNewPhone("");
     setNewMethod("text");
+    setNewStart(primaryWindowStart);
+    setNewEnd(primaryWindowEnd);
+    setCustomWindow(false);
+    setNewDays(ALL_DAYS);
+    setNewExtraMinutes(RECOMMENDED_EXTRA_MINUTES);
   };
 
   const savePerson = () => {
@@ -107,8 +138,10 @@ export default function CaregiverHome() {
       firstName: newName.trim(),
       phone: newPhone.trim(),
       method: newMethod,
-      windowStart: primaryWindowStart,
-      windowEnd: primaryWindowEnd,
+      windowStart: newStart,
+      windowEnd: newEnd,
+      days: newDays,
+      extraMinutes: newExtraMinutes,
     });
     setSelectedId(added.id);
     closeAddSheet();
@@ -161,39 +194,22 @@ export default function CaregiverHome() {
           ].map((person) => {
             const selected = person.id === selectedId;
             return (
-              <Pressable
+              <Chip
                 key={person.id}
+                variant="person"
+                label={person.name}
+                avatar={person.name.charAt(0).toUpperCase()}
+                selected={selected}
                 onPress={() => setSelectedId(person.id)}
-                accessibilityRole="button"
-                accessibilityLabel={person.name}
-                accessibilityState={{ selected }}
-              >
-                <View style={selected ? styles.chip : styles.chip2}>
-                  {selected && (
-                    <View style={styles.frame2}>
-                      <AppText style={styles.chipText}>
-                        {person.name.charAt(0).toUpperCase()}
-                      </AppText>
-                    </View>
-                  )}
-                  <AppText
-                    style={selected ? styles.chipLabel : styles.chipLabel2}
-                  >
-                    {person.name}
-                  </AppText>
-                </View>
-              </Pressable>
+              />
             );
           })}
-          <Pressable
-            onPress={() => setSheet("person")}
-            accessibilityRole="button"
+          <Chip
+            variant="person"
+            label="+ Add"
             accessibilityLabel="Add a person"
-          >
-            <View style={styles.chip2}>
-              <AppText style={styles.chipLabel2}>+ Add</AppText>
-            </View>
-          </Pressable>
+            onPress={() => setSheet("person")}
+          />
         </View>
         <View style={styles.statusCard}>
           <View style={styles.frame3}>
@@ -335,7 +351,150 @@ export default function CaregiverHome() {
           <BackButton onPress={() => setSheet("person")} />
           <StepProgress step={2} total={3} />
         </View>
-            {/* {Add content} */}
+        <View style={styles.checkInWindow}>
+          <AppText style={styles.fieldLabel}>Check-in window</AppText>
+          <View style={styles.windowChips}>
+            {WINDOWS.map((w) => (
+              <Chip
+                key={w.id}
+                label={w.label}
+                selected={matchingWindowId === w.id}
+                onPress={() => {
+                  setCustomWindow(false);
+                  setNewStart(w.start);
+                  setNewEnd(w.end);
+                }}
+              />
+            ))}
+          </View>
+          <View style={styles.windowChips}>
+            <Chip
+              label={customWindow ? `Custom` : "Custom"}
+              selected={customWindow}
+              onPress={() => {
+                setCustomWindow(true);
+                setSheet("window");
+              }}
+            />
+          </View>
+        </View>
+        <WhichDays days={newDays} onChange={setNewDays} />
+
+        <View style={styles.stepsCard}>
+          <View style={styles.divider}></View>
+          <View style={styles.row}>
+            <View style={styles.IconTile}>
+              <ClockIcon size={24} color={PRIMARY} strokeWidth={2} />
+            </View>
+            <View style={styles.textLabel}>
+              <AppText style={styles.textLabelHeader}>
+                Extra time before alerts
+              </AppText>
+              <View style={styles.value}>
+                <AppText style={styles.minutues}>
+                  {formatMinutes(newExtraMinutes)}
+                </AppText>
+                {newExtraMinutes === RECOMMENDED_EXTRA_MINUTES && (
+                  <View style={styles.pill}>
+                    <AppText style={styles.pillText}>Recommended</AppText>
+                  </View>
+                )}
+              </View>
+            </View>
+            <Pressable
+              onPress={() => setSheet("extraTime")}
+              hitSlop={10}
+              accessibilityRole="button"
+              accessibilityLabel="Change extra time before alerts"
+            >
+              <AppText style={styles.changeButtonText}>Change</AppText>
+            </Pressable>
+          </View>
+          <View style={styles.preview}>
+            <View style={styles.frame2}>
+              <AppText style={styles.frame2Text}>Window ends</AppText>
+              <AppText style={styles.frame2Value}>{formatTime(newEnd)}</AppText>
+            </View>
+            <Svg width={48} height={12} viewBox="0 0 48 12" fill="none">
+              <Path
+                d="M2 6H42M36 11L42 6L36 1"
+                stroke="#8B8DA3"
+                strokeWidth={2}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </Svg>
+            <View style={styles.frame2}>
+              <AppText style={styles.frame2Text}>You&apos;re alerted</AppText>
+              <AppText style={[styles.frame2Value, { color: ALERT }]}>
+                {formatTime(newEnd + newExtraMinutes)}
+              </AppText>
+            </View>
+          </View>
+        </View>
+
+        <Pressable
+          style={[styles.nextButton, newDays.length === 0 && styles.disabled]}
+          onPress={() => setSheet("alert")}
+          disabled={newDays.length === 0}
+          accessibilityRole="button"
+          accessibilityState={{ disabled: newDays.length === 0 }}
+        >
+          <AppText style={styles.nextButtonText}>Next: who we alert</AppText>
+          <ArrowRightIcon size={20} color="#fff" strokeWidth={2} />
+        </Pressable>
+      </BottomSheet>
+      <BottomSheet
+        visible={sheet === "window"}
+        title="Custom check-in window"
+        onClose={() => setSheet("time")}
+      >
+        <TimeWindowPicker
+          start={newStart}
+          end={newEnd}
+          onChangeStart={setNewStart}
+          onChangeEnd={setNewEnd}
+        />
+        <Pressable
+          style={[styles.nextButton, newEnd <= newStart && styles.disabled]}
+          onPress={() => setSheet("time")}
+          disabled={newEnd <= newStart}
+          accessibilityRole="button"
+          accessibilityState={{ disabled: newEnd <= newStart }}
+        >
+          <AppText style={styles.nextButtonText}>Save</AppText>
+        </Pressable>
+      </BottomSheet>
+      <BottomSheet
+        visible={sheet === "extraTime"}
+        title="Extra time before alerts"
+        subtitle="After the window ends, how long should we wait before alerting you?"
+        onClose={() => setSheet("time")}
+      >
+        <ExtraTimePicker
+          extraMinutes={newExtraMinutes}
+          onChange={setNewExtraMinutes}
+          windowEnd={newEnd}
+        />
+        <Pressable
+          style={styles.nextButton}
+          onPress={() => setSheet("time")}
+          accessibilityRole="button"
+        >
+          <AppText style={styles.nextButtonText}>Save</AppText>
+        </Pressable>
+      </BottomSheet>
+      <BottomSheet
+        visible={sheet === "alert"}
+        title="Who we alert"
+        subtitle={`If ${newName.trim() || "this person"} misses a check-in and you don't respond, we'll tell them.`}
+        onClose={closeAddSheet}
+      >
+        <View style={styles.sheetHeader}>
+          <BackButton onPress={() => setSheet("time")} />
+          <StepProgress step={3} total={3} />
+        </View>
+        {/* Backup contacts go here */}
         <Pressable
           style={styles.nextButton}
           onPress={savePerson}
@@ -416,52 +575,6 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
     gap: 8,
     flexDirection: "row",
-  },
-  chip: {
-    paddingVertical: 5,
-    paddingHorizontal: 10,
-    alignItems: "center",
-    justifyContent: "flex-start",
-    alignSelf: "flex-start",
-    gap: 8,
-    borderRadius: 20,
-    backgroundColor: INK,
-    flexDirection: "row",
-  },
-  chip2: {
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    alignItems: "center",
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: BORDERCOLOR,
-    backgroundColor: "#fff",
-  },
-  frame2: {
-    width: 30,
-    height: 30,
-    justifyContent: "center",
-    alignItems: "center",
-    borderRadius: 15,
-    backgroundColor: SUN,
-  },
-  chipText: {
-    color: RISE,
-    fontSize: 14,
-    fontFamily: FigtreeFont.extraBold,
-    lineHeight: 18.2,
-  },
-  chipLabel: {
-    fontSize: 16,
-    color: "#fff",
-    fontFamily: FigtreeFont.bold,
-    lineHeight: 20.8,
-  },
-  chipLabel2: {
-    fontSize: 16,
-    color: INK,
-    fontFamily: FigtreeFont.bold,
-    lineHeight: 20.8,
   },
   statusCard: {
     padding: 22,
@@ -681,6 +794,16 @@ const styles = StyleSheet.create({
     lineHeight: 23.4,
     fontFamily: FigtreeFont.semiBold,
   },
+  checkInWindow: {
+    gap: 10,
+    alignSelf: "stretch",
+  },
+  windowChips: {
+    alignItems: "flex-start",
+    gap: 8,
+    alignSelf: "stretch",
+    flexDirection: "row",
+  },
   methods: {
     flexDirection: "column",
     alignItems: "flex-start",
@@ -688,27 +811,121 @@ const styles = StyleSheet.create({
     alignSelf: "stretch",
   },
   nextButton: {
-      height: 60,
-      justifyContent: "center",
-      alignItems: "center",
-      alignSelf: "stretch",
-      flexShrink: 0,
-      borderRadius: 18,
-      backgroundColor: PRIMARY,
-      flexDirection: "row",
-      gap: 10,
-    },
-    nextButtonText: {
-      color: "#fff",
-      fontFamily: FigtreeFont.bold,
-      fontSize: 19,
-      lineHeight: 22.8,
-    },
-    pressed: {
-      transform: [{ scale: 0.97 }],
-      opacity: 0.9,
-    },
-    disabled: {
-      opacity: 0.4,
-    },
+    height: 60,
+    justifyContent: "center",
+    alignItems: "center",
+    alignSelf: "stretch",
+    flexShrink: 0,
+    borderRadius: 18,
+    backgroundColor: PRIMARY,
+    flexDirection: "row",
+    gap: 10,
+  },
+  nextButtonText: {
+    color: "#fff",
+    fontFamily: FigtreeFont.bold,
+    fontSize: 19,
+    lineHeight: 22.8,
+  },
+  pressed: {
+    transform: [{ scale: 0.97 }],
+    opacity: 0.9,
+  },
+  disabled: {
+    opacity: 0.4,
+  },
+  stepsCard: {
+    flexDirection: "column",
+    alignItems: "flex-start",
+    alignSelf: "stretch",
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: BORDERCOLOR,
+    backgroundColor: "#fff",
+  },
+  divider: {
+    height: 1,
+    alignSelf: "stretch",
+    backgroundColor: "#EFEDF5",
+  },
+  row: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    alignItems: "center",
+    gap: 14,
+    alignSelf: "stretch",
+    flexDirection: "row",
+  },
+  IconTile: {
+    width: 42,
+    height: 42,
+    justifyContent: "center",
+    alignItems: "center",
+    borderRadius: 13,
+    backgroundColor: "#E7E4FB",
+  },
+  textLabel: {
+    flexDirection: "column",
+    alignItems: "flex-start",
+    gap: 2,
+    flex: 1,
+  },
+  textLabelHeader: {
+    color: INK,
+    alignSelf: "stretch",
+    fontSize: 16,
+    fontFamily: FigtreeFont.bold,
+  },
+  value: {
+    alignItems: "center",
+    gap: 8,
+    flexDirection: "row",
+  },
+  minutues: {
+    color: SUBTITLE,
+    fontSize: 15,
+    fontFamily: FigtreeFont.bold,
+  },
+  pill: {
+    paddingVertical: 2,
+    paddingHorizontal: 8,
+    alignItems: "flex-start",
+    borderRadius: 999,
+    backgroundColor: MINT,
+  },
+  pillText: {
+    color: GREEN,
+    fontSize: 12,
+    fontFamily: FigtreeFont.extraBold,
+  },
+  changeButtonText: {
+    color: PRIMARY,
+    fontSize: 16,
+    fontFamily: FigtreeFont.extraBold,
+  },
+  preview: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    justifyContent: "space-between",
+    alignItems: "center",
+    alignSelf: "stretch",
+    flexDirection: "row",
+  },
+  frame2: {
+    flexDirection: "column",
+    alignItems: "flex-start",
+    gap: 2,
+  },
+  frame2Text: {
+    color: SUBTITLE,
+    fontSize: 13,
+    lineHeight: 16.9,
+    fontFamily: FigtreeFont.extraBold,
+  },
+  frame2Value: {
+    color: INK,
+    fontSize: 17,
+    lineHeight: 22.1,
+    fontFamily: FigtreeFont.extraBold,
+  },
 });

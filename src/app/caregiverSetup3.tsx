@@ -2,6 +2,7 @@ import { AppText } from "@/components/app-test";
 import { BackButton } from "@/components/back-button";
 import { BottomSheet } from "@/components/bottom-sheet";
 import { DragHandle } from "@/components/drag-handle";
+import { Chip } from "@/components/chip";
 import { SegmentedSlider } from "@/components/segmented-slider";
 import { SwipeToDelete } from "@/components/swipe-to-delete";
 import { FigtreeFont, FontFamily } from "@/constants/fonts";
@@ -485,50 +486,27 @@ export default function CaregiverSetup3() {
                 const selected =
                   !isCustomRelationship && backupRelationship === option;
                 return (
-                  <Pressable
+                  <Chip
                     key={option}
+                    variant="pill"
+                    label={option}
+                    selected={selected}
                     onPress={() => {
                       setIsCustomRelationship(false);
                       setBackupRelationship(option);
                     }}
-                    style={[styles.chip, selected && styles.chipSelected]}
-                    accessibilityRole="radio"
-                    accessibilityState={{ checked: selected }}
-                    accessibilityLabel={option}
-                  >
-                    <AppText
-                      style={[
-                        styles.chipText,
-                        selected && styles.chipTextSelected,
-                      ]}
-                    >
-                      {option}
-                    </AppText>
-                  </Pressable>
+                  />
                 );
               })}
-              <Pressable
+              <Chip
+                variant="pill"
+                label="Custom"
+                selected={isCustomRelationship}
                 onPress={() => {
                   setIsCustomRelationship(true);
                   setBackupRelationship(""); // clear a preset so the user types their own
                 }}
-                style={[
-                  styles.chip,
-                  isCustomRelationship && styles.chipSelected,
-                ]}
-                accessibilityRole="radio"
-                accessibilityState={{ checked: isCustomRelationship }}
-                accessibilityLabel="Custom"
-              >
-                <AppText
-                  style={[
-                    styles.chipText,
-                    isCustomRelationship && styles.chipTextSelected,
-                  ]}
-                >
-                  Custom
-                </AppText>
-              </Pressable>
+              />
             </View>
             {isCustomRelationship && (
               <TextInput
@@ -952,31 +930,6 @@ const styles = StyleSheet.create({
     gap: 8,
     alignSelf: "stretch",
     flexWrap: "wrap",
-  },
-  chip: {
-    height: 44,
-    paddingVertical: 0,
-    paddingHorizontal: 14,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 22,
-    borderWidth: 1,
-    borderColor: SURFACE,
-    backgroundColor: "#fff",
-  },
-  chipText: {
-    fontSize: 16,
-    fontFamily: FigtreeFont.bold,
-    lineHeight: 20.8,
-    color: INK,
-  },
-  chipSelected: {
-    borderColor: PRIMARY,
-    borderWidth: 2,
-    backgroundColor: SELECTED_BG,
-  },
-  chipTextSelected: {
-    fontFamily: FigtreeFont.extraBold,
   },
   alerts: {
     flexDirection: "column",

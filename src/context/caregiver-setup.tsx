@@ -22,7 +22,7 @@ export type Backup = {
   alertAfter: number; // minutes
 };
 
-/** Someone added later from the home screen, in addition to the person set up in steps 1–3 */
+/** Someone added later from the home screen, in addition to the person set up in steps 1ï¿½3 */
 export type Person = {
   id: string;
   firstName: string;
@@ -30,6 +30,8 @@ export type Person = {
   method: CheckInMethod;
   windowStart: number; // minutes after midnight
   windowEnd: number;
+  days: number[]; // 0 = Monday â€¦ 6 = Sunday
+  extraMinutes: number; // wait after the window ends before alerting the caregiver
 };
 
 export type CaregiverSetupData = {

@@ -1,18 +1,19 @@
 import { AppText } from "@/components/app-test";
 import { BackButton } from "@/components/back-button";
 import { BottomSheet } from "@/components/bottom-sheet";
-import { RadioCircle } from "@/components/radio-circle";
-import { ITEM_H, WheelColumn } from "@/components/wheels-column";
+import { Chip } from "@/components/chip";
+import { ExtraTimePicker, formatMinutes } from "@/components/extra-time-picker";
+import { TimeWindowPicker } from "@/components/time-window-picker";
+import { WhichDays } from "@/components/which-days";
+import { WINDOWS } from "@/constants/check-in-windows";
 import { FigtreeFont, FontFamily } from "@/constants/fonts";
 import { useCaregiverSetup } from "@/context/caregiver-setup";
-import { formatTime } from "@/utils/format-time";
 import { formatTimeRange } from "@/utils/format-time-short";
 import { router } from "expo-router";
 import { useState } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StepProgress } from "@/components/step-progress";
-import Svg, { Path } from "react-native-svg";
 import SunRiseIcon from "@/components/icons/SunRiseIcon";
 import AlarmIcon from "@/components/icons/AlarmIcon";
 import ClockIcon from "@/components/icons/ClockIcon";
@@ -26,94 +27,7 @@ const GREEN = "#075E4F";
 const SUN = "#FFE8DB";
 const SURFACE = "#DCD9E8";
 const LILAC = "#E7E4FB";
-const SELECTED_BG = "#F1EFFD";
 const MUTED = "#8B8DA3";
-const PURPLE = "#2D2A8C";
-const ALERT = "#C43A2B";
-
-const WINDOWS = [
-  {
-    id: "early",
-    label: "7–9 AM",
-    range: "7:00 AM – 9:00 AM",
-    start: 7 * 60,
-    end: 9 * 60,
-  },
-  {
-    id: "mid",
-    label: "9–11 AM",
-    range: "9:00 AM – 11:00 AM",
-    start: 9 * 60,
-    end: 11 * 60,
-  },
-  {
-    id: "late",
-    label: "11 AM – 1 PM",
-    range: "11:00 AM – 1:00 PM",
-    start: 11 * 60,
-    end: 13 * 60,
-  },
-  // add the third one yourself
-];
-const DAY_LETTERS = ["M", "T", "W", "T", "F", "S", "S"];
-const DAY_NAMES = [
-  "Monday",
-  "Tuesday",
-  "Wednesday",
-  "Thursday",
-  "Friday",
-  "Saturday",
-  "Sunday",
-];
-
-function describeDays(days: number[]): string {
-  const key = days.join(",");
-
-  if (days.length === 7) return "Every day";
-  if (days.length === 0) return "Pick at least one day";
-  if (key === "0,1,2,3,4") return "Weekdays";
-  if (key === "5,6") return "Weekends";
-
-  const names = days.map((i) => DAY_NAMES[i]);
-
-  if (names.length === 1) return `Every ${names[0]}`;
-
-  const allButLast = names.slice(0, -1).join(", ");
-  const last = names[names.length - 1];
-  return `Every ${allButLast} and ${last}`;
-}
-
-const EXTRA_OPTIONS = [15, 30, 60, 120];
-
-function formatMinutes(min: number): string {
-  const h = Math.floor(min / 60);
-  const m = min % 60;
-  if (h === 0) return `${m} minutes`;
-  const hourText = h === 1 ? "1 hour" : `${h} hours`;
-  return m === 0 ? hourText : `${hourText} ${m} min`;
-}
-
-const HOURS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
-const MINUTES = [0, 15, 30, 45];
-const PERIODS = ["AM", "PM"] as const;
-
-type Period = (typeof PERIODS)[number]; // "AM" | "PM"
-
-function toParts(total: number) {
-  const h24 = Math.floor(total / 60);
-  const minute = total % 60;
-  const period: Period = h24 < 12 ? "AM" : "PM";
-  const hour = h24 % 12 === 0 ? 12 : h24 % 12;
-  return { hour, minute, period };
-}
-
-function fromParts(hour: number, minute: number, period: Period) {
-  const h24 = (hour % 12) + (period === "PM" ? 12 : 0);
-  return h24 * 60 + minute;
-}
-
-const EXTRA_HOURS = [0, 1, 2, 3];
-const EXTRA_MINUTES = [0, 15, 30, 45];
 
 export default function CaregiverSetup2() {
   const goBack = () => {
@@ -132,7 +46,6 @@ export default function CaregiverSetup2() {
 
   const setStart = (value: number) => update({ windowStart: value });
   const setEnd = (value: number) => update({ windowEnd: value });
-  const [editing, setEditing] = useState<"from" | "until">("from");
 
   // Which chip matches the current times? (undefined if the user picked custom times)
   const matchingWindowId = WINDOWS.find(
@@ -142,33 +55,8 @@ export default function CaregiverSetup2() {
   const isValid = end > start;
 
   const [days, setDays] = useState<number[]>([0, 1, 2, 3, 4, 5, 6]);
-  const toggleDay = (i: number) => {
-    setDays((prev) =>
-      prev.includes(i)
-        ? prev.filter((d) => d !== i)
-        : [...prev, i].sort((a, b) => a - b),
-    );
-  };
   const [sheet, setSheet] = useState<null | "window" | "extraTime">(null);
   const [extraMinutes, setExtraMinutes] = useState(30);
-  const extraHour = Math.floor(extraMinutes / 60);
-  const extraMin = extraMinutes % 60;
-
-  const setExtra = (hour: number, minute: number) => {
-    const total = hour * 60 + minute;
-    setExtraMinutes(Math.max(15, total)); // never allow 0 minutes
-  };
-  const windowEnds = end;
-  const alertAt = windowEnds + extraMinutes;
-
-  const editingValue = editing === "from" ? start : end;
-  const parts = toParts(editingValue);
-
-  const setEditingValue = (hour: number, minute: number, period: Period) => {
-    const next = fromParts(hour, minute, period);
-    if (editing === "from") setStart(next);
-    else setEnd(next);
-  };
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView
@@ -192,29 +80,15 @@ export default function CaregiverSetup2() {
             {WINDOWS.map((w) => {
               const selected = matchingWindowId === w.id;
               return (
-                <Pressable
+                <Chip
                   key={w.id}
+                  label={w.label}
+                  selected={selected}
                   onPress={() => {
                     setStart(w.start);
                     setEnd(w.end);
                   }}
-                  style={[styles.chip, selected && styles.chipSelected]}
-                  accessibilityRole="radio"
-                  accessibilityState={{ checked: selected }}
-                  accessibilityLabel={w.label}
-                >
-                  <AppText
-                    numberOfLines={1}
-                    adjustsFontSizeToFit
-                    minimumFontScale={0.75}
-                    style={[
-                      styles.chipText,
-                      selected && styles.chipTextSelected,
-                    ]}
-                  >
-                    {w.label}
-                  </AppText>
-                </Pressable>
+                />
               );
             })}
           </View>
@@ -239,39 +113,7 @@ export default function CaregiverSetup2() {
             </Pressable>
           </View>
         </View>
-        <View style={styles.whichDays}>
-          <View style={styles.whichDaysHeader}>
-            <AppText style={styles.whichDaysHeaderText}>Which days</AppText>
-            <AppText style={styles.whichDaysHeaderSubText}>
-              {describeDays(days)}
-            </AppText>
-          </View>
-          <View style={styles.whichDaysContent}>
-            {DAY_LETTERS.map((letter, i) => {
-              const on = days.includes(i);
-
-              return (
-                <Pressable
-                  key={i}
-                  onPress={() => toggleDay(i)}
-                  style={[styles.days, on ? styles.dayOn : styles.dayOff]}
-                  accessibilityRole="checkbox"
-                  accessibilityState={{ checked: on }}
-                  accessibilityLabel={DAY_NAMES[i]}
-                >
-                  <AppText
-                    style={[
-                      styles.daysText,
-                      on ? styles.dayTextOn : styles.dayTextOff,
-                    ]}
-                  >
-                    {letter}
-                  </AppText>
-                </Pressable>
-              );
-            })}
-          </View>
-        </View>
+        <WhichDays days={days} onChange={setDays} style={styles.whichDays} />
         <View style={styles.ifdontCheckIn}>
           <AppText style={styles.ifdontCheckInText}>
             If {displayName} doesn&apos; check in
@@ -340,80 +182,24 @@ export default function CaregiverSetup2() {
           {WINDOWS.map((w) => {
             const selected = matchingWindowId === w.id;
             return (
-              <Pressable
+              <Chip
                 key={w.id}
+                label={w.label}
+                selected={selected}
                 onPress={() => {
                   setStart(w.start);
                   setEnd(w.end);
                 }}
-                style={[styles.chip, selected && styles.chipSelected]}
-                accessibilityRole="radio"
-                accessibilityState={{ checked: selected }}
-              >
-                <AppText
-                  numberOfLines={1}
-                  adjustsFontSizeToFit
-                  minimumFontScale={0.75}
-                  style={[styles.chipText, selected && styles.chipTextSelected]}
-                >
-                  {w.label}
-                </AppText>
-              </Pressable>
+              />
             );
           })}
         </View>
-        <View style={styles.fromUntil}>
-          {(["from", "until"] as const).map((which) => {
-            const active = editing === which;
-            const value = which === "from" ? start : end;
-            return (
-              <Pressable
-                key={which}
-                onPress={() => setEditing(which)}
-                style={[styles.timeBox, active && styles.timeBoxActive]}
-                accessibilityRole="button"
-                accessibilityState={{ selected: active }}
-                accessibilityLabel={`${which === "from" ? "From" : "Until"} ${formatTime(value)}`}
-              >
-                <AppText style={styles.timeBoxLabel}>
-                  {which === "from" ? "From" : "Until"}
-                </AppText>
-                <AppText style={styles.timeBoxValue}>
-                  {formatTime(value)}
-                </AppText>
-              </Pressable>
-            );
-          })}
-        </View>
-
-        <View style={styles.wheel}>
-          <View style={[styles.wheelHighlight, { pointerEvents: "none" }]} />
-          <WheelColumn
-            label="Hour"
-            items={HOURS}
-            selectedIndex={HOURS.indexOf(parts.hour)}
-            onChange={(i) =>
-              setEditingValue(HOURS[i], parts.minute, parts.period)
-            }
-          />
-          <WheelColumn
-            label="Minute"
-            items={MINUTES}
-            selectedIndex={Math.max(0, MINUTES.indexOf(parts.minute))}
-            onChange={(i) =>
-              setEditingValue(parts.hour, MINUTES[i], parts.period)
-            }
-            format={(m) => String(m).padStart(2, "0")}
-          />
-          <WheelColumn
-            label="AM or PM"
-            items={[...PERIODS]}
-            selectedIndex={PERIODS.indexOf(parts.period)}
-            onChange={(i) =>
-              setEditingValue(parts.hour, parts.minute, PERIODS[i])
-            }
-          />
-        </View>
+        <TimeWindowPicker
+          start={start}
+          end={end}
+          onChangeStart={setStart}
+          onChangeEnd={setEnd}
+        />
 
         <Pressable
           style={styles.nextButton}
@@ -429,83 +215,11 @@ export default function CaregiverSetup2() {
         subtitle="After the window ends, how long should we wait before alerting you?"
         onClose={() => setSheet(null)}
       >
-        <View style={styles.optionList}>
-          {EXTRA_OPTIONS.map((min, index) => {
-            const selected = extraMinutes === min;
-            const isLast = index === EXTRA_OPTIONS.length - 1;
-            return (
-              <Pressable
-                key={min}
-                onPress={() => setExtraMinutes(min)}
-                style={[
-                  styles.optionRow,
-                  selected && styles.optionRowSelected,
-                  !isLast && styles.optionRowDivider,
-                ]}
-                accessibilityRole="radio"
-                accessibilityState={{ checked: selected }}
-              >
-                <View style={styles.optionLabel}>
-                  <AppText style={styles.optionText}>
-                    {formatMinutes(min)}
-                  </AppText>
-                  {min === 30 && (
-                    <AppText style={styles.alertLabelRecommend}>
-                      Recommended
-                    </AppText>
-                  )}
-                </View>
-                <RadioCircle selected={selected} />
-              </Pressable>
-            );
-          })}
-        </View>
-
-        <AppText style={styles.orCustom}>Or pick your own</AppText>
-
-        <View style={styles.wheel}>
-          <View style={[styles.wheelHighlight, { pointerEvents: "none" }]} />
-          <WheelColumn
-            label="Hours"
-            items={EXTRA_HOURS}
-            selectedIndex={Math.max(0, EXTRA_HOURS.indexOf(extraHour))}
-            onChange={(i) => setExtra(EXTRA_HOURS[i], extraMin)}
-            format={(h) => `${h} hr`}
-            width={110}
-          />
-          <WheelColumn
-            label="Minutes"
-            items={EXTRA_MINUTES}
-            selectedIndex={Math.max(0, EXTRA_MINUTES.indexOf(extraMin))}
-            onChange={(i) => setExtra(extraHour, EXTRA_MINUTES[i])}
-            format={(m) => `${String(m).padStart(2, "0")} min`}
-            width={130}
-          />
-        </View>
-
-        <View style={styles.timeSummary}>
-          <View style={styles.timeSummaryEnds}>
-            <AppText style={styles.timeSummaryText}>Windows ends</AppText>
-            <AppText style={styles.timeSummaryTime}>
-              {formatTime(windowEnds)}
-            </AppText>
-          </View>
-          <Svg width={48} height={12} viewBox="0 0 48 12" fill="none">
-            <Path
-              d="M2 6H42M36 11L42 6L36 1"
-              stroke="#8B8DA3"
-              strokeWidth={2}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </Svg>
-          <View style={styles.timeSummaryAlert}>
-            <AppText style={styles.timeSummaryText}>You&apos;re alerted</AppText>
-            <AppText style={styles.timeSummaryTimeHightlighted}>
-              {formatTime(alertAt)}
-            </AppText>
-          </View>
-        </View>
+        <ExtraTimePicker
+          extraMinutes={extraMinutes}
+          onChange={setExtraMinutes}
+          windowEnd={end}
+        />
 
         <Pressable
           style={styles.nextButton}
@@ -565,30 +279,6 @@ const styles = StyleSheet.create({
     alignSelf: "stretch",
     flexDirection: "row",
   },
-  chip: {
-    height: 48,
-    justifyContent: "center",
-    alignItems: "center",
-    flex: 1,
-    paddingHorizontal: 4,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: SURFACE,
-    backgroundColor: "#fff",
-  },
-  chipText: {
-    color: INK,
-    fontSize: 16,
-    fontFamily: FigtreeFont.bold,
-  },
-  chipSelected: {
-    borderWidth: 2,
-    borderColor: PRIMARY,
-    backgroundColor: SELECTED_BG,
-  },
-  chipTextSelected: {
-    color: PURPLE,
-  },
   windowSummary: {
     paddingVertical: 14,
     paddingHorizontal: 16,
@@ -637,58 +327,6 @@ const styles = StyleSheet.create({
   },
   whichDays: {
     marginTop: 24,
-    gap: 10,
-  },
-  whichDaysHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  whichDaysHeaderText: {
-    color: INK,
-    fontSize: 17,
-    fontFamily: FigtreeFont.bold,
-    lineHeight: 22.1,
-  },
-  whichDaysHeaderSubText: {
-    color: SUBTITLE,
-    fontSize: 15,
-    lineHeight: 21,
-    fontFamily: FigtreeFont.bold,
-    flexShrink: 1,
-    textAlign: "right",
-    marginLeft: 12,
-  },
-  whichDaysContent: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  days: {
-    flex: 1,
-    maxWidth: 44,
-    aspectRatio: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    borderRadius: 22,
-  },
-  dayOn: {
-    backgroundColor: PRIMARY,
-  },
-  dayOff: {
-    backgroundColor: "#fff",
-    borderWidth: 1,
-    borderColor: SURFACE,
-  },
-  daysText: {
-    fontSize: 16,
-    fontFamily: FigtreeFont.bold,
-  },
-  dayTextOn: {
-    color: "#fff",
-  },
-  dayTextOff: {
-    color: INK,
   },
   ifdontCheckIn: {
     marginTop: 24,
@@ -814,129 +452,6 @@ const styles = StyleSheet.create({
   sheetNote: {
     fontFamily: FigtreeFont.medium,
     fontSize: 16,
-    color: SUBTITLE,
-  },
-  optionList: {
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: BORDERCOLOR,
-    overflow: "hidden",
-  },
-  optionRow: {
-    height: 56,
-    paddingHorizontal: 16,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    backgroundColor: "#fff",
-  },
-  optionRowSelected: {
-    backgroundColor: SELECTED_BG,
-  },
-  optionRowDivider: {
-    borderBottomWidth: 1,
-    borderBottomColor: "#EFEDF5",
-  },
-  optionLabel: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  optionText: {
-    fontFamily: FigtreeFont.bold,
-    fontSize: 17,
-    color: INK,
-  },
-  timeSummary: {
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    justifyContent: "space-between",
-    alignItems: "center",
-    alignSelf: "stretch",
-    flexDirection: "row",
-    borderRadius: 16,
-    backgroundColor: BACKGROUND,
-  },
-  timeSummaryEnds: {
-    flexDirection: "column",
-    alignItems: "flex-start",
-    gap: 2,
-  },
-  timeSummaryText: {
-    fontFamily: FigtreeFont.extraBold,
-    fontSize: 13,
-    lineHeight: 16.9,
-    color: SUBTITLE,
-  },
-  timeSummaryTime: {
-    color: INK,
-    fontSize: 17,
-    lineHeight: 22.1,
-    fontFamily: FigtreeFont.extraBold,
-  },
-  timeSummaryAlert: {
-    flexDirection: "column",
-    alignItems: "flex-end",
-    gap: 2,
-  },
-  timeSummaryTimeHightlighted: {
-    fontSize: 17,
-    lineHeight: 22.1,
-    fontFamily: FigtreeFont.extraBold,
-    color: ALERT,
-  },
-  fromUntil: {
-    flexDirection: "row",
-    gap: 10,
-  },
-  timeBox: {
-    flex: 1,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: SURFACE,
-    backgroundColor: "#fff",
-    gap: 2,
-  },
-  timeBoxActive: {
-    borderWidth: 2,
-    borderColor: PRIMARY,
-    backgroundColor: SELECTED_BG,
-    paddingVertical: 11, // 1px less, because the border grew by 1px
-    paddingHorizontal: 15,
-  },
-  timeBoxLabel: {
-    fontFamily: FigtreeFont.bold,
-    fontSize: 14,
-    color: SUBTITLE,
-    lineHeight: 18.2,
-  },
-  timeBoxValue: {
-    fontFamily: FigtreeFont.extraBold,
-    fontSize: 24,
-    color: INK,
-    lineHeight: 27.6,
-    letterSpacing: -0.4,
-  },
-  wheel: {
-    flexDirection: "row",
-    justifyContent: "center",
-    gap: 28,
-    position: "relative",
-  },
-  wheelHighlight: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    top: ITEM_H * 2,
-    height: ITEM_H,
-    borderRadius: 16,
-    backgroundColor: SELECTED_BG,
-  },
-  orCustom: {
-    fontFamily: FigtreeFont.bold,
-    fontSize: 15,
     color: SUBTITLE,
   },
 });
