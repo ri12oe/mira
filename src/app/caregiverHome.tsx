@@ -558,6 +558,7 @@ export default function CaregiverHome() {
             canReuseBackup
               ? {
                   label: `Add ${existingBackup.name}`,
+                  avatarInitial: existingBackup.name.trim().charAt(0).toUpperCase(),
                   note: `${existingBackup.name} is already a backup for ${primaryName}.`,
                   onPress: () =>
                     setNewBackups((current) => [

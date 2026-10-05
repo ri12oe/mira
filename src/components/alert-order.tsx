@@ -47,7 +47,12 @@ type Props = {
   onEditBackup: (backup: Backup) => void;
   onAddBackup: () => void;
   /** Optional shortcut shown beside "Add another backup", e.g. reusing an existing contact */
-  suggestion?: { label: string; note: string; onPress: () => void };
+  suggestion?: {
+    label: string;
+    note: string;
+    avatarInitial?: string;
+    onPress: () => void;
+  };
   style?: StyleProp<ViewStyle>;
 };
 
@@ -261,8 +266,13 @@ export function AlertOrder({
           accessibilityLabel="Add another backup"
         >
           <PlusIcon />
-          <AppText style={styles.addButtonText} numberOfLines={1}>
-            Add another backup
+          <AppText
+            style={styles.addButtonText}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.75}
+          >
+            {suggestion ? "Add backup" : "Add another backup"}
           </AppText>
         </Pressable>
         {suggestion ? (
@@ -272,8 +282,21 @@ export function AlertOrder({
             accessibilityRole="button"
             accessibilityLabel={suggestion.label}
           >
-            <PlusIcon />
-            <AppText style={styles.addButtonText} numberOfLines={1}>
+            {suggestion.avatarInitial ? (
+              <View style={styles.suggestionAvatar}>
+                <AppText style={styles.suggestionAvatarText}>
+                  {suggestion.avatarInitial}
+                </AppText>
+              </View>
+            ) : (
+              <PlusIcon />
+            )}
+            <AppText
+              style={styles.addButtonText}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.75}
+            >
               {suggestion.label}
             </AppText>
           </Pressable>
@@ -399,6 +422,8 @@ const styles = StyleSheet.create({
   },
   addButton: {
     flex: 1,
+    minWidth: 0,
+    paddingHorizontal: 8,
     height: 52,
     justifyContent: "center",
     alignItems: "center",
@@ -410,12 +435,23 @@ const styles = StyleSheet.create({
     flexDirection: "row",
   },
   suggestionButton: {
-    flex: 0,
-    flexShrink: 0,
-    paddingHorizontal: 16,
     borderStyle: "solid",
     borderColor: LILAC,
     backgroundColor: LILAC,
+  },
+  suggestionAvatar: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    flexShrink: 0,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: MINT,
+  },
+  suggestionAvatarText: {
+    color: GREEN,
+    fontSize: 14,
+    fontFamily: FigtreeFont.extraBold,
   },
   suggestionNote: {
     color: SUBTITLE,
@@ -424,6 +460,7 @@ const styles = StyleSheet.create({
     fontFamily: FigtreeFont.semiBold,
   },
   addButtonText: {
+    flexShrink: 1,
     color: PRIMARY,
     fontSize: 17,
     fontFamily: FigtreeFont.extraBold,
