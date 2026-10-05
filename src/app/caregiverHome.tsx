@@ -1,4 +1,5 @@
 import { AppText } from "@/components/app-test";
+import { BackButton } from "@/components/back-button";
 import { BottomSheet } from "@/components/bottom-sheet";
 import { CaregiverTabBar } from "@/components/caregiver-tab-bar";
 import BellIcon from "@/components/icons/BellIcon";
@@ -330,21 +331,17 @@ export default function CaregiverHome() {
         title={`When should ${newName} check in?`}
         onClose={closeAddSheet}
       >
-        <StepProgress step={2} total={3} />
-
+        <View style={styles.sheetHeader}>
+          <BackButton onPress={() => setSheet("person")} />
+          <StepProgress step={2} total={3} />
+        </View>
+            {/* {Add content} */}
         <Pressable
           style={styles.nextButton}
           onPress={savePerson}
           accessibilityRole="button"
         >
           <AppText style={styles.nextButtonText}>Add person</AppText>
-        </Pressable>
-        <Pressable
-          onPress={() => setSheet("person")}
-          accessibilityRole="button"
-          accessibilityLabel="Back"
-        >
-          <AppText style={styles.fieldLabel}>Back</AppText>
         </Pressable>
       </BottomSheet>
     </SafeAreaView>
@@ -365,6 +362,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingTop: 24,
     paddingBottom: 108,
+  },
+  sheetHeader: {
+    flexDirection: "row",
+    gap: 16,
+    alignSelf: "stretch",
+    alignItems: "center",
   },
   header: {
     justifyContent: "space-between",
