@@ -78,7 +78,7 @@ export default function CaregiverHome() {
     addPerson,
   } = useCaregiverSetup();
   const [notificationsActive, setNotificationsActive] = useState(false);
-  const [addSheetOpen, setAddSheetOpen] = useState(false);
+  const [sheet, setSheet] = useState<"person" | "time" | null>(null);
   const [selectedId, setSelectedId] = useState(PRIMARY_ID);
   const [newName, setNewName] = useState("");
   const [newPhone, setNewPhone] = useState("");
@@ -94,7 +94,7 @@ export default function CaregiverHome() {
     newName.trim().length > 0 && newPhone.replace(/\D/g, "").length >= 10;
 
   const closeAddSheet = () => {
-    setAddSheetOpen(false);
+    setSheet(null);
     setNewName("");
     setNewPhone("");
     setNewMethod("text");
@@ -185,7 +185,7 @@ export default function CaregiverHome() {
             );
           })}
           <Pressable
-            onPress={() => setAddSheetOpen(true)}
+            onPress={() => setSheet("person")}
             accessibilityRole="button"
             accessibilityLabel="Add a person"
           >
@@ -250,7 +250,7 @@ export default function CaregiverHome() {
       </ScrollView>
       <CaregiverTabBar />
       <BottomSheet
-        visible={addSheetOpen}
+        visible={sheet === "person"}
         title="Who else are you caring for?"
         onClose={closeAddSheet}
       >
@@ -316,13 +316,35 @@ export default function CaregiverHome() {
         </View>
         <Pressable
           style={[styles.nextButton, !canSavePerson && styles.disabled]}
-          onPress={savePerson}
+          onPress={() => setSheet("time")}
           disabled={!canSavePerson}
           accessibilityRole="button"
           accessibilityState={{ disabled: !canSavePerson }}
         >
           <AppText style={styles.nextButtonText}>Next: check-in time</AppText>
           <ArrowRightIcon size={20} color="#fff" strokeWidth={2} />
+        </Pressable>
+      </BottomSheet>
+      <BottomSheet
+        visible={sheet === "time"}
+        title={`When should ${newName} check in?`}
+        onClose={closeAddSheet}
+      >
+        <StepProgress step={2} total={3} />
+
+        <Pressable
+          style={styles.nextButton}
+          onPress={savePerson}
+          accessibilityRole="button"
+        >
+          <AppText style={styles.nextButtonText}>Add person</AppText>
+        </Pressable>
+        <Pressable
+          onPress={() => setSheet("person")}
+          accessibilityRole="button"
+          accessibilityLabel="Back"
+        >
+          <AppText style={styles.fieldLabel}>Back</AppText>
         </Pressable>
       </BottomSheet>
     </SafeAreaView>
