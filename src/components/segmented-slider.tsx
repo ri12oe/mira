@@ -1,23 +1,33 @@
 import { AppText } from "@/components/app-test";
 import { FigtreeFont } from "@/constants/fonts";
-import { useEffect, useRef, useState } from "react";
+import { ReactNode, useEffect, useRef, useState } from "react";
 import { Animated, PanResponder, StyleSheet, View } from "react-native";
 
 const PADDING = 4;
 const HEIGHT = 45;
+const SELECTED_COLOR = "#4338CA";
+const IDLE_COLOR = "#54566E";
 
-type Option<T> = { label: string; value: T };
+type Option<T> = {
+  label: string;
+  value: T;
+  /** Optional icon rendered above the label; receives the current text color */
+  icon?: (color: string) => ReactNode;
+};
 
 type Props<T extends string | number> = {
   options: Option<T>[];
   value: T;
   onChange: (value: T) => void;
+  /** Segment height in px (default 45) */
+  height?: number;
 };
 
 export function SegmentedSlider<T extends string | number>({
   options,
   value,
   onChange,
+  height = HEIGHT,
 }: Props<T>) {
   const [width, setWidth] = useState(0);
   const segWidth = width > 0 ? (width - PADDING * 2) / options.length : 0;
@@ -97,15 +107,16 @@ export function SegmentedSlider<T extends string | number>({
         pointerEvents="none"
         style={[
           styles.thumb,
-          { width: segWidth, transform: [{ translateX: x }] },
+          { width: segWidth, height, transform: [{ translateX: x }] },
         ]}
       />
       {options.map((option, i) => (
         <View
           key={String(option.value)}
-          style={styles.segment}
+          style={[styles.segment, { height }]}
           pointerEvents="none"
         >
+          {option.icon?.(i === selectedIndex ? SELECTED_COLOR : IDLE_COLOR)}
           <AppText
             style={[styles.label, i === selectedIndex && styles.labelSelected]}
           >
@@ -129,7 +140,6 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: PADDING,
     left: PADDING,
-    height: HEIGHT,
     borderRadius: 14,
     backgroundColor: "#FFF",
     shadowColor: "#14173B",
@@ -139,8 +149,8 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   segment: {
-    height: HEIGHT,
     flex: 1,
+    gap: 4,
     justifyContent: "center",
     alignItems: "center",
   },

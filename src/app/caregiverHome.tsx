@@ -4,19 +4,28 @@ import { CaregiverTabBar } from "@/components/caregiver-tab-bar";
 import BellIcon from "@/components/icons/BellIcon";
 import CheckBadgeIcon from "@/components/icons/CheckBadgeIcon";
 import CircleIcon from "@/components/icons/CircleIcon";
+import DashedCircleIcon from "@/components/icons/DashedCircleIcon";
+import MessageIcon from "@/components/icons/MessageIcon";
 import PhoneIcon from "@/components/icons/PhoneIcon";
+import PhoneSquareIcon from "@/components/icons/PhoneSquareIcon";
+import PlusIcon from "@/components/icons/PlusIcon";
 import PointerIcon from "@/components/icons/PointerIcon";
+import SoftCircleIcon from "@/components/icons/SoftCircleIcon";
+import { SegmentedSlider } from "@/components/segmented-slider";
 import { StepProgress } from "@/components/step-progress";
 import { FigtreeFont, FontFamily } from "@/constants/fonts";
 import { CheckInMethod, useCaregiverSetup } from "@/context/caregiver-setup";
 import { formatTimeRange } from "@/utils/format-time-short";
 import { useState } from "react";
-import PlusIcon from "@/components/icons/PlusIcon";
-import DashedCircleIcon from "@/components/icons/DashedCircleIcon";
-import SoftCircleIcon from "@/components/icons/SoftCircleIcon";
-import { Pressable, ScrollView, StyleSheet, View } from "react-native";
+import ArrowRightIcon from "@/components/icons/ArrowRightIcon";
+import {
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-
 const INK = "#15163A";
 const SUBTITLE = "#54566E";
 const PRIMARY = "#4338CA";
@@ -29,6 +38,7 @@ const RISE = "#8A3A12";
 const GREEN = "#075E4F";
 const YELLOW = "#F5B53D";
 const ORANGE = "#C2551F";
+const PLACEHOLDER = "#8B8DA3";
 
 const METHOD_LABELS: Record<CheckInMethod, string> = {
   text: "Text reply",
@@ -36,13 +46,73 @@ const METHOD_LABELS: Record<CheckInMethod, string> = {
   app: "Mira app",
 };
 
+const METHOD_OPTIONS = [
+  {
+    label: "Text",
+    value: "text" as CheckInMethod,
+    icon: (color: string) => <MessageIcon size={20} color={color} />,
+  },
+  {
+    label: "Call",
+    value: "call" as CheckInMethod,
+    icon: (color: string) => <PhoneIcon size={20} color={color} />,
+  },
+  {
+    label: "App",
+    value: "app" as CheckInMethod,
+    icon: (color: string) => <PhoneSquareIcon size={20} color={color} />,
+  },
+];
+
 const DAYS = ["M", "T", "W", "Th", "F", "S", "Su"];
+const PRIMARY_ID = "primary";
 
 export default function CaregiverHome() {
-  const { displayName, yourFirstName, method, windowStart, windowEnd } =
-    useCaregiverSetup();
+  const {
+    displayName: primaryName,
+    yourFirstName,
+    method: primaryMethod,
+    windowStart: primaryWindowStart,
+    windowEnd: primaryWindowEnd,
+    people,
+    addPerson,
+  } = useCaregiverSetup();
   const [notificationsActive, setNotificationsActive] = useState(false);
   const [addSheetOpen, setAddSheetOpen] = useState(false);
+  const [selectedId, setSelectedId] = useState(PRIMARY_ID);
+  const [newName, setNewName] = useState("");
+  const [newPhone, setNewPhone] = useState("");
+  const [newMethod, setNewMethod] = useState<CheckInMethod>("text");
+
+  const selectedPerson = people.find((p) => p.id === selectedId);
+  const displayName = selectedPerson?.firstName ?? primaryName;
+  const method = selectedPerson?.method ?? primaryMethod;
+  const windowStart = selectedPerson?.windowStart ?? primaryWindowStart;
+  const windowEnd = selectedPerson?.windowEnd ?? primaryWindowEnd;
+
+  const canSavePerson =
+    newName.trim().length > 0 && newPhone.replace(/\D/g, "").length >= 10;
+
+  const closeAddSheet = () => {
+    setAddSheetOpen(false);
+    setNewName("");
+    setNewPhone("");
+    setNewMethod("text");
+  };
+
+  const savePerson = () => {
+    if (!canSavePerson) return;
+    const added = addPerson({
+      firstName: newName.trim(),
+      phone: newPhone.trim(),
+      method: newMethod,
+      windowStart: primaryWindowStart,
+      windowEnd: primaryWindowEnd,
+    });
+    setSelectedId(added.id);
+    closeAddSheet();
+  };
+
   const now = new Date();
   const hour = now.getHours();
   const greeting =
@@ -84,16 +154,36 @@ export default function CaregiverHome() {
           </Pressable>
         </View>
         <View style={styles.peopleChips}>
-          <Pressable>
-            <View style={styles.chip}>
-              <View style={styles.frame2}>
-                <AppText style={styles.chipText}>
-                  {displayName.charAt(0).toUpperCase()}
-                </AppText>
-              </View>
-              <AppText style={styles.chipLabel}>{displayName}</AppText>
-            </View>
-          </Pressable>
+          {[
+            { id: PRIMARY_ID, name: primaryName },
+            ...people.map((p) => ({ id: p.id, name: p.firstName })),
+          ].map((person) => {
+            const selected = person.id === selectedId;
+            return (
+              <Pressable
+                key={person.id}
+                onPress={() => setSelectedId(person.id)}
+                accessibilityRole="button"
+                accessibilityLabel={person.name}
+                accessibilityState={{ selected }}
+              >
+                <View style={selected ? styles.chip : styles.chip2}>
+                  {selected && (
+                    <View style={styles.frame2}>
+                      <AppText style={styles.chipText}>
+                        {person.name.charAt(0).toUpperCase()}
+                      </AppText>
+                    </View>
+                  )}
+                  <AppText
+                    style={selected ? styles.chipLabel : styles.chipLabel2}
+                  >
+                    {person.name}
+                  </AppText>
+                </View>
+              </Pressable>
+            );
+          })}
           <Pressable
             onPress={() => setAddSheetOpen(true)}
             accessibilityRole="button"
@@ -162,7 +252,7 @@ export default function CaregiverHome() {
       <BottomSheet
         visible={addSheetOpen}
         title="Who else are you caring for?"
-        onClose={() => setAddSheetOpen(false)}
+        onClose={closeAddSheet}
       >
         <StepProgress step={1} total={3} />
         <View style={styles.notes}>
@@ -183,10 +273,57 @@ export default function CaregiverHome() {
             </View>
           </View>
           <AppText style={styles.notesText}>
-            {displayName} stays on your home screen. You&apos;ll switch between people with the
-            chips at the top.
+            {primaryName} stays on your home screen. You&apos;ll switch between
+            people with the chips at the top.
           </AppText>
         </View>
+        <View style={styles.fieldName}>
+          <AppText style={styles.fieldLabel}>First Name</AppText>
+          <TextInput
+            style={styles.fieldInput}
+            value={newName}
+            onChangeText={setNewName}
+            placeholder="Their First Name"
+            placeholderTextColor={PLACEHOLDER}
+            accessibilityLabel="First Name"
+            autoCapitalize="words"
+            autoComplete="given-name"
+            textContentType="givenName"
+          />
+        </View>
+        <View style={styles.fieldName}>
+          <AppText style={styles.fieldLabel}>Phone Number</AppText>
+          <TextInput
+            style={styles.fieldInput}
+            value={newPhone}
+            onChangeText={setNewPhone}
+            placeholder="(555) 123-4567"
+            placeholderTextColor={PLACEHOLDER}
+            accessibilityLabel="Phone Number"
+            keyboardType="phone-pad"
+            autoComplete="tel"
+            textContentType="telephoneNumber"
+          />
+        </View>
+        <View style={styles.methods}>
+          <AppText style={styles.fieldLabel}>How will they check in?</AppText>
+          <SegmentedSlider
+            options={METHOD_OPTIONS}
+            value={newMethod}
+            onChange={setNewMethod}
+            height={64}
+          />
+        </View>
+        <Pressable
+          style={[styles.nextButton, !canSavePerson && styles.disabled]}
+          onPress={savePerson}
+          disabled={!canSavePerson}
+          accessibilityRole="button"
+          accessibilityState={{ disabled: !canSavePerson }}
+        >
+          <AppText style={styles.nextButtonText}>Next: check-in time</AppText>
+          <ArrowRightIcon size={20} color="#fff" strokeWidth={2} />
+        </Pressable>
       </BottomSheet>
     </SafeAreaView>
   );
@@ -493,4 +630,60 @@ const styles = StyleSheet.create({
     color: SUBTITLE,
     fontFamily: FigtreeFont.semiBold,
   },
+  fieldName: {
+    flexDirection: "column",
+    alignItems: "flex-start",
+    gap: 8,
+    alignSelf: "stretch",
+  },
+  fieldLabel: {
+    color: INK,
+    fontSize: 16,
+    fontFamily: FigtreeFont.bold,
+    lineHeight: 20.8,
+  },
+  fieldInput: {
+    height: 56,
+    paddingHorizontal: 16,
+    alignItems: "center",
+    alignSelf: "stretch",
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "#DCD9E8",
+    backgroundColor: "#fff",
+    color: INK,
+    fontSize: 18,
+    lineHeight: 23.4,
+    fontFamily: FigtreeFont.semiBold,
+  },
+  methods: {
+    flexDirection: "column",
+    alignItems: "flex-start",
+    gap: 8,
+    alignSelf: "stretch",
+  },
+  nextButton: {
+      height: 60,
+      justifyContent: "center",
+      alignItems: "center",
+      alignSelf: "stretch",
+      flexShrink: 0,
+      borderRadius: 18,
+      backgroundColor: PRIMARY,
+      flexDirection: "row",
+      gap: 10,
+    },
+    nextButtonText: {
+      color: "#fff",
+      fontFamily: FigtreeFont.bold,
+      fontSize: 19,
+      lineHeight: 22.8,
+    },
+    pressed: {
+      transform: [{ scale: 0.97 }],
+      opacity: 0.9,
+    },
+    disabled: {
+      opacity: 0.4,
+    },
 });

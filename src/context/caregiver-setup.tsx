@@ -22,6 +22,16 @@ export type Backup = {
   alertAfter: number; // minutes
 };
 
+/** Someone added later from the home screen, in addition to the person set up in steps 1–3 */
+export type Person = {
+  id: string;
+  firstName: string;
+  phone: string;
+  method: CheckInMethod;
+  windowStart: number; // minutes after midnight
+  windowEnd: number;
+};
+
 export type CaregiverSetupData = {
   firstName: string;
   phone: string;
@@ -36,6 +46,9 @@ export type CaregiverSetupData = {
 type CaregiverSetupContextValue = CaregiverSetupData & {
   /** Change one or more answers, e.g. update({ firstName: "Lin" }) */
   update: (changes: Partial<CaregiverSetupData>) => void;
+  /** Other people the caregiver looks after (the first person lives in the fields above) */
+  people: Person[];
+  addPerson: (person: Omit<Person, "id">) => Person;
   /** Clear everything, e.g. after the invite is sent */
   reset: () => void;
   /** The name to show in headings: "Lin", or "they" if nothing was typed yet */
@@ -64,16 +77,29 @@ export function CaregiverSetupProvider({ children }: { children: ReactNode }) {
     setData((prev) => ({ ...prev, ...changes }));
   }, []);
 
-  const reset = useCallback(() => setData(INITIAL), []);
+  const [people, setPeople] = useState<Person[]>([]);
+
+  const addPerson = useCallback((person: Omit<Person, "id">) => {
+    const added: Person = { ...person, id: `${Date.now()}-${Math.random()}` };
+    setPeople((prev) => [...prev, added]);
+    return added;
+  }, []);
+
+  const reset = useCallback(() => {
+    setData(INITIAL);
+    setPeople([]);
+  }, []);
 
   const value = useMemo(
     () => ({
       ...data,
+      people,
+      addPerson,
       update,
       reset,
       displayName: data.firstName.trim() || "they",
     }),
-    [data, update, reset],
+    [data, people, addPerson, update, reset],
   );
 
   return (
