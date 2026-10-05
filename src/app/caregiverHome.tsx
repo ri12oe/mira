@@ -391,7 +391,7 @@ export default function CaregiverHome() {
                 Extra time before alerts
               </AppText>
               <View style={styles.value}>
-                <AppText style={styles.minutues}>
+                <AppText style={styles.minutues} numberOfLines={1}>
                   {formatMinutes(newExtraMinutes)}
                 </AppText>
                 {newExtraMinutes === RECOMMENDED_EXTRA_MINUTES && (
@@ -424,7 +424,7 @@ export default function CaregiverHome() {
                 strokeLinejoin="round"
               />
             </Svg>
-            <View style={styles.frame2}>
+            <View style={[styles.frame2, styles.frame2End]}>
               <AppText style={styles.frame2Text}>You&apos;re alerted</AppText>
               <AppText style={[styles.frame2Value, { color: ALERT }]}>
                 {formatTime(newEnd + newExtraMinutes)}
@@ -878,10 +878,13 @@ const styles = StyleSheet.create({
   },
   value: {
     alignItems: "center",
-    gap: 8,
+    columnGap: 8,
+    rowGap: 4,
     flexDirection: "row",
+    flexWrap: "wrap",
   },
   minutues: {
+    flexShrink: 0,
     color: SUBTITLE,
     fontSize: 15,
     fontFamily: FigtreeFont.bold,
@@ -910,6 +913,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     alignSelf: "stretch",
     flexDirection: "row",
+  },
+  frame2End: {
+    alignItems: "flex-end",
   },
   frame2: {
     flexDirection: "column",
