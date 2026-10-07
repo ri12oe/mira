@@ -6,25 +6,22 @@ import { BottomSheet } from "@/components/bottom-sheet";
 import { CaregiverTabBar } from "@/components/caregiver-tab-bar";
 import { Chip } from "@/components/chip";
 import {
-  ExtraTimePicker,
-  formatMinutes,
-  RECOMMENDED_EXTRA_MINUTES,
+    ExtraTimePicker,
+    formatMinutes,
+    RECOMMENDED_EXTRA_MINUTES,
 } from "@/components/extra-time-picker";
 import ArrowRightIcon from "@/components/icons/ArrowRightIcon";
 import BellIcon from "@/components/icons/BellIcon";
-import CheckBadgeIcon from "@/components/icons/CheckBadgeIcon";
-import CircleIcon from "@/components/icons/CircleIcon";
 import ClockIcon from "@/components/icons/ClockIcon";
 import DashedCircleIcon from "@/components/icons/DashedCircleIcon";
 import MessageIcon from "@/components/icons/MessageIcon";
 import PhoneIcon from "@/components/icons/PhoneIcon";
 import PhoneSquareIcon from "@/components/icons/PhoneSquareIcon";
 import PlusIcon from "@/components/icons/PlusIcon";
-import PointerIcon from "@/components/icons/PointerIcon";
 import SoftCircleIcon from "@/components/icons/SoftCircleIcon";
 import {
-  INVITE_SUFFIX,
-  InviteEditorSheet,
+    INVITE_SUFFIX,
+    InviteEditorSheet,
 } from "@/components/invite-editor-sheet";
 import { InviteMessage } from "@/components/invite-message";
 import { SegmentedSlider } from "@/components/segmented-slider";
@@ -34,9 +31,9 @@ import { WhichDays } from "@/components/which-days";
 import { WINDOWS } from "@/constants/check-in-windows";
 import { FigtreeFont, FontFamily } from "@/constants/fonts";
 import {
-  Backup,
-  CheckInMethod,
-  useCaregiverSetup,
+    Backup,
+    CheckInMethod,
+    useCaregiverSetup,
 } from "@/context/caregiver-setup";
 import { formatTime } from "@/utils/format-time";
 import { formatTimeRange } from "@/utils/format-time-short";
@@ -44,12 +41,12 @@ import * as Linking from "expo-linking";
 import { router } from "expo-router";
 import { useState } from "react";
 import {
-  Alert,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  TextInput,
-  View,
+    Alert,
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    TextInput,
+    View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
@@ -96,7 +93,7 @@ const DAYS = ["M", "T", "W", "Th", "F", "S", "Su"];
 const PRIMARY_ID = "primary";
 const ALL_DAYS = [0, 1, 2, 3, 4, 5, 6];
 
-export default function CaregiverHome() {
+export default function CaregiverHomeNotCheckIn() {
   const {
     displayName: primaryName,
     phone: primaryPhone,
@@ -247,8 +244,7 @@ export default function CaregiverHome() {
           <View style={styles.frame}>
             <AppText style={styles.date}>{dateLabel}</AppText>
             <AppText style={styles.greeting}>
-              {greeting}
-              {caregiverName ? `, ${caregiverName}` : ""}
+              {displayName} needs a check
             </AppText>
           </View>
           <Pressable
@@ -288,93 +284,99 @@ export default function CaregiverHome() {
             onPress={() => setSheet("person")}
           />
         </View>
-        <View style={styles.statusCard}>
-          <View style={styles.frame3}>
-            <CheckBadgeIcon size={64} />
-            <View style={styles.texts}>
-              <AppText style={styles.textHeader}>Checked in</AppText>
-              <AppText style={styles.textSubHeader}>
-                Mira checks in with {displayName}
+        <View style={styles.alertCard}>
+          <View style={styles.frame}>
+            <Svg width={56} height={56} viewBox="0 0 56 56" fill="none">
+              <Path
+                d="M28 56C43.464 56 56 43.464 56 28C56 12.536 43.464 0 28 0C12.536 0 0 12.536 0 28C0 43.464 12.536 56 28 56Z"
+                fill="#C43A2B"
+              />
+              <Path
+                d="M28 18V32M28 38V39"
+                stroke="white"
+                strokeWidth={3.6}
+                strokeLinecap="round"
+              />
+            </Svg>
+            <View style={styles.frameContent}>
+              <AppText style={styles.frameContentText}>
+                {displayName} hasn&apos;t checked in
               </AppText>
-              <AppText style={styles.method}>
-                Checks in by {METHOD_LABELS[method]}
+              <AppText style={styles.frameContentSubText}>
+                Window ended at 11:30 AM
               </AppText>
             </View>
           </View>
-          <View style={styles.nextCheckIn}>
-            <AppText style={styles.nextCheckInText}>Check-in window</AppText>
-            <AppText style={styles.nextCheckInTime}>{checkInWindow}</AppText>
+          <View style={styles.timeline}>
+            <View style={styles.timelineFrame}>
+              <Svg width={20} height={20} viewBox="0 0 20 20" fill="none">
+                <Path
+                  d="M4.16675 10.4167L7.91675 14.1667L15.8334 6.25"
+                  stroke="#0B7A66"
+                  strokeWidth={2.16667}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </Svg>
+              <AppText style={styles.timelineFrameText}>
+                11:30 · Reminder text sent
+              </AppText>
+            </View>
+            <View style={styles.timelineFrame}>
+              <Svg width={20} height={20} viewBox="0 0 20 20" fill="none">
+                <Path
+                  d="M4.16675 10.4167L7.91675 14.1667L15.8334 6.25"
+                  stroke="#0B7A66"
+                  strokeWidth={2.16667}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </Svg>
+              <AppText style={styles.timelineFrameText}>
+                11:45 · Mira called, no answer
+              </AppText>
+            </View>
+            <View style={styles.timelineFrame}>
+              <Svg width={20} height={20} viewBox="0 0 20 20" fill="none">
+                <Path
+                  d="M10 16C13.3137 16 16 13.3137 16 10C16 6.68629 13.3137 4 10 4C6.68629 4 4 6.68629 4 10C4 13.3137 6.68629 16 10 16Z"
+                  fill="#C43A2B"
+                />
+              </Svg>
+              <AppText style={styles.timelineFrameTextNow}>
+                Now · You&apos;re being notified
+              </AppText>
+            </View>
+            <View style={styles.timelineFrame}>
+              <Svg width={20} height={20} viewBox="0 0 20 20" fill="none">
+                <Path
+                  d="M10 15C12.7614 15 15 12.7614 15 10C15 7.23858 12.7614 5 10 5C7.23858 5 5 7.23858 5 10C5 12.7614 7.23858 15 10 15Z"
+                  stroke="#8B8DA3"
+                  strokeWidth={2}
+                />
+              </Svg>
+              <AppText style={styles.timelineFrameText}>
+                12:30 · Maya will be told
+              </AppText>
+            </View>
           </View>
-        </View>
-        <View style={styles.thisWeek}>
-          <AppText style={styles.title}>This week</AppText>
-          <View style={styles.days}>
-            {DAYS.map((day) => (
-              <View key={day} style={styles.day}>
-                <AppText style={styles.dayLabel}>{day}</AppText>
-                <CircleIcon size={30} outlined color={SUBTITLE} />
-              </View>
-            ))}
+          <View style={styles.actions}>
+            <Pressable style={styles.actionButton}>
+              <PhoneIcon size={20} color="#FFFFFF" />
+              <AppText style={styles.actionButtonText}>
+                Call {displayName} now
+              </AppText>
+            </Pressable>
+            <Pressable style={styles.actionButton2}>
+              <AppText style={styles.actionButtonText2}>
+               I reached her, {displayName} is okay
+              </AppText>
+            </Pressable>
           </View>
-          <View style={styles.Legend}>
-            <View style={styles.legendItem}>
-              <CircleIcon size={10} />
-              <AppText style={styles.LegendLabel}>On time</AppText>
-            </View>
-            <View style={styles.legendItem}>
-              <CircleIcon size={10} color={YELLOW} />
-              <AppText style={styles.LegendLabel}>Late</AppText>
-            </View>
-          </View>
+          <AppText style={styles.noteText}>
+            Marking {displayName} okay stops the alerts, so {displayName} isn&apos;t worried for nothing.
+          </AppText>
         </View>
-        <View style={styles.quickActions}>
-          <Pressable
-            style={({ pressed }) => [
-              styles.quickActionItem,
-              pressed && styles.pressed,
-            ]}
-            onPress={callPerson}
-            accessibilityRole="button"
-            accessibilityLabel={`Call ${displayName}`}
-            accessibilityHint="Opens the phone app to make a call"
-            hitSlop={6}
-          >
-            <View style={[styles.iconTile, { backgroundColor: LILAC }]}>
-              <PhoneIcon size={20} color={PRIMARY} />
-            </View>
-            <AppText style={styles.iconTileLabel}>Call {displayName}</AppText>
-          </Pressable>
-          <Pressable
-            style={({ pressed }) => [
-              styles.quickActionItem,
-              pressed && styles.pressed,
-            ]}
-            onPress={() =>
-              router.push({
-                pathname: "/checkInNow",
-                params: { personId: selectedId },
-              })
-            }
-            accessibilityRole="button"
-            accessibilityLabel="Check in now"
-            accessibilityHint="Opens the check-in screen"
-            hitSlop={6}
-          >
-            <View style={[styles.iconTile, { backgroundColor: SUN }]}>
-              <PointerIcon size={20} />
-            </View>
-            <AppText style={styles.iconTileLabel}>Check in now</AppText>
-          </Pressable>
-        </View>
-        <Pressable
-          onPress={() =>
-            router.push({
-              pathname: "/caregiverHomeNotCheckIn",
-            })
-          }
-        >
-          <AppText>Dev Test Caregiver If not check in</AppText>
-        </Pressable>
       </ScrollView>
       <CaregiverTabBar />
       <BottomSheet
