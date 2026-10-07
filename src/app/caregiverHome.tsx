@@ -40,9 +40,11 @@ import {
 } from "@/context/caregiver-setup";
 import { formatTime } from "@/utils/format-time";
 import { formatTimeRange } from "@/utils/format-time-short";
+import * as Linking from "expo-linking";
 import { router } from "expo-router";
 import { useState } from "react";
 import {
+  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -97,6 +99,7 @@ const ALL_DAYS = [0, 1, 2, 3, 4, 5, 6];
 export default function CaregiverHome() {
   const {
     displayName: primaryName,
+    phone: primaryPhone,
     yourFirstName,
     method: primaryMethod,
     windowStart: primaryWindowStart,
@@ -146,12 +149,32 @@ export default function CaregiverHome() {
 
   const selectedPerson = people.find((p) => p.id === selectedId);
   const displayName = selectedPerson?.firstName ?? primaryName;
+  const phone = selectedPerson?.phone ?? primaryPhone;
   const method = selectedPerson?.method ?? primaryMethod;
   const windowStart = selectedPerson?.windowStart ?? primaryWindowStart;
   const windowEnd = selectedPerson?.windowEnd ?? primaryWindowEnd;
 
   const canSavePerson =
     newName.trim().length > 0 && newPhone.replace(/\D/g, "").length >= 10;
+
+  const callPerson = () => {
+    const dialNumber = phone.trim().replace(/[^\d+]/g, "");
+    if (!/\d/.test(dialNumber)) {
+      Alert.alert(
+        "Phone number missing",
+        `Add a phone number for ${displayName} before calling.`,
+      );
+      return;
+    }
+
+    Linking.openURL(`tel:${dialNumber}`).catch((error: unknown) => {
+      console.error("Unable to open the phone app", error);
+      Alert.alert(
+        "Unable to make a call",
+        `Could not open the phone app. You can call ${displayName} at ${phone}.`,
+      );
+    });
+  };
 
   const closeAddSheet = () => {
     setSheet(null);
@@ -305,18 +328,38 @@ export default function CaregiverHome() {
           </View>
         </View>
         <View style={styles.quickActions}>
-          <View style={styles.quickActionItem}>
+          <Pressable
+            style={({ pressed }) => [
+              styles.quickActionItem,
+              pressed && styles.pressed,
+            ]}
+            onPress={callPerson}
+            accessibilityRole="button"
+            accessibilityLabel={`Call ${displayName}`}
+            accessibilityHint="Opens the phone app to make a call"
+            hitSlop={6}
+          >
             <View style={[styles.iconTile, { backgroundColor: LILAC }]}>
               <PhoneIcon size={20} color={PRIMARY} />
             </View>
             <AppText style={styles.iconTileLabel}>Call {displayName}</AppText>
-          </View>
-          <View style={styles.quickActionItem}>
+          </Pressable>
+          <Pressable
+            style={({ pressed }) => [
+              styles.quickActionItem,
+              pressed && styles.pressed,
+            ]}
+            onPress={() => router.push("/checkInNow")}
+            accessibilityRole="button"
+            accessibilityLabel="Check in now"
+            accessibilityHint="Opens the check-in screen"
+            hitSlop={6}
+          >
             <View style={[styles.iconTile, { backgroundColor: SUN }]}>
               <PointerIcon size={20} />
             </View>
             <AppText style={styles.iconTileLabel}>Check in now</AppText>
-          </View>
+          </Pressable>
         </View>
       </ScrollView>
       <CaregiverTabBar />
