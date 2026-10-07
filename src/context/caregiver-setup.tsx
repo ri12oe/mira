@@ -43,6 +43,7 @@ export type CaregiverSetupData = {
   windowStart: number; // minutes after midnight
   windowEnd: number;
   method: CheckInMethod;
+  extraMinutes: number;
   backups: Backup[]; // in alert order, after the caregiver
 };
 
@@ -66,6 +67,7 @@ const INITIAL: CaregiverSetupData = {
   windowStart: 9 * 60,
   windowEnd: 11 * 60,
   method: "text",
+  extraMinutes: 30,
   backups: [],
 };
 

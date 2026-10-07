@@ -9,12 +9,13 @@ import CheckBadgeLargeIcon from "@/components/icons/CheckBadgeLargeIcon";
 import ClockIcon from "@/components/icons/ClockIcon";
 import MessageIcon from "@/components/icons/MessageIcon";
 import PhoneIcon from "@/components/icons/PhoneIcon";
+import PhoneSquareIcon from "@/components/icons/PhoneSquareIcon";
 import { RadioCircle } from "@/components/radio-circle";
 import { SegmentedSlider } from "@/components/segmented-slider";
 import { FigtreeFont, FontFamily } from "@/constants/fonts";
-import { Backup, useCaregiverSetup } from "@/context/caregiver-setup";
+import { Backup, CheckInMethod, useCaregiverSetup } from "@/context/caregiver-setup";
 import { router, useLocalSearchParams } from "expo-router";
-import { useState } from "react";
+import { ReactNode, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
@@ -28,9 +29,10 @@ const PRIMARY = "#4338CA";
 const BORDER = "#E6E4EF";
 const ORANGE = "#C2551F";
 const SUN = "#FFE8DB";
-const REACH_OPTIONS = [
+const REACH_OPTIONS: { label: string; value: CheckInMethod; icon: (color: string) => ReactNode }[] = [
   { label: "Text", value: "text", icon: (color: string) => <MessageIcon size={20} color={color} /> },
   { label: "Phone Call", value: "call", icon: (color: string) => <PhoneIcon size={20} color={color} /> },
+  { label: "Mira app", value: "app", icon: (color: string) => <PhoneSquareIcon size={20} color={color} /> },
 ];
 const WAIT_OPTIONS = [15, 30, 60, 120];
 
@@ -39,21 +41,22 @@ export default function CheckInNow() {
     displayName,
     yourFirstName,
     method: primaryMethod,
+    extraMinutes: primaryExtraMinutes,
     people,
     backups: primaryBackups,
   } = useCaregiverSetup();
   const { personId } = useLocalSearchParams<{ personId?: string }>();
   const person = people.find((person) => person.id === personId);
   const primaryName = person?.firstName ?? displayName;
-  const [method, setMethod] = useState(
-    (person?.method ?? primaryMethod) === "call" ? "call" : "text",
-  );
+  const [method, setMethod] = useState<CheckInMethod>(person?.method ?? primaryMethod);
   const defaultMessage = `Hi ${primaryName}, ${yourFirstName.trim() || "your caregiver"} is checking you're okay. Reply YES if you're fine.`;
   const defaultCallMessage = `Hi ${primaryName}, ${yourFirstName.trim() || "your caregiver"} is checking you're okay. Please confirm you're fine.`;
+  const defaultAppMessage = `Hi ${primaryName}, ${yourFirstName.trim() || "your caregiver"} is checking you're okay. Please check in using the Mira app.`;
   const [textMessage, setTextMessage] = useState(defaultMessage);
   const [callMessage, setCallMessage] = useState(defaultCallMessage);
-  const message = method === "text" ? textMessage : callMessage;
-  const [waitMinutes, setWaitMinutes] = useState(15);
+  const [appMessage, setAppMessage] = useState(defaultAppMessage);
+  const message = method === "text" ? textMessage : method === "call" ? callMessage : appMessage;
+  const [waitMinutes, setWaitMinutes] = useState(person?.extraMinutes ?? primaryExtraMinutes);
   const [backups, setBackups] = useState<Backup[]>(person?.backups ?? primaryBackups);
   const [sheet, setSheet] = useState<"message" | "wait" | "alerts" | "backup" | null>(null);
   const [draftMessage, setDraftMessage] = useState("");
@@ -124,7 +127,7 @@ export default function CheckInNow() {
         <View style={styles.message}>
           <View style={styles.labelrow}>
             <AppText style={styles.labelrowText}>
-              {method === "text" ? `${primaryName} will get` : `${primaryName} will hear`}
+              {method === "call" ? `${primaryName} will hear` : `${primaryName} will get`}
             </AppText>
             <Pressable
               onPress={() => {
@@ -213,7 +216,17 @@ export default function CheckInNow() {
             ]}
             accessibilityLabel={`Send check-in to ${primaryName}`}
             accessibilityRole="button"
-            onPress={() => router.push("/waiting")}
+            onPress={() =>
+              router.push({
+                pathname: "/waiting",
+                params: {
+                  personId: personId ?? "primary",
+                  method,
+                  waitMinutes: String(waitMinutes),
+                  sentAt: String(Date.now()),
+                },
+              })
+            }
           >
             <Svg width={20} height={20} viewBox="0 0 20 20" fill="none">
               <Path
@@ -232,7 +245,7 @@ export default function CheckInNow() {
       </ScrollView>
       <BottomSheet
         visible={sheet === "message"}
-        title={method === "text" ? "Edit check-in message" : "Edit call message"}
+        title={method === "call" ? "Edit call message" : "Edit check-in message"}
         onClose={closeSheet}
       >
         <TextInput
@@ -245,7 +258,7 @@ export default function CheckInNow() {
           placeholder="Write your check-in message"
         />
         <Pressable
-          onPress={() => setDraftMessage(method === "text" ? defaultMessage : defaultCallMessage)}
+          onPress={() => setDraftMessage(method === "text" ? defaultMessage : method === "call" ? defaultCallMessage : defaultAppMessage)}
           accessibilityRole="button"
           accessibilityLabel="Reset check-in message"
           style={({ pressed }) => [styles.sheetAction, pressed && styles.pressed]}
@@ -255,7 +268,8 @@ export default function CheckInNow() {
         <Pressable
           onPress={() => {
             if (method === "text") setTextMessage(draftMessage.trim());
-            else setCallMessage(draftMessage.trim());
+            else if (method === "call") setCallMessage(draftMessage.trim());
+            else setAppMessage(draftMessage.trim());
             closeSheet();
           }}
           disabled={!draftMessage.trim()}
@@ -356,7 +370,7 @@ export default function CheckInNow() {
       >
         <AlertOrder
           recipientName={yourFirstName.trim() || "You"}
-          method={method === "call" ? "call" : "text"}
+          method={method}
           backups={draftBackups}
           onChangeBackups={setDraftBackups}
           onEditBackup={openBackup}

@@ -41,6 +41,7 @@ export default function CaregiverSetup2() {
     displayName,
     windowStart: start,
     windowEnd: end,
+    extraMinutes,
     update,
   } = useCaregiverSetup();
 
@@ -56,7 +57,7 @@ export default function CaregiverSetup2() {
 
   const [days, setDays] = useState<number[]>([0, 1, 2, 3, 4, 5, 6]);
   const [sheet, setSheet] = useState<null | "window" | "extraTime">(null);
-  const [extraMinutes, setExtraMinutes] = useState(30);
+  const setExtraMinutes = (value: number) => update({ extraMinutes: value });
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView

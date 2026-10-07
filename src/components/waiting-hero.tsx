@@ -1,9 +1,12 @@
 import { useEffect, useRef } from "react";
 import { AccessibilityInfo, Animated, Easing, StyleSheet, View } from "react-native";
-import Svg, { Path } from "react-native-svg";
 
 import { AppText } from "@/components/app-test";
+import MessageIcon from "@/components/icons/MessageIcon";
+import PhoneIcon from "@/components/icons/PhoneIcon";
+import PhoneSquareIcon from "@/components/icons/PhoneSquareIcon";
 import { FigtreeFont, FontFamily } from "@/constants/fonts";
+import { CheckInMethod } from "@/context/caregiver-setup";
 
 const INK = "#15163A";
 const SUBTITLE = "#54566E";
@@ -20,6 +23,7 @@ const BADGE = 44;
 type Props = {
   name: string; // "Lin"
   sentAt: string; // "12:11 PM"
+  method: CheckInMethod;
 };
 
 /** One ring that grows and fades out, forever. `delay` offsets the second ring. */
@@ -54,8 +58,14 @@ function PulseRing({ delay }: { delay: number }) {
   return <Animated.View style={[styles.ring, { opacity, transform: [{ scale }] }]} />;
 }
 
-export function WaitingHero({ name, sentAt }: Props) {
+export function WaitingHero({ name, sentAt, method }: Props) {
   const initial = name.trim().charAt(0).toUpperCase() || "?";
+  const MethodIcon = method === "text" ? MessageIcon : method === "call" ? PhoneIcon : PhoneSquareIcon;
+  const sentDescription = method === "text"
+    ? `We texted ${name}`
+    : method === "call"
+      ? `We started a call to ${name}`
+      : `We sent ${name} a Mira app check-in`;
 
   return (
     <View style={styles.wrap}>
@@ -71,9 +81,7 @@ export function WaitingHero({ name, sentAt }: Props) {
         </View>
 
         <View style={styles.badge}>
-          <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
-            <Path d="M4 5h16v11H9l-5 4z" stroke="#FFFFFF" strokeWidth={2.2} strokeLinejoin="round" />
-          </Svg>
+          <MethodIcon size={20} color="#FFFFFF" />
         </View>
       </View>
 
@@ -83,7 +91,7 @@ export function WaitingHero({ name, sentAt }: Props) {
           Waiting for {name}…
         </AppText>
         <AppText style={styles.subtitle}>
-          We texted {name} at {sentAt}. You'll get a notification as soon as she replies.
+          {sentDescription} at {sentAt}. You&apos;ll get a notification as soon as they confirm.
         </AppText>
       </View>
     </View>
