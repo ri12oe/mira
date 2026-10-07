@@ -73,7 +73,7 @@ export function BottomSheet({ visible, title, subtitle, onClose, children }: Pro
 
 const styles = StyleSheet.create({
   scrim: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: "rgba(21, 22, 58, 0.45)",
   },
   sheet: {

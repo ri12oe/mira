@@ -349,7 +349,12 @@ export default function CaregiverHome() {
               styles.quickActionItem,
               pressed && styles.pressed,
             ]}
-            onPress={() => router.push("/checkInNow")}
+            onPress={() =>
+              router.push({
+                pathname: "/checkInNow",
+                params: { personId: selectedId },
+              })
+            }
             accessibilityRole="button"
             accessibilityLabel="Check in now"
             accessibilityHint="Opens the check-in screen"
