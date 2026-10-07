@@ -213,7 +213,7 @@ export default function CheckInNow() {
             ]}
             accessibilityLabel={`Send check-in to ${primaryName}`}
             accessibilityRole="button"
-            onPress={() => router.push("/caregiverHome")}
+            onPress={() => router.push("/waiting")}
           >
             <Svg width={20} height={20} viewBox="0 0 20 20" fill="none">
               <Path
