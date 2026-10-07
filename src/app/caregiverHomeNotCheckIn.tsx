@@ -285,7 +285,7 @@ export default function CaregiverHomeNotCheckIn() {
           />
         </View>
         <View style={styles.alertCard}>
-          <View style={styles.frame}>
+          <View style={styles.alertFrame}>
             <Svg width={56} height={56} viewBox="0 0 56 56" fill="none">
               <Path
                 d="M28 56C43.464 56 56 43.464 56 28C56 12.536 43.464 0 28 0C12.536 0 0 12.536 0 28C0 43.464 12.536 56 28 56Z"
