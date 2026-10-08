@@ -3,7 +3,7 @@ import { CaregiverTabBar } from "@/components/caregiver-tab-bar";
 import { FigtreeFont, FontFamily } from "@/constants/fonts";
 import { ScrollView, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import Svg, { Path } from "react-native-svg";
+import Svg, { Circle, Path } from "react-native-svg";
 
 const INK = "#15163A";
 const SUBTITLE = "#54566E";
@@ -115,8 +115,8 @@ export default function CaregiverHistory() {
               <View style={styles.day}>
                 <AppText style={styles.dayText}>8</AppText>
               </View>
-              <View style={styles.day}>
-                <AppText style={styles.dayText}>9</AppText>
+              <View style={[styles.day, { backgroundColor: "#F5B53D" }]}>
+                <AppText style={[styles.dayText, { color: INK }]}>9</AppText>
               </View>
               <View style={styles.day}>
                 <AppText style={styles.dayText}>10</AppText>
@@ -138,7 +138,7 @@ export default function CaregiverHistory() {
               <View style={styles.day}>
                 <AppText style={styles.dayText}>15</AppText>
               </View>
-              <View style={styles.day}>
+              <View style={[styles.day, { backgroundColor: "#C43A2B" }]}>
                 <AppText style={styles.dayText}>16</AppText>
               </View>
               <View style={styles.day}>
@@ -161,8 +161,8 @@ export default function CaregiverHistory() {
               <View style={styles.day}>
                 <AppText style={styles.dayText}>22</AppText>
               </View>
-              <View style={styles.day}>
-                <AppText style={styles.dayText}>23</AppText>
+              <View style={[styles.day, { backgroundColor: "#F5B53D" }]}>
+                <AppText style={[styles.dayText, { color: INK }]}>23</AppText>
               </View>
               <View style={styles.day}>
                 <AppText style={styles.dayText}>24</AppText>
@@ -178,14 +178,50 @@ export default function CaregiverHistory() {
               </View>
             </View>
             <View style={styles.week}>
-              <View style={styles.day}>
-                <AppText style={styles.dayText}>28</AppText>
+              <View
+                style={[
+                  styles.day,
+                  {
+                    borderColor: "#DCD9E8",
+                    backgroundColor: "#fff",
+                    borderWidth: 2,
+                    borderStyle: "dashed",
+                  },
+                ]}
+              >
+                <AppText style={[styles.dayText, { color: "#8B8DA3" }]}>
+                  28
+                </AppText>
               </View>
-              <View style={styles.day}>
-                <AppText style={styles.dayText}>29</AppText>
+              <View
+                style={[
+                  styles.day,
+                  {
+                    borderColor: "#DCD9E8",
+                    backgroundColor: "#fff",
+                    borderWidth: 2,
+                    borderStyle: "dashed",
+                  },
+                ]}
+              >
+                <AppText style={[styles.dayText, { color: "#8B8DA3" }]}>
+                  29
+                </AppText>
               </View>
-              <View style={styles.day}>
-                <AppText style={styles.dayText}>30</AppText>
+              <View
+                style={[
+                  styles.day,
+                  {
+                    borderColor: "#DCD9E8",
+                    backgroundColor: "#fff",
+                    borderWidth: 2,
+                    borderStyle: "dashed",
+                  },
+                ]}
+              >
+                <AppText style={[styles.dayText, { color: "#8B8DA3" }]}>
+                  30
+                </AppText>
               </View>
               <View style={styles.empty}></View>
               <View style={styles.empty}></View>
@@ -193,7 +229,26 @@ export default function CaregiverHistory() {
               <View style={styles.empty}></View>
             </View>
           </View>
-          <View style={styles.totals}></View>
+          <View style={styles.totals}>
+            <View style={styles.status}>
+              <Svg width={10} height={10} viewBox="0 0 10 10" fill="none">
+                <Circle cx={5} cy={5} r={5} fill="#0B7A66" />
+              </Svg>
+              <AppText style={styles.statusText}>24 on time</AppText>
+            </View>
+             <View style={styles.status}>
+              <Svg width={10} height={10} viewBox="0 0 10 10" fill="none">
+                <Circle cx={5} cy={5} r={5} fill="#F5B53D" />
+              </Svg>
+              <AppText style={styles.statusText}>2 late</AppText>
+            </View>
+             <View style={styles.status}>
+              <Svg width={10} height={10} viewBox="0 0 10 10" fill="none">
+                <Circle cx={5} cy={5} r={5} fill="#C43A2B" />
+              </Svg>
+              <AppText style={styles.statusText}>1 missed</AppText>
+            </View>
+          </View>
         </View>
       </ScrollView>
       <CaregiverTabBar active="history" />
@@ -337,6 +392,26 @@ const styles = StyleSheet.create({
   },
   dayText: {
     color: "#fff",
+    fontSize: 14,
+    lineHeight: 18.2,
+    fontFamily: FigtreeFont.bold,
+  },
+  totals: {
+    paddingTop: 12,
+    justifyContent: "space-between",
+    alignItems: "center",
+    alignSelf: "stretch",
+    flexDirection: "row",
+    borderTopWidth: 1,
+    borderTopColor: BORDERCOLOR,
+  },
+  status: {
+    alignItems: "center",
+    gap: 6,
+    flexDirection: "row",
+  },
+  statusText: {
+    color: INK,
     fontSize: 14,
     lineHeight: 18.2,
     fontFamily: FigtreeFont.bold,
