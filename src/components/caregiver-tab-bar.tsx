@@ -4,31 +4,61 @@ import HomeIcon from "@/components/icons/HomeIcon";
 import SunIcon from "@/components/icons/SunIcon";
 import UserActivityIcon from "@/components/icons/UserActivityIcon";
 import { FigtreeFont } from "@/constants/fonts";
-import { StyleSheet, View } from "react-native";
+import { router } from "expo-router";
+import { Pressable, StyleSheet, View } from "react-native";
 
 const PRIMARY = "#4338CA";
 const SUBTITLE = "#54566E";
 const BORDERCOLOR = "#E6E4EF";
 
-export function CaregiverTabBar() {
+const TABS = [
+  { key: "home", label: "Home", href: "/caregiverHome", Icon: HomeIcon },
+  {
+    key: "activity",
+    label: "Activity",
+    href: "/caregiverActivity",
+    Icon: ClockLargeIcon,
+  },
+  {
+    key: "clock",
+    label: "Clock",
+    href: "/caregiverClock",
+    Icon: UserActivityIcon,
+  },
+  {
+    key: "settings",
+    label: "Settings",
+    href: "/caregiverSetting",
+    Icon: SunIcon,
+  },
+] as const;
+
+export type CaregiverTab = (typeof TABS)[number]["key"];
+
+export function CaregiverTabBar({ active = "home" }: { active?: CaregiverTab }) {
   return (
     <View style={styles.tabBar}>
-      <View style={styles.tabBarItem}>
-        <HomeIcon size={24} />
-        <AppText style={styles.activeTabLabel}>Home</AppText>
-      </View>
-      <View style={styles.tabBarItem}>
-        <ClockLargeIcon size={24} />
-        <AppText style={styles.inactiveTabLabel}>Activity</AppText>
-      </View>
-      <View style={styles.tabBarItem}>
-        <UserActivityIcon size={24} />
-        <AppText style={styles.inactiveTabLabel}>Clock</AppText>
-      </View>
-      <View style={styles.tabBarItem}>
-        <SunIcon size={24} />
-        <AppText style={styles.inactiveTabLabel}>Sun</AppText>
-      </View>
+      {TABS.map(({ key, label, href, Icon }) => (
+        <Pressable
+          key={key}
+          style={styles.tabBarItem}
+          onPress={() => {
+            if (key !== active) router.replace(href);
+          }}
+          accessibilityRole="button"
+          accessibilityLabel={label}
+          accessibilityState={{ selected: key === active }}
+        >
+          <Icon size={24} color={key === active ? PRIMARY : SUBTITLE} />
+          <AppText
+            style={
+              key === active ? styles.activeTabLabel : styles.inactiveTabLabel
+            }
+          >
+            {label}
+          </AppText>
+        </Pressable>
+      ))}
     </View>
   );
 }
