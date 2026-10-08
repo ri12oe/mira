@@ -122,6 +122,7 @@ export default function CheckInNow() {
             value={method}
             onChange={setMethod}
             height={64}
+            backgroundColor="#E9E7F2"
           />
         </View>
         <View style={styles.message}>

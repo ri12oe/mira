@@ -890,6 +890,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     lineHeight: 20.8,
     fontFamily: FigtreeFont.bold,
+    flex: 1,
   },
   notes: {
     paddingVertical: 12,

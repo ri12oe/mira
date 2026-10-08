@@ -21,6 +21,8 @@ type Props<T extends string | number> = {
   onChange: (value: T) => void;
   /** Segment height in px (default 45) */
   height?: number;
+  /** Track background color (default #F5F4FA) */
+  backgroundColor?: string;
 };
 
 export function SegmentedSlider<T extends string | number>({
@@ -28,6 +30,7 @@ export function SegmentedSlider<T extends string | number>({
   value,
   onChange,
   height = HEIGHT,
+  backgroundColor,
 }: Props<T>) {
   const [width, setWidth] = useState(0);
   const segWidth = width > 0 ? (width - PADDING * 2) / options.length : 0;
@@ -93,7 +96,7 @@ export function SegmentedSlider<T extends string | number>({
 
   return (
     <View
-      style={styles.track}
+      style={[styles.track, backgroundColor ? { backgroundColor } : null]}
       onLayout={(e) => setWidth(e.nativeEvent.layout.width)}
       accessibilityRole="adjustable"
       accessibilityValue={{ text: options[selectedIndex].label }}
