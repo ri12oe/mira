@@ -6,9 +6,9 @@ import { BottomSheet } from "@/components/bottom-sheet";
 import { CaregiverTabBar } from "@/components/caregiver-tab-bar";
 import { Chip } from "@/components/chip";
 import {
-    ExtraTimePicker,
-    formatMinutes,
-    RECOMMENDED_EXTRA_MINUTES,
+  ExtraTimePicker,
+  formatMinutes,
+  RECOMMENDED_EXTRA_MINUTES,
 } from "@/components/extra-time-picker";
 import ArrowRightIcon from "@/components/icons/ArrowRightIcon";
 import BellIcon from "@/components/icons/BellIcon";
@@ -20,8 +20,8 @@ import PhoneSquareIcon from "@/components/icons/PhoneSquareIcon";
 import PlusIcon from "@/components/icons/PlusIcon";
 import SoftCircleIcon from "@/components/icons/SoftCircleIcon";
 import {
-    INVITE_SUFFIX,
-    InviteEditorSheet,
+  INVITE_SUFFIX,
+  InviteEditorSheet,
 } from "@/components/invite-editor-sheet";
 import { InviteMessage } from "@/components/invite-message";
 import { SegmentedSlider } from "@/components/segmented-slider";
@@ -31,9 +31,9 @@ import { WhichDays } from "@/components/which-days";
 import { WINDOWS } from "@/constants/check-in-windows";
 import { FigtreeFont, FontFamily } from "@/constants/fonts";
 import {
-    Backup,
-    CheckInMethod,
-    useCaregiverSetup,
+  Backup,
+  CheckInMethod,
+  useCaregiverSetup,
 } from "@/context/caregiver-setup";
 import { formatTime } from "@/utils/format-time";
 import { formatTimeRange } from "@/utils/format-time-short";
@@ -41,12 +41,12 @@ import * as Linking from "expo-linking";
 import { router } from "expo-router";
 import { useState } from "react";
 import {
-    Alert,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    TextInput,
-    View,
+  Alert,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
@@ -64,6 +64,7 @@ const YELLOW = "#F5B53D";
 const ORANGE = "#C2551F";
 const PLACEHOLDER = "#8B8DA3";
 const ALERT = "#C43A2B";
+const RED = "#A52F22";
 
 const METHOD_LABELS: Record<CheckInMethod, string> = {
   text: "Text reply",
@@ -369,14 +370,15 @@ export default function CaregiverHomeNotCheckIn() {
             </Pressable>
             <Pressable style={styles.actionButton2}>
               <AppText style={styles.actionButtonText2}>
-               I reached her, {displayName} is okay
+                I reached her, {displayName} is okay
               </AppText>
             </Pressable>
           </View>
-          <AppText style={styles.noteText}>
-            Marking {displayName} okay stops the alerts, so {displayName} isn&apos;t worried for nothing.
-          </AppText>
         </View>
+        <AppText style={styles.noteText}>
+          Marking {displayName} okay stops the alerts, so {displayName}{" "}
+          isn&apos;t worried for nothing.
+        </AppText>
       </ScrollView>
       <CaregiverTabBar />
       <BottomSheet
@@ -1107,5 +1109,113 @@ const styles = StyleSheet.create({
     fontSize: 17,
     lineHeight: 22.1,
     fontFamily: FigtreeFont.extraBold,
+  },
+  alertCard: {
+    padding: 22,
+    flexDirection: "column",
+    alignItems: "flex-start",
+    gap: 18,
+    alignSelf: "stretch",
+    borderRadius: 28,
+    borderWidth: 2,
+    borderColor: RED,
+    backgroundColor: "#FDE7E3",
+  },
+  alertFrame: {
+    alignItems: "center",
+    gap: 16,
+    alignSelf: "stretch",
+    flexDirection: "row",
+  },
+  frameContent: {
+    flexDirection: "column",
+    alignItems: "flex-start",
+    gap: 3,
+    flex: 1,
+  },
+  frameContentText: {
+    alignSelf: "stretch",
+    color: INK,
+    fontSize: 24,
+    lineHeight: 27.6,
+    letterSpacing: -0.4,
+    fontFamily: FontFamily.bold,
+  },
+  frameContentSubText: {
+    color: RED,
+    fontSize: 16,
+    fontFamily: FigtreeFont.semiBold,
+    lineHeight: 23.2,
+  },
+  timeline: {
+    padding: 16,
+    flexDirection: "column",
+    alignItems: "flex-start",
+    gap: 12,
+    alignSelf: "stretch",
+    borderRadius: 18,
+    backgroundColor: "#fff",
+  },
+  timelineFrame: {
+    alignItems: "center",
+    gap: 12,
+    flexDirection: "row",
+  },
+  timelineFrameText: {
+    color: SUBTITLE,
+    fontSize: 16,
+    lineHeight: 23.2,
+    fontFamily: FigtreeFont.semiBold,
+  },
+  timelineFrameTextNow: {
+    color: RED,
+    fontSize: 16,
+    lineHeight: 23.2,
+    fontFamily: FigtreeFont.extraBold,
+  },
+  actions: {
+    flexDirection: "column",
+    alignItems: "flex-start",
+    gap: 10,
+    alignSelf: "stretch",
+  },
+  actionButton: {
+    height: 58,
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 10,
+    alignSelf: "stretch",
+    borderRadius: 18,
+    backgroundColor: RED,
+    flexDirection: "row",
+  },
+  actionButtonText: {
+    fontSize: 18,
+    color: "#fff",
+    lineHeight: 21.6,
+    fontFamily: FigtreeFont.bold,
+  },
+  actionButton2: {
+    height: 58,
+    justifyContent: "center",
+    alignItems: "center",
+    alignSelf: "stretch",
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: "#F0C2BA",
+    backgroundColor: "#fff",
+  },
+  actionButtonText2: {
+    color: INK,
+    fontSize: 17,
+    lineHeight: 22.1,
+    fontFamily: FigtreeFont.bold,
+  },
+  noteText: {
+    alignSelf: "stretch",
+    color: SUBTITLE,
+    fontSize: 15,
+    lineHeight: 21,
+    fontFamily: FigtreeFont.regular,
   },
 });
