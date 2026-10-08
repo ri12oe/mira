@@ -14,15 +14,15 @@ const BORDERCOLOR = "#E6E4EF";
 const TABS = [
   { key: "home", label: "Home", href: "/caregiverHome", Icon: HomeIcon },
   {
-    key: "activity",
+    key: "history",
     label: "History",
-    href: "/caregiverActivity",
+    href: "/caregiverHistory",
     Icon: ClockLargeIcon,
   },
   {
-    key: "clock",
+    key: "people",
     label: "People",
-    href: "/caregiverClock",
+    href: "/caregiverPeople",
     Icon: UserActivityIcon,
   },
   {

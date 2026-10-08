@@ -4,13 +4,13 @@ import { FigtreeFont } from "@/constants/fonts";
 import { StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-export default function CaregiverActivity() {
+export default function CaregiverHistory() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
         <AppText style={styles.title}>History</AppText>
       </View>
-      <CaregiverTabBar active="activity" />
+      <CaregiverTabBar active="history" />
     </SafeAreaView>
   );
 }
