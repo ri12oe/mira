@@ -236,17 +236,43 @@ export default function CaregiverHistory() {
               </Svg>
               <AppText style={styles.statusText}>24 on time</AppText>
             </View>
-             <View style={styles.status}>
+            <View style={styles.status}>
               <Svg width={10} height={10} viewBox="0 0 10 10" fill="none">
                 <Circle cx={5} cy={5} r={5} fill="#F5B53D" />
               </Svg>
               <AppText style={styles.statusText}>2 late</AppText>
             </View>
-             <View style={styles.status}>
+            <View style={styles.status}>
               <Svg width={10} height={10} viewBox="0 0 10 10" fill="none">
                 <Circle cx={5} cy={5} r={5} fill="#C43A2B" />
               </Svg>
               <AppText style={styles.statusText}>1 missed</AppText>
+            </View>
+          </View>
+        </View>
+        <View style={styles.recent}>
+          <AppText style={styles.recentTitle}>Recent</AppText>
+          <View style={styles.recentList}>
+            <View style={styles.row}>
+              <Svg width={12} height={12} viewBox="0 0 12 12" fill="none">
+                <Circle cx={6} cy={6} r={6} fill="#0B7A66" />
+              </Svg>
+              <AppText style={styles.recentText}>Today</AppText>
+              <AppText style={styles.recentSubText}>9:14 AM by text</AppText>
+            </View>
+            <View style={styles.row}>
+              <Svg width={12} height={12} viewBox="0 0 12 12" fill="none">
+                <Circle cx={6} cy={6} r={6} fill="#F5B53D" />
+              </Svg>
+              <AppText style={styles.recentText}>Wed, Oct 23</AppText>
+              <AppText style={styles.recentSubText}>11:22 AM, after reminder</AppText>
+            </View>
+            <View style={styles.row}>
+              <Svg width={12} height={12} viewBox="0 0 12 12" fill="none">
+                <Circle cx={6} cy={6} r={6} fill="#C43A2B" />
+              </Svg>
+              <AppText style={styles.recentText}>Wed, Sep 16</AppText>
+              <AppText style={styles.recentSubText}>Missed, you called Lin</AppText>
             </View>
           </View>
         </View>
@@ -415,5 +441,49 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 18.2,
     fontFamily: FigtreeFont.bold,
+  },
+  recent: {
+    flexDirection: "column",
+    alignItems: "flex-start",
+    gap: 10,
+    alignSelf: "stretch",
+  },
+  recentTitle: {
+    color: INK,
+    fontSize: 17,
+    lineHeight: 22.1,
+    fontFamily: FigtreeFont.bold,
+  },
+  recentList: {
+    flexDirection: "column",
+    alignItems: "flex-start",
+    alignSelf: "stretch",
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: BORDERCOLOR,
+    backgroundColor: "#fff",
+  },
+  row: {
+    height: 56,
+    paddingHorizontal: 16,
+    alignItems: "center",
+    gap: 12,
+    alignSelf: "stretch",
+    borderBottomWidth: 1,
+    borderBottomColor: BORDERCOLOR,
+    flexDirection: "row",
+  },
+  recentText: {
+    flex: 1,
+    color: INK,
+    fontSize: 16,
+    lineHeight: 20.8,
+    fontFamily: FigtreeFont.bold,
+  },
+  recentSubText: {
+    color: SUBTITLE,
+    fontSize: 15,
+    lineHeight: 21,
+    fontFamily: FigtreeFont.semibold,
   },
 });
