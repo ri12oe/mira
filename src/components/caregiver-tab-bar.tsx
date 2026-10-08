@@ -15,13 +15,13 @@ const TABS = [
   { key: "home", label: "Home", href: "/caregiverHome", Icon: HomeIcon },
   {
     key: "activity",
-    label: "Activity",
+    label: "History",
     href: "/caregiverActivity",
     Icon: ClockLargeIcon,
   },
   {
     key: "clock",
-    label: "Clock",
+    label: "People",
     href: "/caregiverClock",
     Icon: UserActivityIcon,
   },

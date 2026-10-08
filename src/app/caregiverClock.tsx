@@ -8,7 +8,7 @@ export default function CaregiverClock() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
-        <AppText style={styles.title}>Clock</AppText>
+        <AppText style={styles.title}>People</AppText>
       </View>
       <CaregiverTabBar active="clock" />
     </SafeAreaView>

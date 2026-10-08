@@ -8,7 +8,7 @@ export default function CaregiverActivity() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
-        <AppText style={styles.title}>Activity</AppText>
+        <AppText style={styles.title}>History</AppText>
       </View>
       <CaregiverTabBar active="activity" />
     </SafeAreaView>
