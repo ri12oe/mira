@@ -53,6 +53,7 @@ type CaregiverSetupContextValue = CaregiverSetupData & {
   /** Other people the caregiver looks after (the first person lives in the fields above) */
   people: Person[];
   addPerson: (person: Omit<Person, "id">) => Person;
+  updatePerson: (id: string, changes: Partial<Omit<Person, "id">>) => void;
   /** Clear everything, e.g. after the invite is sent */
   reset: () => void;
   /** The name to show in headings: "Lin", or "they" if nothing was typed yet */
@@ -90,6 +91,15 @@ export function CaregiverSetupProvider({ children }: { children: ReactNode }) {
     return added;
   }, []);
 
+  const updatePerson = useCallback(
+    (id: string, changes: Partial<Omit<Person, "id">>) => {
+      setPeople((prev) =>
+        prev.map((p) => (p.id === id ? { ...p, ...changes } : p)),
+      );
+    },
+    [],
+  );
+
   const reset = useCallback(() => {
     setData(INITIAL);
     setPeople([]);
@@ -100,11 +110,12 @@ export function CaregiverSetupProvider({ children }: { children: ReactNode }) {
       ...data,
       people,
       addPerson,
+      updatePerson,
       update,
       reset,
       displayName: data.firstName.trim() || "they",
     }),
-    [data, people, addPerson, update, reset],
+    [data, people, addPerson, updatePerson, update, reset],
   );
 
   return (
