@@ -33,6 +33,7 @@ import { FigtreeFont, FontFamily } from "@/constants/fonts";
 import {
   Backup,
   CheckInMethod,
+  PRIMARY_PERSON_ID as PRIMARY_ID,
   useCaregiverSetup,
 } from "@/context/caregiver-setup";
 import { formatTime } from "@/utils/format-time";
@@ -91,7 +92,6 @@ const METHOD_OPTIONS = [
 ];
 
 const DAYS = ["M", "T", "W", "Th", "F", "S", "Su"];
-const PRIMARY_ID = "primary";
 const ALL_DAYS = [0, 1, 2, 3, 4, 5, 6];
 
 export default function CaregiverHomeNotCheckIn() {
@@ -105,6 +105,8 @@ export default function CaregiverHomeNotCheckIn() {
     people,
     backups: primaryBackups,
     addPerson,
+    selectedId,
+    setSelectedId,
   } = useCaregiverSetup();
   const [notificationsActive, setNotificationsActive] = useState(false);
   const [sheet, setSheet] = useState<
@@ -117,7 +119,6 @@ export default function CaregiverHomeNotCheckIn() {
     | "editInvite"
     | null
   >(null);
-  const [selectedId, setSelectedId] = useState(PRIMARY_ID);
   const [newName, setNewName] = useState("");
   const [newPhone, setNewPhone] = useState("");
   const [newMethod, setNewMethod] = useState<CheckInMethod>("text");

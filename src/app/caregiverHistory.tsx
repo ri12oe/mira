@@ -2,7 +2,10 @@ import { AppText } from "@/components/app-test";
 import { CaregiverTabBar } from "@/components/caregiver-tab-bar";
 import { Chip } from "@/components/chip";
 import { FigtreeFont, FontFamily } from "@/constants/fonts";
-import { useCaregiverSetup } from "@/context/caregiver-setup";
+import {
+  PRIMARY_PERSON_ID as PRIMARY_ID,
+  useCaregiverSetup,
+} from "@/context/caregiver-setup";
 import {
   ALL_DAYS,
   CheckInStatus,
@@ -27,7 +30,6 @@ const PRIMARY = "#4338CA";
 const BACKGROUND = "#F5F4FA";
 const BORDERCOLOR = "#E6E4EF";
 const WEEKDAY_LETTERS = ["M", "T", "W", "T", "F", "S", "S"];
-const PRIMARY_ID = "primary";
 const MAX_MONTHS_BACK = 11;
 
 const STATUS_COLORS: Record<CheckInStatus, string> = {
@@ -44,10 +46,11 @@ export default function CaregiverHistory() {
     windowEnd: primaryWindowEnd,
     extraMinutes: primaryExtraMinutes,
     people,
+    selectedId,
+    setSelectedId,
   } = useCaregiverSetup();
 
   const today = useMemo(() => startOfDay(new Date()), []);
-  const [selectedId, setSelectedId] = useState(PRIMARY_ID);
   const [view, setView] = useState({
     year: today.getFullYear(),
     month: today.getMonth(),

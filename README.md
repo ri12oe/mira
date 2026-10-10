@@ -8,6 +8,8 @@ Mira is a mobile app that helps a caregiver set up daily support for someone the
 - Three-step caregiver setup (`caregiverSetup1`–`caregiverSetup3`)
 - Connection confirmation screen
 - Caregiver home screen with a custom tab bar
+- Taker selection shared across Home, History, People, and Settings; adding a taker selects them automatically
+- Per-taker check-in method, time window, extra alert time, and pause settings (kept for the current app session)
 
 ## Tech stack
 

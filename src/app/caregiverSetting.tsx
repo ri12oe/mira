@@ -11,7 +11,10 @@ import ArrowRightIcon from "@/components/icons/ArrowRightIcon";
 import { TimeWindowPicker } from "@/components/time-window-picker";
 import { WINDOWS } from "@/constants/check-in-windows";
 import { FigtreeFont, FontFamily } from "@/constants/fonts";
-import { useCaregiverSetup } from "@/context/caregiver-setup";
+import {
+  CaregiverSetupData,
+  useCaregiverSetup,
+} from "@/context/caregiver-setup";
 import { formatTimeRange } from "@/utils/format-time-short";
 import { router } from "expo-router";
 import { useState } from "react";
@@ -28,23 +31,43 @@ const PRIMARY = "#4338CA";
 
 export default function CaregiverSetting() {
   const {
-    firstName,
-    windowStart: start,
-    windowEnd: end,
-    method,
-    extraMinutes,
+    firstName: primaryName,
+    windowStart: primaryStart,
+    windowEnd: primaryEnd,
+    method: primaryMethod,
+    extraMinutes: primaryExtraMinutes,
+    paused: primaryPaused,
+    people,
+    selectedId,
     update,
+    updatePerson,
   } = useCaregiverSetup();
 
-  const name = firstName.trim();
+  const selectedPerson = people.find((person) => person.id === selectedId);
+  const name = (selectedPerson?.firstName ?? primaryName).trim();
+  const start = selectedPerson?.windowStart ?? primaryStart;
+  const end = selectedPerson?.windowEnd ?? primaryEnd;
+  const method = selectedPerson?.method ?? primaryMethod;
+  const extraMinutes = selectedPerson?.extraMinutes ?? primaryExtraMinutes;
+  const paused = selectedPerson ? selectedPerson.paused ?? false : primaryPaused;
   const [sheet, setSheet] = useState<null | "window" | "method" | "extraTime">(
     null,
   );
-  const [paused, setPaused] = useState(false);
   const [alsoText, setAlsoText] = useState(true);
 
-  const setStart = (value: number) => update({ windowStart: value });
-  const setEnd = (value: number) => update({ windowEnd: value });
+  const updateCheckIn = (
+    changes: Partial<
+      Pick<
+        CaregiverSetupData,
+        "windowStart" | "windowEnd" | "method" | "extraMinutes" | "paused"
+      >
+    >,
+  ) => {
+    if (selectedPerson) updatePerson(selectedPerson.id, changes);
+    else update(changes);
+  };
+  const setStart = (value: number) => updateCheckIn({ windowStart: value });
+  const setEnd = (value: number) => updateCheckIn({ windowEnd: value });
   const matchingWindowId = WINDOWS.find(
     (w) => w.start === start && w.end === end,
   )?.id;
@@ -109,7 +132,7 @@ export default function CaregiverSetting() {
               </View>
               <ToggleSwitch
                 value={paused}
-                onValueChange={setPaused}
+                onValueChange={(value) => updateCheckIn({ paused: value })}
                 label="Pause check-ins"
               />
             </View>
@@ -234,8 +257,7 @@ export default function CaregiverSetting() {
               label={w.label}
               selected={matchingWindowId === w.id}
               onPress={() => {
-                setStart(w.start);
-                setEnd(w.end);
+                updateCheckIn({ windowStart: w.start, windowEnd: w.end });
               }}
             />
           ))}
@@ -256,10 +278,11 @@ export default function CaregiverSetting() {
       </BottomSheet>
 
       <CheckInMethodSheet
+        key={selectedId}
         visible={sheet === "method"}
         name={name}
         method={method}
-        onChange={(value) => update({ method: value })}
+        onChange={(value) => updateCheckIn({ method: value })}
         onClose={() => setSheet(null)}
       />
 
@@ -271,7 +294,7 @@ export default function CaregiverSetting() {
       >
         <ExtraTimePicker
           extraMinutes={extraMinutes}
-          onChange={(value) => update({ extraMinutes: value })}
+          onChange={(value) => updateCheckIn({ extraMinutes: value })}
           windowEnd={end}
         />
         <Pressable

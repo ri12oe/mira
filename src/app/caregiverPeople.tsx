@@ -7,6 +7,7 @@ import { FigtreeFont, FontFamily } from "@/constants/fonts";
 import {
   Backup,
   CheckInMethod,
+  PRIMARY_PERSON_ID as PRIMARY_ID,
   useCaregiverSetup,
 } from "@/context/caregiver-setup";
 import { formatTimeShort, formatTimeRange } from "@/utils/format-time-short";
@@ -26,7 +27,6 @@ const RED = "#8A3A12";
 const MINT = "#DDF3EE";
 const GREEN = "#075E4F";
 const LILAC = "#E7E4FB";
-const PRIMARY_ID = "primary";
 const ALL_DAYS = [0, 1, 2, 3, 4, 5, 6];
 
 const METHOD_LABELS: Record<CheckInMethod, string> = {
@@ -68,8 +68,9 @@ export default function CaregiverPeople() {
     people,
     update,
     updatePerson,
+    selectedId,
+    setSelectedId,
   } = useCaregiverSetup();
-  const [selectedId, setSelectedId] = useState(PRIMARY_ID);
   const [sheet, setSheet] = useState<null | "person" | "backup">(null);
   const [editingBackup, setEditingBackup] = useState<Backup | null>(null);
 

@@ -14,6 +14,8 @@ import {
 
 export type CheckInMethod = "text" | "call" | "app";
 
+export const PRIMARY_PERSON_ID = "primary";
+
 export type Backup = {
   id: string;
   name: string;
@@ -33,6 +35,7 @@ export type Person = {
   days: number[]; // 0 = Monday … 6 = Sunday
   extraMinutes: number; // wait after the window ends before alerting the caregiver
   backups: Backup[]; // in alert order, after the caregiver
+  paused?: boolean;
 };
 
 export type CaregiverSetupData = {
@@ -45,6 +48,7 @@ export type CaregiverSetupData = {
   method: CheckInMethod;
   extraMinutes: number;
   backups: Backup[]; // in alert order, after the caregiver
+  paused: boolean;
 };
 
 type CaregiverSetupContextValue = CaregiverSetupData & {
@@ -52,6 +56,8 @@ type CaregiverSetupContextValue = CaregiverSetupData & {
   update: (changes: Partial<CaregiverSetupData>) => void;
   /** Other people the caregiver looks after (the first person lives in the fields above) */
   people: Person[];
+  selectedId: string;
+  setSelectedId: (id: string) => void;
   addPerson: (person: Omit<Person, "id">) => Person;
   updatePerson: (id: string, changes: Partial<Omit<Person, "id">>) => void;
   /** Clear everything, e.g. after the invite is sent */
@@ -70,6 +76,7 @@ const INITIAL: CaregiverSetupData = {
   method: "text",
   extraMinutes: 30,
   backups: [],
+  paused: false,
 };
 
 const CaregiverSetupContext = createContext<CaregiverSetupContextValue | null>(
@@ -84,10 +91,12 @@ export function CaregiverSetupProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const [people, setPeople] = useState<Person[]>([]);
+  const [selectedId, setSelectedId] = useState(PRIMARY_PERSON_ID);
 
   const addPerson = useCallback((person: Omit<Person, "id">) => {
     const added: Person = { ...person, id: `${Date.now()}-${Math.random()}` };
     setPeople((prev) => [...prev, added]);
+    setSelectedId(added.id);
     return added;
   }, []);
 
@@ -103,19 +112,22 @@ export function CaregiverSetupProvider({ children }: { children: ReactNode }) {
   const reset = useCallback(() => {
     setData(INITIAL);
     setPeople([]);
+    setSelectedId(PRIMARY_PERSON_ID);
   }, []);
 
   const value = useMemo(
     () => ({
       ...data,
       people,
+      selectedId,
+      setSelectedId,
       addPerson,
       updatePerson,
       update,
       reset,
       displayName: data.firstName.trim() || "they",
     }),
-    [data, people, addPerson, updatePerson, update, reset],
+    [data, people, selectedId, addPerson, updatePerson, update, reset],
   );
 
   return (

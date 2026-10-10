@@ -152,7 +152,7 @@ export function CheckInMethodSheet({
           />
         </Svg>
         <AppText style={styles.noteText}>
-          We&apos;ll send Lin a short message so the change isn&apos;t a surprise.
+          We&apos;ll send {name} a short message so the change isn&apos;t a surprise.
         </AppText>
       </View>
 

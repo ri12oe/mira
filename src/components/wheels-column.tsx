@@ -1,9 +1,10 @@
 import { AppText } from "@/components/app-test";
 import { FigtreeFont } from "@/constants/fonts";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
     NativeScrollEvent,
     NativeSyntheticEvent,
+    Platform,
     ScrollView,
     StyleSheet,
     View,
@@ -33,22 +34,28 @@ export function WheelColumn({
   const settleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const didInit = useRef(false);
 
-  const pendingIndex = useRef<number | null>(null);
+  const userScrolling = useRef(false);
+  const selectedIndexRef = useRef(selectedIndex);
   const onChangeRef = useRef(onChange);
-  onChangeRef.current = onChange; // always the newest version
+  useEffect(() => {
+    onChangeRef.current = onChange;
+  }, [onChange]);
 
   // The row currently in the middle, updated live while scrolling
   const [liveIndex, setLiveIndex] = useState(selectedIndex);
 
   const clamp = (i: number) => Math.max(0, Math.min(items.length - 1, i));
-  const scrollToIndex = (i: number, animated: boolean) =>
+  const scrollToIndex = useCallback((i: number, animated: boolean) => {
     ref.current?.scrollTo({ y: i * ITEM_H, animated });
+  }, []);
 
   // Value changed from outside (a chip, or switching From/Until): move the wheel there
   useEffect(() => {
-    setLiveIndex(selectedIndex);
-    if (didInit.current) scrollToIndex(selectedIndex, true);
-  }, [selectedIndex]);
+    selectedIndexRef.current = selectedIndex;
+    if (settleTimer.current) clearTimeout(settleTimer.current);
+    userScrolling.current = false;
+    if (didInit.current) scrollToIndex(selectedIndex, false);
+  }, [selectedIndex, scrollToIndex]);
 
   // Clean up the timer if the sheet closes mid-scroll
   useEffect(
@@ -60,17 +67,25 @@ export function WheelColumn({
 
   // Runs on every scroll frame, on web and native
   const onScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
-  const i = clamp(Math.round(e.nativeEvent.contentOffset.y / ITEM_H));
-  setLiveIndex(i);
-  pendingIndex.current = i;
+    const offset = e.nativeEvent.contentOffset.y;
+    const i = clamp(Math.round(offset / ITEM_H));
+    setLiveIndex(i);
 
-  if (settleTimer.current) clearTimeout(settleTimer.current);
-  settleTimer.current = setTimeout(() => {
-    scrollToIndex(i, true);
-    pendingIndex.current = null;
-    if (i !== selectedIndex) onChangeRef.current(i);
-  }, 120);
-};
+    // Only a user gesture can change the value, not layout or preset scrolling.
+    if (!userScrolling.current) return;
+
+    if (settleTimer.current) clearTimeout(settleTimer.current);
+    settleTimer.current = setTimeout(() => {
+      userScrolling.current = false;
+      scrollToIndex(i, false);
+      if (i !== selectedIndexRef.current) onChangeRef.current(i);
+    }, 120);
+  };
+
+  const beginScroll = () => {
+    if (settleTimer.current) clearTimeout(settleTimer.current);
+    userScrolling.current = true;
+  };
 
   return (
     <View
@@ -92,6 +107,11 @@ export function WheelColumn({
         decelerationRate="fast"
         scrollEventThrottle={16}
         onScroll={onScroll}
+        onScrollBeginDrag={beginScroll}
+        onTouchStart={beginScroll}
+        {...(Platform.OS === "web"
+          ? { onWheel: beginScroll, onPointerDown: beginScroll }
+          : {})}
         contentContainerStyle={{
           paddingVertical: ITEM_H * Math.floor(VISIBLE / 2),
         }}
