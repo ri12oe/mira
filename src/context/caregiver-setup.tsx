@@ -36,6 +36,7 @@ export type Person = {
   extraMinutes: number; // wait after the window ends before alerting the caregiver
   backups: Backup[]; // in alert order, after the caregiver
   paused?: boolean;
+  caregiverRelationship?: string;
 };
 
 export type CaregiverSetupData = {
@@ -43,6 +44,9 @@ export type CaregiverSetupData = {
   phone: string;
   yourFirstName: string;
   yourPhone: string;
+  yourEmail: string;
+  yourPhotoUri: string;
+  caregiverRelationship: string;
   windowStart: number; // minutes after midnight
   windowEnd: number;
   method: CheckInMethod;
@@ -71,6 +75,9 @@ const INITIAL: CaregiverSetupData = {
   phone: "",
   yourFirstName: "",
   yourPhone: "",
+  yourEmail: "",
+  yourPhotoUri: "",
+  caregiverRelationship: "",
   windowStart: 9 * 60,
   windowEnd: 11 * 60,
   method: "text",

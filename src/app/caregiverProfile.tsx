@@ -1,10 +1,16 @@
 import { AppText } from "@/components/app-test";
 import { BackButton } from "@/components/back-button";
+import { BottomSheet } from "@/components/bottom-sheet";
+import { Chip } from "@/components/chip";
 import { FontFamily, FigtreeFont } from "@/constants/fonts";
-import { Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { useCaregiverSetup } from "@/context/caregiver-setup";
+import { Image } from "expo-image";
+import * as ImagePicker from "expo-image-picker";
+import { useState } from "react";
+import { Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Path, Svg } from "react-native-svg";
-
+import ArrowRightIcon from "@/components/icons/ArrowRightIcon";
 const BACKGROUND = "#F5F4FA";
 const INK = "#15163A";
 const PRIMARY = "#4338CA";
@@ -14,7 +20,108 @@ const SUBTITLE = "#54566E";
 const AVATAR_SIZE = 104;
 const CAMERA_SIZE = 38;
 
+const FIELD_LABELS = {
+  name: "Name",
+  phone: "Phone Number",
+  email: "Email",
+  relationship: "Relationship",
+};
+type ProfileField = keyof typeof FIELD_LABELS;
+const RELATIONSHIPS = ["Family", "Friend", "Neighbor"];
+
+function fieldError(field: ProfileField, value: string) {
+  const trimmed = value.trim();
+  if (field === "name" && !trimmed) return "Enter your first name.";
+  if (field === "phone" && !/^\+?[\d\s().-]+$/.test(trimmed)) {
+    return "Enter a valid phone number.";
+  }
+  if (field === "phone" && trimmed.replace(/\D/g, "").length < 7) {
+    return "Enter a phone number with at least 7 digits.";
+  }
+  if (field === "email" && trimmed && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
+    return "Enter a valid email address, or leave it blank.";
+  }
+  if (field === "relationship" && !trimmed) return "Enter how this person knows you.";
+  return "";
+}
+
 export default function CaregiverProfile() {
+  const {
+    firstName, yourFirstName, yourPhone, yourEmail, yourPhotoUri,
+    caregiverRelationship, people, selectedId, update, updatePerson,
+  } = useCaregiverSetup();
+  const selectedPerson = people.find((person) => person.id === selectedId);
+  const personName = (selectedPerson?.firstName ?? firstName).trim();
+  const [draft, setDraft] = useState({
+    name: yourFirstName,
+    phone: yourPhone,
+    email: yourEmail,
+    relationship: selectedPerson
+      ? selectedPerson.caregiverRelationship ?? ""
+      : caregiverRelationship,
+  });
+  const [field, setField] = useState<ProfileField | null>(null);
+  const [value, setValue] = useState("");
+  const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
+
+  const edit = (nextField: ProfileField) => {
+    setValue(draft[nextField]);
+    setError("");
+    setMessage("");
+    setField(nextField);
+  };
+  const finishEditing = () => {
+    if (!field) return;
+    const validationError = fieldError(field, value);
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+    setDraft((previous) => ({ ...previous, [field]: value.trim() }));
+    setField(null);
+  };
+  const save = () => {
+    for (const key of ["name", "phone", "email"] as const) {
+      const validationError = fieldError(key, draft[key]);
+      if (validationError) {
+        edit(key);
+        setError(validationError);
+        return;
+      }
+    }
+    update({
+      yourFirstName: draft.name.trim(),
+      yourPhone: draft.phone.trim(),
+      yourEmail: draft.email.trim(),
+      ...(!selectedPerson && { caregiverRelationship: draft.relationship.trim() }),
+    });
+    if (selectedPerson) {
+      updatePerson(selectedPerson.id, { caregiverRelationship: draft.relationship.trim() });
+    }
+    setMessage("Your profile changes have been saved for this app session.");
+  };
+  const changePhoto = async () => {
+    setMessage("");
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ["images"],
+        allowsMultipleSelection: false,
+        allowsEditing: false,
+        quality: 0.8,
+      });
+      if (result.canceled) return;
+      const photo = result.assets[0];
+      if (!photo?.uri) {
+        throw new Error("The photo picker did not return a usable photo.");
+      }
+      update({ yourPhotoUri: photo.uri });
+    } catch (cause) {
+      console.error("Unable to select a profile photo", cause);
+      setMessage("Unable to open or use the selected photo. Please try again.");
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView
@@ -28,16 +135,26 @@ export default function CaregiverProfile() {
         </View>
 
         <View style={styles.avatarBlock}>
-          {/* The circle is the box: the J is centred inside it */}
           <View style={styles.avatar}>
-            <AppText style={styles.avatarText}>J</AppText>
-
-            {/* Floats over the bottom-right edge of the circle */}
+            {yourPhotoUri ? (
+              <Image
+                source={{ uri: yourPhotoUri }}
+                style={styles.avatarImage}
+                contentFit="cover"
+                accessibilityLabel="Your profile photo"
+                onError={(event) => {
+                  console.error("Unable to display profile photo", event.error);
+                  setMessage("Your profile photo could not be displayed. Please choose another photo.");
+                }}
+              />
+            ) : (
+              <AppText style={styles.avatarText}>
+                {draft.name.trim().charAt(0).toUpperCase() || "?"}
+              </AppText>
+            )}
             <Pressable
               style={({ pressed }) => [styles.changePhoto, pressed && styles.changePhotoPressed]}
-              onPress={() => {
-                // open the photo picker here later
-              }}
+              onPress={changePhoto}
               accessibilityRole="button"
               accessibilityLabel="Change photo"
               hitSlop={6}
@@ -61,27 +178,114 @@ export default function CaregiverProfile() {
             </Pressable>
           </View>
           <View style={styles.pill}>
-            <AppText style={styles.pillText}>Caregiver for Lin</AppText>
+            <AppText style={styles.pillText}>
+              {personName ? `Caregiver for ${personName}` : "Caregiver"}
+            </AppText>
           </View>
         </View>
         <View style={styles.details}>
-          <View style={styles.field}>
-            <AppText style={styles.fieldLabel}>Name</AppText>
-            <AppText style={styles.fieldValue}>Jordan</AppText>
-          </View>
-          <View style={styles.field}>
-            <AppText style={styles.fieldLabel}>Phone Number</AppText>
-            <AppText style={styles.fieldValue}>(555) 010-2468</AppText>
-          </View>
-          <View style={styles.field}>
-            <AppText style={styles.fieldLabel}>Email</AppText>
-            <AppText style={styles.fieldValue}>Add an Email</AppText>
-          </View>
+          {(["name", "phone", "email"] as const).map((key) => (
+            <Pressable
+              key={key}
+              style={({ pressed }) => [
+                styles.field,
+                key === "email" && styles.lastField,
+                pressed && styles.pressed,
+              ]}
+              onPress={() => edit(key)}
+              accessibilityRole="button"
+              accessibilityLabel={`Change ${FIELD_LABELS[key]}${draft[key] ? `: ${draft[key]}` : ""}`}
+            >
+              <View style={styles.fieldFrame}>
+                <AppText style={styles.fieldLabel}>{FIELD_LABELS[key]}</AppText>
+                <AppText style={styles.fieldValue}>
+                  {draft[key].trim() || `Add ${FIELD_LABELS[key]}`}
+                </AppText>
+              </View>
+              <ArrowRightIcon size={18} />
+            </Pressable>
+          ))}
         </View>
-        <View style={styles.how}>
-          
+        <Pressable
+          style={({ pressed }) => [styles.how, pressed && styles.pressed]}
+          onPress={() => edit("relationship")}
+          accessibilityRole="button"
+          accessibilityLabel={personName ? `Change how ${personName} knows you` : "Change your relationship"}
+        >
+          <View style={styles.howFrame}>
+            <AppText style={styles.howText}>
+              {personName ? `How ${personName} knows you` : "How they know you"}
+            </AppText>
+            <AppText style={styles.howDescription}>
+              {draft.relationship || "Add a relationship"}
+            </AppText>
+          </View>
+          <ArrowRightIcon size={18} />
+        </Pressable>
+        <AppText style={styles.note}>
+          {personName || "The person you care for"} sees your first name and phone
+          number so they know who&apos;s looking out for them.
+        </AppText>
+        <View style={styles.spacer}></View>
+        <View style={styles.action}>
+          {message ? <AppText style={styles.feedback} accessibilityLiveRegion="polite">{message}</AppText> : null}
+          <Pressable style={styles.saveButton} onPress={save} accessibilityRole="button">
+            <AppText style={styles.saveButtonText}>Save changes</AppText>
+          </Pressable>
+          <Pressable
+            style={styles.deleteButton}
+            accessibilityRole="button"
+            onPress={() => setMessage("Account deletion is not available yet. No account or data has been deleted.")}
+          >
+            <AppText style={styles.deleteButtonText}>Delete my account</AppText>
+          </Pressable>
         </View>
       </ScrollView>
+      <BottomSheet
+        visible={field !== null}
+        title={field ? `Change ${FIELD_LABELS[field]}` : ""}
+        onClose={() => setField(null)}
+        keyboardAware
+      >
+        {field !== null && (
+          <>
+            {field === "relationship" && (
+              <View style={styles.chips}>
+                {RELATIONSHIPS.map((relationship) => (
+                  <Chip
+                    key={relationship}
+                    label={relationship}
+                    variant="pill"
+                    selected={value === relationship}
+                    onPress={() => { setValue(relationship); setError(""); }}
+                  />
+                ))}
+              </View>
+            )}
+            <TextInput
+              key={field}
+              value={value}
+              onChangeText={(text) => { setValue(text); setError(""); }}
+              style={styles.input}
+              placeholder={field === "relationship" ? "e.g. Family or Coworker" : FIELD_LABELS[field]}
+              placeholderTextColor={SUBTITLE}
+              accessibilityLabel={FIELD_LABELS[field]}
+              autoFocus
+              autoCapitalize={field === "email" ? "none" : "words"}
+              autoCorrect={field === "name" || field === "relationship"}
+              keyboardType={field === "phone" ? "phone-pad" : field === "email" ? "email-address" : "default"}
+              autoComplete={field === "name" ? "given-name" : field === "phone" ? "tel" : field === "email" ? "email" : "off"}
+              onSubmitEditing={finishEditing}
+              returnKeyType="done"
+            />
+            {error ? <AppText style={styles.error} accessibilityLiveRegion="polite">{error}</AppText> : null}
+            <Pressable style={styles.saveButton} onPress={finishEditing} accessibilityRole="button">
+              <AppText style={styles.saveButtonText}>Done</AppText>
+            </Pressable>
+            <AppText style={styles.note}>Tap Save changes on your profile to save these details.</AppText>
+          </>
+        )}
+      </BottomSheet>
     </SafeAreaView>
   );
 }
@@ -135,6 +339,11 @@ const styles = StyleSheet.create({
     includeFontPadding: false, // Android: removes extra space above the letter
     fontFamily: FontFamily.extraBold,
   },
+  avatarImage: {
+    width: AVATAR_SIZE,
+    height: AVATAR_SIZE,
+    borderRadius: AVATAR_SIZE / 2,
+  },
   changePhoto: {
     position: "absolute", // sits on top instead of below the J
     right: -2, // measured from the circle's edge; 0 = inside, -6 = further out
@@ -176,12 +385,48 @@ const styles = StyleSheet.create({
   field: {
     paddingVertical: 12,
     paddingHorizontal: 16,
-    flexDirection: "column",
-    alignItems: "flex-start",
+    flexDirection: "row",
+    alignItems: "center",
     gap: 2,
     alignSelf: "stretch",
     borderBottomWidth: 1,
     borderColor: "#E6E4EF",
+  },
+  fieldFrame: {
+    flex: 1,
+    gap: 2,
+  },
+  lastField: {
+    borderBottomWidth: 0,
+  },
+  pressed: {
+    opacity: 0.75,
+  },
+  input: {
+    minHeight: 56,
+    borderWidth: 1,
+    borderColor: "#E6E4EF",
+    borderRadius: 14,
+    padding: 16,
+    color: INK,
+    fontFamily: FigtreeFont.medium,
+    fontSize: 18,
+  },
+  chips: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  feedback: {
+    color: SUBTITLE,
+    fontFamily: FigtreeFont.medium,
+    fontSize: 15,
+    alignSelf: "stretch",
+  },
+  error: {
+    color: "#A52F22",
+    fontFamily: FigtreeFont.medium,
+    fontSize: 15,
   },
   fieldLabel: {
     color: SUBTITLE,
@@ -193,6 +438,76 @@ const styles = StyleSheet.create({
     color: INK,
     fontSize: 18,
     lineHeight: 23.4,
+    fontFamily: FigtreeFont.bold,
+  },
+  how: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    alignItems: "center",
+    alignSelf: "stretch",
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: "#E6E4EF",
+    backgroundColor: "#fff",
+    flexDirection: "row",
+  },
+  howFrame: {
+    flexDirection: "column",
+    alignItems: "flex-start",
+    gap: 2,
+    flex: 1,
+  },
+  howText: {
+    color: SUBTITLE,
+    fontSize: 14,
+    lineHeight: 18.2,
+    fontFamily: FigtreeFont.bold,
+  },
+  howDescription: {
+    color: INK,
+    fontSize: 18,
+    lineHeight: 23.4,
+    fontFamily: FigtreeFont.bold,
+  },
+  note: {
+    alignSelf: "stretch",
+    color: SUBTITLE,
+    fontSize: 15,
+    lineHeight: 21,
+    fontFamily: FigtreeFont.medium,
+  },
+  spacer: {
+    flex: 1,
+    alignSelf: "stretch"
+  },
+  action: {
+    flexDirection: "column",
+    alignItems: "center",
+    gap: 8,
+    alignSelf: "stretch",
+  },
+  saveButton: {
+    height: 60,
+    justifyContent: "center",
+    alignItems: "center",
+    alignSelf: "stretch",
+    borderRadius: 18,
+    backgroundColor: PRIMARY,
+  },
+  saveButtonText: {
+    color: "#fff",
+    fontSize: 19,
+    lineHeight: 22.8,
+    fontFamily: FigtreeFont.bold,
+  },
+  deleteButton: {
+    paddingVertical: 10,
+    alignItems: "flex-start",
+  },
+  deleteButtonText: {
+    color: "#A52F22",
+    fontSize: 16,
+    lineHeight: 20.8,
     fontFamily: FigtreeFont.bold,
   },
 });

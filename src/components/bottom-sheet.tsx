@@ -2,7 +2,9 @@ import { AppText } from "@/components/app-test";
 import { FigtreeFont, FontFamily } from "@/constants/fonts";
 import { ReactNode } from "react";
 import {
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -18,9 +20,10 @@ type Props = {
   subtitle?: string;
   onClose: () => void;
   children?: ReactNode;
+  keyboardAware?: boolean;
 };
 
-export function BottomSheet({ visible, title, subtitle, onClose, children }: Props) {
+export function BottomSheet({ visible, title, subtitle, onClose, children, keyboardAware = false }: Props) {
   const insets = useSafeAreaInsets();
   const { height: screenH } = useWindowDimensions();
 
@@ -30,43 +33,51 @@ export function BottomSheet({ visible, title, subtitle, onClose, children }: Pro
       <Pressable style={styles.scrim} onPress={onClose} accessibilityLabel="Close" />
 
       {/* 2. The white sheet, pinned to the bottom */}
-      <View
-        style={[
-          styles.sheet,
-          {
-            paddingBottom: Math.max(insets.bottom, 24) + 10,
-            // On short phones the sheet stops below the status bar and its content scrolls
-            maxHeight: screenH - insets.top - 8,
-          },
-        ]}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        enabled={keyboardAware}
+        style={styles.keyboardContainer}
+        pointerEvents="box-none"
       >
-        {/* 3. Grey handle */}
-        <View style={styles.handle} />
-
-        {/* 4. Title row with close button */}
-        <View style={styles.header}>
-          <View style={{ flex: 1, gap: 4 }}>
-            <AppText style={styles.title}>{title}</AppText>
-            {subtitle ? <AppText style={styles.subtitle}>{subtitle}</AppText> : null}
-          </View>
-          <Pressable onPress={onClose} style={styles.close} accessibilityRole="button" accessibilityLabel="Close">
-            <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
-              <Path d="M6 6l12 12M18 6L6 18" stroke="#15163A" strokeWidth={2.4} strokeLinecap="round" />
-            </Svg>
-          </Pressable>
-        </View>
-
-        {/* 5. Whatever you put inside <BottomSheet>...</BottomSheet> */}
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          bounces={false}
-          keyboardShouldPersistTaps="handled"
-          nestedScrollEnabled
-          contentContainerStyle={styles.body}
+        <View
+          style={[
+            styles.sheet,
+            keyboardAware && styles.keyboardSheet,
+            {
+              paddingBottom: Math.max(insets.bottom, 24) + 10,
+              // On short phones the sheet stops below the status bar and its content scrolls
+              maxHeight: screenH - insets.top - 8,
+            },
+          ]}
         >
-          {children}
-        </ScrollView>
-      </View>
+          {/* 3. Grey handle */}
+          <View style={styles.handle} />
+
+          {/* 4. Title row with close button */}
+          <View style={styles.header}>
+            <View style={{ flex: 1, gap: 4 }}>
+              <AppText style={styles.title}>{title}</AppText>
+              {subtitle ? <AppText style={styles.subtitle}>{subtitle}</AppText> : null}
+            </View>
+            <Pressable onPress={onClose} style={styles.close} accessibilityRole="button" accessibilityLabel="Close">
+              <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
+                <Path d="M6 6l12 12M18 6L6 18" stroke="#15163A" strokeWidth={2.4} strokeLinecap="round" />
+              </Svg>
+            </Pressable>
+          </View>
+
+          {/* 5. Whatever you put inside <BottomSheet>...</BottomSheet> */}
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            bounces={false}
+            keyboardShouldPersistTaps="handled"
+            nestedScrollEnabled
+            contentContainerStyle={styles.body}
+          >
+            {children}
+          </ScrollView>
+        </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
@@ -90,6 +101,14 @@ const styles = StyleSheet.create({
   },
   body: {
     gap: 18,
+  },
+  keyboardSheet: {
+    position: "relative",
+    flexShrink: 1,
+  },
+  keyboardContainer: {
+    flex: 1,
+    justifyContent: "flex-end",
   },
   handle: {
     alignSelf: "center",

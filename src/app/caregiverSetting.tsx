@@ -17,6 +17,7 @@ import {
 } from "@/context/caregiver-setup";
 import { formatTimeRange } from "@/utils/format-time-short";
 import { router } from "expo-router";
+import { Image } from "expo-image";
 import { useState } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -37,6 +38,8 @@ export default function CaregiverSetting() {
     method: primaryMethod,
     extraMinutes: primaryExtraMinutes,
     paused: primaryPaused,
+    yourFirstName,
+    yourPhotoUri,
     people,
     selectedId,
     update,
@@ -163,9 +166,16 @@ export default function CaregiverSetting() {
               style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
               onPress={() => router.push("/caregiverProfile")}
               accessibilityRole="button"
+              accessibilityLabel="Your profile"
             >
               <View style={styles.AvaterFrame}>
-                <AppText style={styles.AvaterName}>J</AppText>
+                {yourPhotoUri ? (
+                  <Image source={{ uri: yourPhotoUri }} style={styles.profilePhoto} contentFit="cover" />
+                ) : (
+                  <AppText style={styles.AvaterName}>
+                    {yourFirstName.trim().charAt(0).toUpperCase() || "?"}
+                  </AppText>
+                )}
               </View>
               <AppText style={styles.rowText}>Your profile</AppText>
               <ArrowRightIcon size={18} />
@@ -310,6 +320,11 @@ export default function CaregiverSetting() {
 }
 
 const styles = StyleSheet.create({
+  profilePhoto: {
+    width: "100%",
+    height: "100%",
+    borderRadius: 999,
+  },
   container: {
     flex: 1,
     backgroundColor: BACKGROUND,
