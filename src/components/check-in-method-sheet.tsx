@@ -127,6 +127,34 @@ export function CheckInMethodSheet({
           );
         })}
       </View>
+      <View style={styles.note}>
+        <Svg width={20} height={20} viewBox="0 0 20 20" fill="none">
+          <Path
+            d="M10 17.5C14.1421 17.5 17.5 14.1421 17.5 10C17.5 5.85786 14.1421 2.5 10 2.5C5.85786 2.5 2.5 5.85786 2.5 10C2.5 14.1421 5.85786 17.5 10 17.5Z"
+            stroke="#9A6408"
+            strokeWidth={1.83333}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          <Path
+            d="M10 9.1665V13.3332"
+            stroke="#9A6408"
+            strokeWidth={1.83333}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          <Path
+            d="M10 6.25V6.66667"
+            stroke="#9A6408"
+            strokeWidth={1.83333}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </Svg>
+        <AppText style={styles.noteText}>
+          We&apos;ll send Lin a short message so the change isn&apos;t a surprise.
+        </AppText>
+      </View>
 
       <Pressable
         style={({ pressed }) => [styles.saveButton, pressed && styles.pressed]}
@@ -213,5 +241,22 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: FigtreeFont.medium,
     lineHeight: 21.75,
+  },
+  note: {
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    gap: 10,
+    alignSelf: "stretch",
+    borderRadius: 14,
+    backgroundColor: "#FFF3D1",
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  noteText: {
+    flex: 1,
+    color: "#7A4F06",
+    fontSize: 15,
+    lineHeight: 21,
+    fontFamily: FigtreeFont.semiBold,
   },
 });
