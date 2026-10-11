@@ -1,4 +1,5 @@
 import { AppText } from "@/components/app-test";
+import { Rise } from "@/components/rise";
 import { WelcomeHero } from "@/components/welcome-hero";
 import { FigtreeFont, FontFamily } from "@/constants/fonts";
 import { useScreenScale } from "@/hooks/use-screen-scale";
@@ -22,51 +23,63 @@ export default function HomeScreen() {
         showsVerticalScrollIndicator={false}
         bounces={false}
       >
-        <View style={[styles.logoheader, { marginTop: space(64) }]}>
-          <View>
-            <MiraIcon />
+        {/* Canvas animation: logo, then the hero plays, then headline, body and buttons rise in */}
+        <Rise>
+          <View style={[styles.logoheader, { marginTop: space(64) }]}>
+            <View>
+              <MiraIcon />
+            </View>
+            <AppText style={styles.headerTitle}>mira</AppText>
           </View>
-          <AppText style={styles.headerTitle}>mira</AppText>
-        </View>
+        </Rise>
         <View style={[styles.welcomeHero, { marginTop: space(48.2) }]}>
           <WelcomeHero />
         </View>
         <View
           style={[styles.callout, { marginTop: space(48.5), gap: space(14) }]}
         >
-          <AppText
-            style={[
-              styles.calloutHeader,
-              { fontSize: font(38), lineHeight: font(41.04) },
-            ]}
-          >
-            A daily check-in that keeps family close.
-          </AppText>
-          <AppText style={styles.calloutBody}>
-            One tap a day lets the people who love you know you&apos;re okay.
-          </AppText>
-        </View>
-        <View style={[styles.buttons, { marginTop: space(28) }]}>
-          <Pressable
-            style={({ pressed }) => [styles.button, pressed && styles.pressed]}
-            accessibilityLabel="button"
-            onPress={() => router.push("/whoUsesMira")}
-          >
-            <AppText style={styles.buttonText}>Get Started</AppText>
-          </Pressable>
-          <Pressable
-            style={({ pressed }) => [
-              styles.buttonSecondary,
-              pressed && styles.pressed,
-            ]}
-            accessibilityLabel="button"
-            onPress={() => router.push("/whoUsesMira")}
-          >
-            <AppText style={styles.buttonTextSecondary}>
-              I already have an account
+          <Rise delay={500}>
+            <AppText
+              style={[
+                styles.calloutHeader,
+                { fontSize: font(38), lineHeight: font(41.04) },
+              ]}
+            >
+              A daily check-in that keeps family close.
             </AppText>
-          </Pressable>
+          </Rise>
+          <Rise delay={620}>
+            <AppText style={styles.calloutBody}>
+              One tap a day lets the people who love you know you&apos;re okay.
+            </AppText>
+          </Rise>
         </View>
+        <Rise delay={750}>
+          <View style={[styles.buttons, { marginTop: space(28) }]}>
+            <Pressable
+              style={({ pressed }) => [
+                styles.button,
+                pressed && styles.pressed,
+              ]}
+              accessibilityLabel="button"
+              onPress={() => router.push("/whoUsesMira")}
+            >
+              <AppText style={styles.buttonText}>Get Started</AppText>
+            </Pressable>
+            <Pressable
+              style={({ pressed }) => [
+                styles.buttonSecondary,
+                pressed && styles.pressed,
+              ]}
+              accessibilityLabel="button"
+              onPress={() => router.push("/whoUsesMira")}
+            >
+              <AppText style={styles.buttonTextSecondary}>
+                I already have an account
+              </AppText>
+            </Pressable>
+          </View>
+        </Rise>
       </ScrollView>
     </SafeAreaView>
   );

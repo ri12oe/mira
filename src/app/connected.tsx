@@ -1,5 +1,6 @@
 import { AppText } from "@/components/app-test";
 import { ConnectedHero } from "@/components/connected-hero";
+import { Rise } from "@/components/rise";
 import { FigtreeFont, FontFamily } from "@/constants/fonts";
 import { CheckInMethod, useCaregiverSetup } from "@/context/caregiver-setup";
 import { formatTimeRange } from "@/utils/format-time-short";
@@ -70,58 +71,65 @@ export default function ConnectedScreen() {
             rightInitial={initialOf(firstName)}
           />
         </View>
-        <View style={styles.header}>
-          <AppText style={styles.headerText}>
-            You and {firstName} are connected
-          </AppText>
-          <AppText style={styles.subHeaderText}>
-            {firstName} replied YES. Mira checks in with {firstName} every day
-            from now on.
-          </AppText>
-        </View>
-        <View style={styles.summary}>
-          <View style={styles.row}>
-            <View style={[styles.icon, { backgroundColor: SKY }]}>
-              <CalendarIcon size={20} color={SKY_ICON} />
-            </View>
-            <AppText style={styles.rowText}>First check-in</AppText>
-            <AppText style={[styles.rowValue, styles.rowValueStacked]}>
-              Tomorrow{"\n"}
-              {formatTimeRange(windowStart, windowEnd)}
+        {/* The hero animates itself; these rise in after it, like the canvas */}
+        <Rise delay={800}>
+          <View style={styles.header}>
+            <AppText style={styles.headerText}>
+              You and {firstName} are connected
+            </AppText>
+            <AppText style={styles.subHeaderText}>
+              {firstName} replied YES. Mira checks in with {firstName} every day
+              from now on.
             </AppText>
           </View>
-          <View style={styles.row}>
-            <View style={[styles.icon, { backgroundColor: checkIn.bg }]}>
-              {checkIn.icon}
+        </Rise>
+        <Rise delay={950}>
+          <View style={styles.summary}>
+            <View style={styles.row}>
+              <View style={[styles.icon, { backgroundColor: SKY }]}>
+                <CalendarIcon size={20} color={SKY_ICON} />
+              </View>
+              <AppText style={styles.rowText}>First check-in</AppText>
+              <AppText style={[styles.rowValue, styles.rowValueStacked]}>
+                Tomorrow{"\n"}
+                {formatTimeRange(windowStart, windowEnd)}
+              </AppText>
             </View>
-            <AppText style={styles.rowText}>Checks in by</AppText>
-            <AppText style={styles.rowValue}>{checkIn.label}</AppText>
-          </View>
-          <View style={styles.row}>
-            <View style={[styles.icon, { backgroundColor: ROSE }]}>
-              <AlarmIcon size={20} color={ROSE_ICON} />
+            <View style={styles.row}>
+              <View style={[styles.icon, { backgroundColor: checkIn.bg }]}>
+                {checkIn.icon}
+              </View>
+              <AppText style={styles.rowText}>Checks in by</AppText>
+              <AppText style={styles.rowValue}>{checkIn.label}</AppText>
             </View>
-            <AppText style={styles.rowText}>If one is missed</AppText>
-            <AppText style={styles.rowValue}>
-              {firstBackup ? `You, then ${firstBackup}` : "You"}
-            </AppText>
+            <View style={styles.row}>
+              <View style={[styles.icon, { backgroundColor: ROSE }]}>
+                <AlarmIcon size={20} color={ROSE_ICON} />
+              </View>
+              <AppText style={styles.rowText}>If one is missed</AppText>
+              <AppText style={styles.rowValue}>
+                {firstBackup ? `You, then ${firstBackup}` : "You"}
+              </AppText>
+            </View>
           </View>
-        </View>
-        <View style={styles.buttons}>
-          <Pressable
-            style={({ pressed }) => [
-              styles.nextButton,
-              pressed && styles.pressed,
-            ]}
-            accessibilityLabel="Next"
-            accessibilityRole="button"
-            onPress={() => router.push("/caregiverHome")}
-          >
-            <AppText style={styles.nextButtonText}>
-              Go to my dashboard
-            </AppText>
-          </Pressable>
-        </View>
+        </Rise>
+        <Rise delay={1100}>
+          <View style={styles.buttons}>
+            <Pressable
+              style={({ pressed }) => [
+                styles.nextButton,
+                pressed && styles.pressed,
+              ]}
+              accessibilityLabel="Next"
+              accessibilityRole="button"
+              onPress={() => router.push("/caregiverHome")}
+            >
+              <AppText style={styles.nextButtonText}>
+                Go to my dashboard
+              </AppText>
+            </Pressable>
+          </View>
+        </Rise>
       </ScrollView>
     </SafeAreaView>
   );
