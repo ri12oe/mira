@@ -105,6 +105,20 @@ type CaregiverSetupContextValue = CaregiverSetupData & {
    */
   prepareSetupSave: () => void;
   cancelSetupSave: () => void;
+
+  /** Invites waiting to be sent (or already sent), by taker id */
+  invites: Record<string, QueuedInvite>;
+  /** Ask for an invite to go to this person; the Connected screen sends it */
+  queueInvite: (takerId: string, message: string) => void;
+  /** Takers the database has confirmed saving (an invite needs the row first) */
+  savedTakerIds: ReadonlySet<string>;
+};
+
+export type QueuedInvite = {
+  /** Made once on the phone, so sending again can never text twice */
+  inviteId: string;
+  /** The caregiver's words; the server adds "Mira:" and "Reply YES…" */
+  message: string;
 };
 
 const ALL_DAYS = [0, 1, 2, 3, 4, 5, 6];
@@ -267,6 +281,13 @@ export function CaregiverSetupProvider({ children }: { children: ReactNode }) {
   const [loadAttempt, setLoadAttempt] = useState(0);
   const [saveFailed, setSaveFailed] = useState(false);
   const [saveAttempt, setSaveAttempt] = useState(0);
+  const [invites, setInvites] = useState<Record<string, QueuedInvite>>({});
+  const [savedTakerIds, setSavedTakerIds] = useState<ReadonlySet<string>>(
+    () => new Set(),
+  );
+  const markSaved = useCallback((id: string) => {
+    setSavedTakerIds((prev) => (prev.has(id) ? prev : new Set(prev).add(id)));
+  }, []);
 
   /** JSON of what the database has, per taker id and for the caregiver */
   const saved = useRef(new Map<string, string>());
@@ -319,6 +340,15 @@ export function CaregiverSetupProvider({ children }: { children: ReactNode }) {
     setLoadedUserId(null);
     setLoadFailed(false);
     setSaveFailed(false);
+    setInvites({});
+    setSavedTakerIds(new Set());
+  }, []);
+
+  const queueInvite = useCallback((takerId: string, message: string) => {
+    setInvites((prev) => ({
+      ...prev,
+      [takerId]: { inviteId: randomUUID(), message: message.trim() },
+    }));
   }, []);
 
   const prepareSetupSave = useCallback(() => {
@@ -393,6 +423,7 @@ export function CaregiverSetupProvider({ children }: { children: ReactNode }) {
 
         setData(next);
         setPeople(others);
+        setSavedTakerIds(new Set(takers.map((t) => t.id)));
         setSelectedId((id) =>
           id === PRIMARY_PERSON_ID || others.some((p) => p.id === id) ? id : PRIMARY_PERSON_ID,
         );
@@ -440,7 +471,10 @@ export function CaregiverSetupProvider({ children }: { children: ReactNode }) {
       if (!payload) continue; // not finished yet (no name, or phone too short)
       const json = JSON.stringify(payload);
       if (saved.current.get(person.id) === json) continue;
-      schedule(person.id, () => saveTaker(payload), () => saved.current.set(person.id, json));
+      schedule(person.id, () => saveTaker(payload), () => {
+        saved.current.set(person.id, json);
+        markSaved(person.id);
+      });
     }
 
     const caregiver = caregiverPayload(data);
@@ -454,7 +488,7 @@ export function CaregiverSetupProvider({ children }: { children: ReactNode }) {
         },
       );
     }
-  }, [ready, userId, data, people, saveAttempt]);
+  }, [ready, userId, data, people, saveAttempt, markSaved]);
 
   const syncStatus: SyncStatus = !userId
     ? "signedOut"
@@ -480,8 +514,14 @@ export function CaregiverSetupProvider({ children }: { children: ReactNode }) {
       retry,
       prepareSetupSave,
       cancelSetupSave,
+      invites,
+      queueInvite,
+      savedTakerIds,
     }),
     [
+      invites,
+      queueInvite,
+      savedTakerIds,
       data,
       people,
       selectedId,

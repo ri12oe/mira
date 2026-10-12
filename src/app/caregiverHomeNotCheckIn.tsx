@@ -1,3 +1,4 @@
+import { randomUUID } from "expo-crypto";
 import { AlertOrder } from "@/components/alert-order";
 import { AppText } from "@/components/app-test";
 import { BackButton } from "@/components/back-button";
@@ -106,6 +107,7 @@ export default function CaregiverHomeNotCheckIn() {
     people,
     backups: primaryBackups,
     addPerson,
+    queueInvite,
     selectedId,
     setSelectedId,
   } = useCaregiverSetup();
@@ -202,7 +204,7 @@ export default function CaregiverHomeNotCheckIn() {
         ? current.map((b) =>
             b.id === editingBackup.id ? { ...b, ...data } : b,
           )
-        : [...current, { id: `backup-${Date.now()}`, ...data }],
+        : [...current, { id: randomUUID(), ...data }],
     );
     setSheet("alert");
   };
@@ -219,6 +221,7 @@ export default function CaregiverHomeNotCheckIn() {
       extraMinutes: newExtraMinutes,
       backups: newBackups,
     });
+    queueInvite(added.id, newInvite ?? defaultInvite);
     setSelectedId(added.id);
     closeAddSheet();
     router.push("/connected2");
@@ -630,7 +633,7 @@ export default function CaregiverHomeNotCheckIn() {
                   onPress: () =>
                     setNewBackups((current) => [
                       ...current,
-                      { ...existingBackup, id: `backup-${Date.now()}` },
+                      { ...existingBackup, id: randomUUID() },
                     ]),
                 }
               : undefined

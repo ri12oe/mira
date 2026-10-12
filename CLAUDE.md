@@ -57,7 +57,7 @@ Screens and what each will need from the backend:
 
 ## How Mira should behave (the rules the backend must follow)
 
-1. **Invite**: after Step 3, text the taker the invite (`TEXT TO <phone>`). The taker replies **YES** to join. No app install for the taker.
+1. **Invite**: after Step 3, text the taker the invite (`TEXT TO <phone>`). The taker replies **YES** to join. No app install for the taker. The text is sent as `Mira: <caregiver's message> Reply YES to start, or STOP to opt out.` (carriers require the sender name and opt-out; Twilio handles STOP). Limits: at most 3 invites per taker and 10 per caregiver per day.
 2. **Daily check-in**, on each selected day, in the taker's **own time zone** (store an IANA zone per taker, e.g. `America/Indianapolis`; don't assume the caregiver's):
    - At window start, ask: a text ("Reply OK"), a call (press 1), or an in-app prompt, depending on `method`.
    - A reply/press/tap inside the window is **on time**; after the window but before alerts is **late**; no response is **missed**.

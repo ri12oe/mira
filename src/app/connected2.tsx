@@ -1,5 +1,9 @@
 import { AppText } from "@/components/app-test";
 import { ConnectedHero } from "@/components/connected-hero";
+import { InviteWaiting } from "@/components/invite-waiting";
+import { useInvite } from "@/hooks/use-invite";
+import { inviteText } from "@/lib/invites";
+import { formatPhone, toE164 } from "@/utils/phone";
 import { Rise } from "@/components/rise";
 import { FigtreeFont, FontFamily } from "@/constants/fonts";
 import { CheckInMethod, useCaregiverSetup } from "@/context/caregiver-setup";
@@ -52,16 +56,37 @@ const METHOD_SUMMARY: Record<
 };
 
 export default function ConnectedScreen2() {
-  const { yourFirstName, people } = useCaregiverSetup();
+  const { yourFirstName, people, invites } = useCaregiverSetup();
   // The person who was just added from the home screen is the newest one
   const person = people[people.length - 1];
   const firstName = person?.firstName ?? "they";
   const { method = "text", backups = [], windowStart = 0, windowEnd = 0 } =
     person ?? {};
+  const invite = useInvite(person?.id);
   const checkIn = METHOD_SUMMARY[method];
   const firstBackup = backups[0]?.name;
   const initialOf = (name: string) =>
     name.trim().charAt(0).toUpperCase() || undefined; // undefined keeps the hero's placeholder
+
+  // Until they reply YES: "Invite sent, waiting for YES"
+  if (person && invite.status !== "joined") {
+    const queued = invites[person.id];
+    return (
+      <InviteWaiting
+        status={invite.status}
+        name={person.firstName.trim()}
+        phone={formatPhone(toE164(person.phone) ?? person.phone)}
+        preview={queued ? inviteText(queued.message) : null}
+        sentAt={invite.sentAt}
+        offline={invite.offline}
+        leftInitial={initialOf(yourFirstName)}
+        rightInitial={initialOf(person.firstName)}
+        onRetry={invite.retry}
+        onDashboard={() => router.push("/caregiverHome")}
+      />
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView

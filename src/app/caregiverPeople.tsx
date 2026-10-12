@@ -1,3 +1,4 @@
+import { randomUUID } from "expo-crypto";
 import { AddPersonSheets } from "@/components/add-person-sheets";
 import { AlertOrder } from "@/components/alert-order";
 import { AppText } from "@/components/app-test";
@@ -109,7 +110,7 @@ export default function CaregiverPeople() {
   };
 
   const saveBackup = (data: Omit<Backup, "id">) => {
-    const addBackup = () => ({ id: `backup-${Date.now()}`, ...data });
+    const addBackup = () => ({ id: randomUUID(), ...data });
     setBackups(
       editingBackup
         ? selected.backups.map((b) =>

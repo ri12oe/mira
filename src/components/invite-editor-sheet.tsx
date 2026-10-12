@@ -15,7 +15,8 @@ const LILAC = "#E7E4FB";
 const MUTED = "#8B8DA3";
 
 /** Appended to every invite so the recipient always knows how to opt in. */
-export const INVITE_SUFFIX = "Reply YES to start.";
+/** Always added after the caregiver's words (the server adds "Mira:" in front) */
+export const INVITE_SUFFIX = "Reply YES to start, or STOP to opt out.";
 const SMS_LENGTH = 160;
 
 const INVITE_SNIPPETS = [

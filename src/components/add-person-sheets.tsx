@@ -1,3 +1,4 @@
+import { randomUUID } from "expo-crypto";
 import { AlertOrder } from "@/components/alert-order";
 import { AppText } from "@/components/app-test";
 import { BackButton } from "@/components/back-button";
@@ -98,6 +99,7 @@ export function AddPersonSheets({ visible, onClose, onAdded }: Props) {
     windowEnd: primaryWindowEnd,
     backups: primaryBackups,
     addPerson,
+    queueInvite,
   } = useCaregiverSetup();
   const [step, setStep] = useState<Step>("person");
   const [newName, setNewName] = useState("");
@@ -158,7 +160,7 @@ export function AddPersonSheets({ visible, onClose, onAdded }: Props) {
         ? current.map((b) =>
             b.id === editingBackup.id ? { ...b, ...data } : b,
           )
-        : [...current, { id: `backup-${Date.now()}`, ...data }],
+        : [...current, { id: randomUUID(), ...data }],
     );
     setStep("alert");
   };
@@ -175,6 +177,7 @@ export function AddPersonSheets({ visible, onClose, onAdded }: Props) {
       extraMinutes: newExtraMinutes,
       backups: newBackups,
     });
+    queueInvite(added.id, newInvite ?? defaultInvite);
     close();
     onAdded(added);
   };
@@ -429,7 +432,7 @@ export function AddPersonSheets({ visible, onClose, onAdded }: Props) {
                   onPress: () =>
                     setNewBackups((current) => [
                       ...current,
-                      { ...existingBackup, id: `backup-${Date.now()}` },
+                      { ...existingBackup, id: randomUUID() },
                     ]),
                 }
               : undefined

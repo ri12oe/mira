@@ -1,5 +1,9 @@
 import { AppText } from "@/components/app-test";
 import { ConnectedHero } from "@/components/connected-hero";
+import { InviteWaiting } from "@/components/invite-waiting";
+import { useInvite } from "@/hooks/use-invite";
+import { inviteText } from "@/lib/invites";
+import { formatPhone, toE164 } from "@/utils/phone";
 import { Rise } from "@/components/rise";
 import { FigtreeFont, FontFamily } from "@/constants/fonts";
 import { CheckInMethod, useCaregiverSetup } from "@/context/caregiver-setup";
@@ -52,12 +56,42 @@ const METHOD_SUMMARY: Record<
 };
 
 export default function ConnectedScreen() {
-  const { firstName, yourFirstName, method, backups, windowStart, windowEnd } =
-    useCaregiverSetup();
+  const {
+    firstName,
+    yourFirstName,
+    method,
+    backups,
+    windowStart,
+    windowEnd,
+    takerId,
+    phone,
+    invites,
+  } = useCaregiverSetup();
+  const invite = useInvite(takerId);
   const checkIn = METHOD_SUMMARY[method];
   const firstBackup = backups[0]?.name;
   const initialOf = (name: string) =>
     name.trim().charAt(0).toUpperCase() || undefined; // undefined keeps the hero's placeholder
+
+  // Until they reply YES: "Invite sent, waiting for YES"
+  if (invite.status !== "joined") {
+    const queued = invites[takerId];
+    return (
+      <InviteWaiting
+        status={invite.status}
+        name={firstName.trim()}
+        phone={formatPhone(toE164(phone) ?? phone)}
+        preview={queued ? inviteText(queued.message) : null}
+        sentAt={invite.sentAt}
+        offline={invite.offline}
+        leftInitial={initialOf(yourFirstName)}
+        rightInitial={initialOf(firstName)}
+        onRetry={invite.retry}
+        onDashboard={() => router.push("/caregiverHome")}
+      />
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView

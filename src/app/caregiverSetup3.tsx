@@ -1,3 +1,4 @@
+import { randomUUID } from "expo-crypto";
 import { AppText } from "@/components/app-test";
 import { AlertOrder } from "@/components/alert-order";
 import { BackButton } from "@/components/back-button";
@@ -34,6 +35,8 @@ export default function CaregiverSetup3() {
     phone,
     yourFirstName,
     yourPhone,
+    takerId,
+    queueInvite,
     windowStart,
     windowEnd,
     backups,
@@ -59,6 +62,7 @@ export default function CaregiverSetup3() {
       return;
     }
     setBadPhone(null);
+    queueInvite(takerId, savedInvite ?? defaultInvite);
     router.push({
       pathname: "/verifyCode",
       params: { phone: e164, context: "setup" },
@@ -79,7 +83,7 @@ export default function CaregiverSetup3() {
     update({
       backups: editingBackup
         ? backups.map((b) => (b.id === editingBackup.id ? { ...b, ...data } : b))
-        : [...backups, { id: `backup-${Date.now()}`, ...data }],
+        : [...backups, { id: randomUUID(), ...data }],
     });
     setSheet(null);
   };

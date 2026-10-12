@@ -1,3 +1,4 @@
+import { randomUUID } from "expo-crypto";
 import { AppText } from "@/components/app-test";
 import { AlertOrder } from "@/components/alert-order";
 import { BackButton } from "@/components/back-button";
@@ -80,7 +81,7 @@ export default function CheckInNow() {
     setDraftBackups((current) =>
       editingBackup
         ? current.map((backup) => backup.id === editingBackup.id ? { ...backup, ...data } : backup)
-        : [...current, { ...data, id: `backup-${Date.now()}` }],
+        : [...current, { ...data, id: randomUUID() }],
     );
     setSheet("alerts");
   };
