@@ -425,3 +425,6 @@ verify_jwt = false
 # Called every minute by pg_cron (no sign-in token); checks a shared secret instead.
 [functions.deliver-sends]
 verify_jwt = false
+
+[functions.twilio-voice]
+verify_jwt = false

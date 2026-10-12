@@ -12,8 +12,13 @@ Deno.serve(async (req) => {
     return new Response("Forbidden", { status: 403 });
   }
 
-  const sid = params.get("MessageSid");
-  const twilioStatus = params.get("MessageStatus");
+  // Texts report MessageStatus; calls report CallStatus. For a call,
+  // "completed" means it was answered; busy / no answer means it wasn't.
+  const callStatus = params.get("CallStatus");
+  const sid = params.get("MessageSid") ?? params.get("CallSid");
+  const twilioStatus = callStatus
+    ? ({ completed: "delivered", busy: "failed", "no-answer": "failed", failed: "failed", canceled: "failed" } as Record<string, string>)[callStatus] ?? "other"
+    : params.get("MessageStatus");
   if (!sid || !twilioStatus) return new Response("Missing fields", { status: 400 });
 
   // Updates can arrive out of order: never move a send backwards
@@ -24,7 +29,7 @@ Deno.serve(async (req) => {
   } else if (twilioStatus === "failed" || twilioStatus === "undelivered") {
     const code = params.get("ErrorCode");
     query = admin.from("sends")
-      .update({ status: "failed", error: `Twilio ${twilioStatus}${code ? ` (error ${code})` : ""}` })
+      .update({ status: "failed", error: `Twilio ${callStatus ?? twilioStatus}${code ? ` (error ${code})` : ""}` })
       .eq("provider_id", sid)
       .neq("status", "delivered");
   } else if (twilioStatus === "sent") {

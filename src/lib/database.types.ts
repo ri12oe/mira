@@ -116,6 +116,7 @@ export type Database = {
       check_ins: {
         Row: {
           alert_at: string
+          confirmed_by_caregiver: boolean
           created_at: string
           id: string
           kind: Database["public"]["Enums"]["check_in_kind"]
@@ -129,6 +130,7 @@ export type Database = {
         }
         Insert: {
           alert_at: string
+          confirmed_by_caregiver?: boolean
           created_at?: string
           id?: string
           kind?: Database["public"]["Enums"]["check_in_kind"]
@@ -142,6 +144,7 @@ export type Database = {
         }
         Update: {
           alert_at?: string
+          confirmed_by_caregiver?: boolean
           created_at?: string
           id?: string
           kind?: Database["public"]["Enums"]["check_in_kind"]
@@ -406,7 +409,26 @@ export type Database = {
         }
         Returns: undefined
       }
+      get_send_details: {
+        Args: { p_send_id: string }
+        Returns: {
+          attempt: number
+          backup_name: string
+          caregiver_name: string
+          check_in_kind: Database["public"]["Enums"]["check_in_kind"]
+          checked_in_at: string
+          send_channel: Database["public"]["Enums"]["send_channel"]
+          send_id: string
+          send_purpose: Database["public"]["Enums"]["send_purpose"]
+          send_to: string
+          taker_name: string
+          taker_time_zone: string
+          taker_window_end: number
+          taker_window_start: number
+        }[]
+      }
       is_valid_time_zone: { Args: { tz: string }; Returns: boolean }
+      mark_checked_in: { Args: { p_taker_id: string }; Returns: string }
       prepare_invite: {
         Args: {
           p_caregiver_id: string
@@ -418,6 +440,30 @@ export type Database = {
           send_id: string
           send_status: Database["public"]["Enums"]["send_status"]
           to_phone: string
+        }[]
+      }
+      record_call_answer: {
+        Args: { p_at?: string; p_send_id: string }
+        Returns: number
+      }
+      record_check_in: {
+        Args: {
+          p_at?: string
+          p_by_caregiver?: boolean
+          p_taker_id: string
+          p_via: Database["public"]["Enums"]["check_in_method"]
+        }
+        Returns: number
+      }
+      record_check_in_by_phone: {
+        Args: {
+          p_at?: string
+          p_phone: string
+          p_via: Database["public"]["Enums"]["check_in_method"]
+        }
+        Returns: {
+          caregiver_name: string
+          taker_name: string
         }[]
       }
       save_taker: {

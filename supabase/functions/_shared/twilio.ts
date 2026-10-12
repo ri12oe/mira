@@ -60,6 +60,64 @@ export async function sendSms(to: string, body: string): Promise<SmsResult> {
 }
 
 /**
+ * Starts Mira's phone call for one send. When the person answers, Twilio asks
+ * twilio-voice what to say (the send id is in the URL).
+ * Needs TWILIO_FROM_NUMBER: calls come from a number, not a Messaging Service.
+ */
+export async function makeCall(to: string, sendId: string): Promise<SmsResult> {
+  if (!isLive) {
+    console.log(`[test mode] would call ${maskPhone(to)}`);
+    return { ok: true, sid: `test-call-${crypto.randomUUID()}` };
+  }
+
+  const accountSid = Deno.env.get("TWILIO_ACCOUNT_SID");
+  const authToken = Deno.env.get("TWILIO_AUTH_TOKEN");
+  const from = Deno.env.get("TWILIO_FROM_NUMBER");
+  if (!accountSid || !authToken || !from) {
+    return { ok: false, error: "Twilio call secrets are missing" };
+  }
+
+  try {
+    const response = await fetch(
+      `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Calls.json`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Basic ${btoa(`${accountSid}:${authToken}`)}`,
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: new URLSearchParams({
+          To: to,
+          From: from,
+          Url: `${functionUrl("twilio-voice")}?send=${sendId}&step=start`,
+          // Answered, busy, no answer…: recorded by twilio-status
+          StatusCallback: functionUrl("twilio-status"),
+        }),
+      },
+    );
+    const json = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      return { ok: false, error: `Twilio ${json.code ?? response.status}: ${json.message ?? "call failed"}` };
+    }
+    return { ok: true, sid: json.sid };
+  } catch (error) {
+    return { ok: false, error: `Couldn't reach Twilio: ${error instanceof Error ? error.message : error}` };
+  }
+}
+
+/** Makes text safe to put inside TwiML (XML) */
+export function xmlEscape(text: string) {
+  return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
+/** A TwiML response for a call; `inner` is already-built TwiML */
+export function voiceResponse(inner: string) {
+  return new Response(`<?xml version="1.0" encoding="UTF-8"?><Response>${inner}</Response>`, {
+    headers: { "Content-Type": "text/xml" },
+  });
+}
+
+/**
  * Checks the X-Twilio-Signature header, so only Twilio can call our webhooks.
  * Twilio signs: the full URL, then every POST field sorted by name as name+value,
  * with HMAC-SHA1 using the account's auth token, base64-encoded.
@@ -96,11 +154,7 @@ function timingSafeEqual(a: string, b: string) {
 
 /** A TwiML reply: an optional text back to the sender */
 export function twiml(message?: string) {
-  const escaped = message
-    ?.replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
-  const body = escaped ? `<Message>${escaped}</Message>` : "";
+  const body = message ? `<Message>${xmlEscape(message)}</Message>` : "";
   return new Response(`<?xml version="1.0" encoding="UTF-8"?><Response>${body}</Response>`, {
     headers: { "Content-Type": "text/xml" },
   });
