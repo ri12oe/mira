@@ -19,6 +19,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StepProgress } from "@/components/step-progress";
+import { toE164 } from "@/utils/phone";
 import Svg, { Path } from "react-native-svg";
 const INK = "#15163A";
 const SUBTITLE = "#54566E";
@@ -32,6 +33,7 @@ export default function CaregiverSetup3() {
     displayName,
     phone,
     yourFirstName,
+    yourPhone,
     windowStart,
     windowEnd,
     backups,
@@ -43,6 +45,21 @@ export default function CaregiverSetup3() {
 
   const defaultInvite = `Hi ${displayName}, it's ${yourFirstName}. I set up Mira so I know you're okay each day.`;
   const [savedInvite, setSavedInvite] = useState<string | null>(null); // null = use the default
+  const [badPhone, setBadPhone] = useState(false);
+
+  // Before the invite goes out, the caregiver confirms their own number with a texted code
+  const sendInvite = () => {
+    const e164 = toE164(yourPhone);
+    if (!e164) {
+      setBadPhone(true);
+      return;
+    }
+    setBadPhone(false);
+    router.push({
+      pathname: "/verifyCode",
+      params: { phone: e164, context: "setup" },
+    });
+  };
 
   const openAddBackup = () => {
     setEditingBackup(null);
@@ -98,14 +115,20 @@ export default function CaregiverSetup3() {
           onEdit={() => setSheet("editInvite")}
         />
         <View style={styles.buttons}>
+          {badPhone && (
+            <AppText style={styles.problemText} accessibilityRole="alert">
+              Your phone number in step 1 looks too short. Go back and enter
+              all 10 digits.
+            </AppText>
+          )}
           <Pressable
             style={({ pressed }) => [
               styles.nextButton,
               pressed && styles.pressed,
             ]}
-            accessibilityLabel="Next"
+            accessibilityLabel={`Send invite to ${displayName}`}
             accessibilityRole="button"
-            onPress={() => router.push("/connected")}
+            onPress={sendInvite}
           >
             <Svg width={20} height={20} viewBox="0 0 20 20" fill="none">
               <Path
@@ -188,6 +211,13 @@ const styles = StyleSheet.create({
   },
   buttons: {
     marginTop: 49,
+    gap: 12,
+  },
+  problemText: {
+    color: "#8C1D18",
+    fontFamily: FigtreeFont.semiBold,
+    fontSize: 16,
+    lineHeight: 23,
   },
   nextButton: {
     height: 60,

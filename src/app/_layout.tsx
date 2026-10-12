@@ -20,10 +20,10 @@ import * as SplashScreen from "expo-splash-screen";
 import { useEffect } from "react";
 
 import { FigtreeFont, FontFamily } from "@/constants/fonts";
+import { AuthProvider, useAuth } from "@/context/auth";
 import { CaregiverSetupProvider } from "@/context/caregiver-setup";
-import { checkSupabaseConnection } from "@/lib/supabase";
 
-// Keep the splash screen up until the fonts are ready
+// Keep the splash screen up until the fonts and the saved sign-in are ready
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
@@ -43,24 +43,47 @@ export default function RootLayout() {
     [FigtreeFont.extraBold]: Figtree_800ExtraBold,
   });
 
-  useEffect(() => {
-    if (loaded || error) SplashScreen.hideAsync();
-  }, [loaded, error]);
-
-  // TEMPORARY (step 1): remove once the connection is confirmed
-  useEffect(() => {
-    if (__DEV__) checkSupabaseConnection();
-  }, []);
-
-  if (!loaded && !error) return null;
-
   return (
-    <CaregiverSetupProvider>
-      <Stack
-        screenOptions={{
-          headerShown: false,
-        }}
-      />
-    </CaregiverSetupProvider>
+    <AuthProvider>
+      <CaregiverSetupProvider>
+        <RootStack fontsReady={loaded || !!error} />
+      </CaregiverSetupProvider>
+    </AuthProvider>
+  );
+}
+
+function RootStack({ fontsReady }: { fontsReady: boolean }) {
+  const { session, isLoading } = useAuth();
+  const ready = fontsReady && !isLoading;
+  const signedIn = !!session;
+
+  useEffect(() => {
+    if (ready) SplashScreen.hideAsync();
+  }, [ready]);
+
+  if (!ready) return null;
+
+  // Screens not listed here (setup, sign-in code, help) are open to everyone
+  return (
+    <Stack screenOptions={{ headerShown: false }}>
+      {/* Signed in only. Listed first: a signed-in launch lands on caregiverHome */}
+      <Stack.Protected guard={signedIn}>
+        <Stack.Screen name="caregiverHome" />
+        <Stack.Screen name="caregiverHomeNotCheckIn" />
+        <Stack.Screen name="caregiverHistory" />
+        <Stack.Screen name="caregiverPeople" />
+        <Stack.Screen name="caregiverSetting" />
+        <Stack.Screen name="caregiverProfile" />
+        <Stack.Screen name="checkInNow" />
+        <Stack.Screen name="waiting" />
+        <Stack.Screen name="connected" />
+        <Stack.Screen name="connected2" />
+      </Stack.Protected>
+      {/* Signed out only: Welcome and the phone screen */}
+      <Stack.Protected guard={!signedIn}>
+        <Stack.Screen name="index" />
+        <Stack.Screen name="signIn" />
+      </Stack.Protected>
+    </Stack>
   );
 }

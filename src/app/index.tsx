@@ -61,7 +61,8 @@ export default function HomeScreen() {
                 styles.button,
                 pressed && styles.pressed,
               ]}
-              accessibilityLabel="button"
+              accessibilityRole="button"
+              accessibilityLabel="Get started"
               onPress={() => router.push("/whoUsesMira")}
             >
               <AppText style={styles.buttonText}>Get Started</AppText>
@@ -71,8 +72,9 @@ export default function HomeScreen() {
                 styles.buttonSecondary,
                 pressed && styles.pressed,
               ]}
-              accessibilityLabel="button"
-              onPress={() => router.push("/whoUsesMira")}
+              accessibilityRole="button"
+              accessibilityLabel="I already have an account"
+              onPress={() => router.push("/signIn")}
             >
               <AppText style={styles.buttonTextSecondary}>
                 I already have an account

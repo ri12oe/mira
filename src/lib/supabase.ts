@@ -34,18 +34,3 @@ AppState.addEventListener("change", (state) => {
   }
 });
 
-/** Dev-only: logs whether the app can reach Supabase with our key */
-export async function checkSupabaseConnection() {
-  try {
-    const response = await fetch(`${supabaseUrl}/auth/v1/health`, {
-      headers: { apikey: supabaseAnonKey! },
-    });
-    if (response.ok) {
-      console.log("✅ Supabase connected");
-    } else {
-      console.warn(`❌ Supabase answered ${response.status}. Check the key in .env.`);
-    }
-  } catch (error) {
-    console.warn("❌ Could not reach Supabase. Check the URL in .env.", error);
-  }
-}

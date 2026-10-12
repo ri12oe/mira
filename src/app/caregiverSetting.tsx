@@ -15,6 +15,7 @@ import {
   CaregiverSetupData,
   useCaregiverSetup,
 } from "@/context/caregiver-setup";
+import { signOut as signOutOfMira } from "@/lib/auth";
 import { formatTimeRange } from "@/utils/format-time-short";
 import { router } from "expo-router";
 import { Image } from "expo-image";
@@ -44,6 +45,7 @@ export default function CaregiverSetting() {
     selectedId,
     update,
     updatePerson,
+    reset,
   } = useCaregiverSetup();
 
   const selectedPerson = people.find((person) => person.id === selectedId);
@@ -75,9 +77,11 @@ export default function CaregiverSetting() {
     (w) => w.start === start && w.end === end,
   )?.id;
 
-  const signOut = () => {
-    if (router.canDismiss()) router.dismissAll();
-    router.replace("/");
+  // Signed-in screens are protected in _layout.tsx, so once the session is
+  // gone the router takes the caregiver back to Welcome by itself
+  const signOut = async () => {
+    await signOutOfMira();
+    reset();
   };
 
   return (
