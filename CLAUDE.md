@@ -22,6 +22,7 @@ The front end for the **Welcome** and **Caregiver** sections is built. The curre
 - The app talks to Supabase with `@supabase/supabase-js` (works in Expo Go). Store the session with `expo-secure-store` or `@react-native-async-storage/async-storage`; check the Expo SDK 57 docs for the current recommended setup before installing.
 - Only `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_ANON_KEY` go in the app (`.env`, gitignored). The Supabase service-role key and all Twilio credentials live **only** in Edge Function secrets.
 - Keep backend code in `supabase/` (`supabase/migrations/` for SQL, `supabase/functions/` for Edge Functions), managed with the Supabase CLI.
+- **Delivery is in free/test mode** (decision, Oct 2026): US carriers require a registered number to text, which costs money, so Mira doesn't text or call for real yet. Sends are recorded with `test-…` ids. Invites go from the caregiver's own phone and the caregiver confirms the YES in the app (`confirm-invite`, refused once live). Real delivery turns on with the `SMS_MODE=live` Edge Function secret plus Twilio secrets; cheapest real option is voice calls only (no registration).
 
 ## The app today (what exists)
 

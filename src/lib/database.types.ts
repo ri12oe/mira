@@ -205,8 +205,10 @@ export type Database = {
           caregiver_id: string
           channel: Database["public"]["Enums"]["send_channel"]
           check_in_id: string | null
+          claimed_at: string | null
           created_at: string
           dedupe_key: string
+          due_at: string
           error: string | null
           id: string
           invite_id: string | null
@@ -223,8 +225,10 @@ export type Database = {
           caregiver_id: string
           channel: Database["public"]["Enums"]["send_channel"]
           check_in_id?: string | null
+          claimed_at?: string | null
           created_at?: string
           dedupe_key: string
+          due_at?: string
           error?: string | null
           id?: string
           invite_id?: string | null
@@ -241,8 +245,10 @@ export type Database = {
           caregiver_id?: string
           channel?: Database["public"]["Enums"]["send_channel"]
           check_in_id?: string | null
+          claimed_at?: string | null
           created_at?: string
           dedupe_key?: string
+          due_at?: string
           error?: string | null
           id?: string
           invite_id?: string | null
@@ -361,16 +367,69 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      accept_invite: {
+        Args: { p_phone: string }
+        Returns: {
+          joined_first_name: string
+          joined_taker_id: string
+        }[]
+      }
+      accept_invite_for_taker: {
+        Args: { p_caregiver_id: string; p_taker_id: string }
+        Returns: boolean
+      }
+      claim_due_sends: {
+        Args: { p_limit?: number; p_now?: string }
+        Returns: {
+          attempt: number
+          backup_name: string
+          caregiver_name: string
+          check_in_kind: Database["public"]["Enums"]["check_in_kind"]
+          checked_in_at: string
+          send_channel: Database["public"]["Enums"]["send_channel"]
+          send_id: string
+          send_purpose: Database["public"]["Enums"]["send_purpose"]
+          send_to: string
+          taker_name: string
+          taker_time_zone: string
+          taker_window_end: number
+          taker_window_start: number
+        }[]
+      }
+      finish_send: {
+        Args: {
+          p_error: string
+          p_now?: string
+          p_ok: boolean
+          p_provider_id: string
+          p_send_id: string
+        }
+        Returns: undefined
+      }
       is_valid_time_zone: { Args: { tz: string }; Returns: boolean }
+      prepare_invite: {
+        Args: {
+          p_caregiver_id: string
+          p_invite_id: string
+          p_message: string
+          p_taker_id: string
+        }
+        Returns: {
+          send_id: string
+          send_status: Database["public"]["Enums"]["send_status"]
+          to_phone: string
+        }[]
+      }
       save_taker: {
         Args: { p_backups: Json; p_taker: Json }
         Returns: undefined
       }
+      scheduler_tick: { Args: { p_now?: string }; Returns: Json }
     }
     Enums: {
       check_in_kind: "scheduled" | "on_demand"
       check_in_method: "text" | "call" | "app"
-      check_in_status: "pending" | "on_time" | "late" | "missed"
+      check_in_status: "pending" | "on_time" | "late" | "missed" | "skipped"
       invite_status: "pending" | "accepted" | "cancelled"
       send_channel: "sms" | "call" | "push"
       send_purpose:
@@ -379,7 +438,8 @@ export type Database = {
         | "reminder"
         | "caregiver_alert"
         | "backup_alert"
-      send_status: "queued" | "sent" | "delivered" | "failed"
+        | "all_clear"
+      send_status: "queued" | "sent" | "delivered" | "failed" | "cancelled"
       taker_status: "draft" | "invited" | "active"
     }
     CompositeTypes: {
@@ -513,7 +573,7 @@ export const Constants = {
     Enums: {
       check_in_kind: ["scheduled", "on_demand"],
       check_in_method: ["text", "call", "app"],
-      check_in_status: ["pending", "on_time", "late", "missed"],
+      check_in_status: ["pending", "on_time", "late", "missed", "skipped"],
       invite_status: ["pending", "accepted", "cancelled"],
       send_channel: ["sms", "call", "push"],
       send_purpose: [
@@ -522,8 +582,9 @@ export const Constants = {
         "reminder",
         "caregiver_alert",
         "backup_alert",
+        "all_clear",
       ],
-      send_status: ["queued", "sent", "delivered", "failed"],
+      send_status: ["queued", "sent", "delivered", "failed", "cancelled"],
       taker_status: ["draft", "invited", "active"],
     },
   },

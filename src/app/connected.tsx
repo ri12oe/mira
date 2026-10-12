@@ -2,7 +2,7 @@ import { AppText } from "@/components/app-test";
 import { ConnectedHero } from "@/components/connected-hero";
 import { InviteWaiting } from "@/components/invite-waiting";
 import { useInvite } from "@/hooks/use-invite";
-import { inviteText } from "@/lib/invites";
+import { inviteText, manualInviteText, openMessages } from "@/lib/invites";
 import { formatPhone, toE164 } from "@/utils/phone";
 import { Rise } from "@/components/rise";
 import { FigtreeFont, FontFamily } from "@/constants/fonts";
@@ -81,12 +81,26 @@ export default function ConnectedScreen() {
         status={invite.status}
         name={firstName.trim()}
         phone={formatPhone(toE164(phone) ?? phone)}
-        preview={queued ? inviteText(queued.message) : null}
+        preview={
+          queued
+            ? invite.freeMode
+              ? manualInviteText(queued.message)
+              : inviteText(queued.message)
+            : null
+        }
         sentAt={invite.sentAt}
         offline={invite.offline}
         leftInitial={initialOf(yourFirstName)}
         rightInitial={initialOf(firstName)}
         onRetry={invite.retry}
+        freeMode={invite.freeMode}
+        onOpenMessages={() =>
+          queued &&
+          openMessages(toE164(phone) ?? phone, manualInviteText(queued.message))
+        }
+        onConfirm={invite.confirm}
+        confirming={invite.confirming}
+        confirmFailed={invite.confirmFailed}
         onDashboard={() => router.push("/caregiverHome")}
       />
     );

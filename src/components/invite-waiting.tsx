@@ -3,6 +3,7 @@ import { InviteHero } from "@/components/invite-hero";
 import { Rise } from "@/components/rise";
 import { FigtreeFont, FontFamily } from "@/constants/fonts";
 import type { InviteStatus } from "@/hooks/use-invite";
+import { useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Circle, Path } from "react-native-svg";
@@ -35,6 +36,12 @@ type Props = {
   rightInitial?: string;
   onRetry: () => void;
   onDashboard: () => void;
+  /** Free mode: Mira isn't texting yet, so the caregiver sends the invite */
+  freeMode?: boolean;
+  onOpenMessages?: () => void;
+  onConfirm?: () => void;
+  confirming?: boolean;
+  confirmFailed?: null | "offline" | "failed";
 };
 
 /** "Invite sent, waiting for YES" (Mira Redesign canvas) */
@@ -49,21 +56,38 @@ export function InviteWaiting({
   rightInitial,
   onRetry,
   onDashboard,
+  freeMode = false,
+  onOpenMessages,
+  onConfirm,
+  confirming = false,
+  confirmFailed = null,
 }: Props) {
+  const [opened, setOpened] = useState(false);
   const sending = status === "sending";
   const waiting = status === "waiting";
   const failed = status === "failed" || status === "tooMany";
   const who = name || "them";
   const time = sentAt?.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) ?? "";
 
+  // Free mode: the invite goes from the caregiver's phone, and the YES comes back to them
+  const manual = freeMode && waiting;
+  const replied = name ? `${name} replied YES` : "They replied YES";
   const heading = failed
     ? "The invite didn't go out"
     : sending
       ? `Sending the invite to ${who}`
-      : `Invite sent to ${who}`;
+      : manual
+        ? `Text ${who} the invite`
+        : `Invite sent to ${who}`;
   const intro = failed
     ? `${name ? `${name}'s` : "Their"} settings are saved. Only the text to ${phone} is missing.`
-    : `We texted ${phone}. As soon as ${who} replies YES, you're connected and daily check-ins start.`;
+    : manual
+      ? `Send this invite from your phone to ${phone}. When ${who} texts you back YES, tap “${replied}”.`
+      : `We texted ${phone}. As soon as ${who} replies YES, you're connected and daily check-ins start.`;
+  const openMessages = () => {
+    setOpened(true);
+    onOpenMessages?.();
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -76,7 +100,13 @@ export function InviteWaiting({
           <View style={[styles.pill, failed && styles.pillFailed]} accessibilityRole="text">
             <View style={[styles.pillDot, { backgroundColor: failed ? ORANGE : AMBER }]} />
             <AppText style={[styles.pillText, failed && styles.pillTextFailed]}>
-              {failed ? "Invite not sent" : sending ? "Sending the invite" : "Waiting for a reply"}
+              {failed
+                ? "Invite not sent"
+                : sending
+                  ? "Sending the invite"
+                  : manual
+                    ? "Send it from your phone"
+                    : "Waiting for a reply"}
             </AppText>
           </View>
         </View>
@@ -125,6 +155,11 @@ export function InviteWaiting({
             <View style={styles.step}>
               {sending ? (
                 <ActivityIndicator color={PRIMARY} style={styles.stepIcon} />
+              ) : manual && !opened ? (
+                <Svg width={24} height={24} viewBox="0 0 24 24">
+                  <Circle cx={12} cy={12} r={10} fill="#FFFFFF" stroke={PRIMARY} strokeWidth={2} />
+                  <Circle cx={12} cy={12} r={4} fill={PRIMARY} />
+                </Svg>
               ) : failed ? (
                 <Svg width={24} height={24} viewBox="0 0 24 24">
                   <Circle cx={12} cy={12} r={11} fill={ORANGE} />
@@ -137,12 +172,32 @@ export function InviteWaiting({
                 </Svg>
               )}
               <AppText style={styles.stepLabel}>
-                {failed ? "Invite not sent yet" : sending ? "Sending the invite…" : `Invite texted to ${who}`}
+                {failed
+                  ? "Invite not sent yet"
+                  : sending
+                    ? "Sending the invite…"
+                    : manual
+                      ? `Text the invite to ${who}`
+                      : `Invite texted to ${who}`}
               </AppText>
-              <AppText style={styles.stepTime}>{waiting ? time : ""}</AppText>
+              {manual ? (
+                <Pressable
+                  style={({ pressed }) => [styles.smallButton, pressed && styles.pressed]}
+                  onPress={openMessages}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Open Messages to text ${who}`}
+                  hitSlop={6}
+                >
+                  <AppText style={styles.smallButtonText}>
+                    {opened ? "Open again" : "Open Messages"}
+                  </AppText>
+                </Pressable>
+              ) : (
+                <AppText style={styles.stepTime}>{waiting ? time : ""}</AppText>
+              )}
             </View>
             <View style={styles.step}>
-              {waiting ? (
+              {waiting && (!manual || opened) ? (
                 <Svg width={24} height={24} viewBox="0 0 24 24">
                   <Circle cx={12} cy={12} r={10} fill="#FFFFFF" stroke={PRIMARY} strokeWidth={2} />
                   <Circle cx={12} cy={12} r={4} fill={PRIMARY} />
@@ -150,8 +205,10 @@ export function InviteWaiting({
               ) : (
                 <DashedCircle />
               )}
-              <AppText style={styles.stepLabel}>{name || "They"} replies YES</AppText>
-              <AppText style={styles.stepTime}>{waiting ? "Waiting" : ""}</AppText>
+              <AppText style={styles.stepLabel}>
+                {name || "They"} replies YES{manual ? " to you" : ""}
+              </AppText>
+              <AppText style={styles.stepTime}>{waiting && !manual ? "Waiting" : ""}</AppText>
             </View>
             <View style={styles.step}>
               <DashedCircle />
@@ -161,7 +218,9 @@ export function InviteWaiting({
 
             {preview && (
               <View style={styles.preview}>
-                <AppText style={styles.previewLabel}>What {name || "they"} sees</AppText>
+                <AppText style={styles.previewLabel}>
+                  {manual ? `Your text to ${who}` : `What ${name || "they"} sees`}
+                </AppText>
                 <View style={styles.bubble}>
                   <AppText style={styles.bubbleText}>{preview}</AppText>
                 </View>
@@ -171,6 +230,25 @@ export function InviteWaiting({
         </Rise>
 
         <View style={styles.footer}>
+          {manual && confirmFailed && (
+            <AppText style={styles.confirmProblem} accessibilityRole="alert">
+              {confirmFailed === "offline"
+                ? "We couldn't reach Mira. Check that you're online, then try again."
+                : "We couldn't confirm that. Please try again in a moment."}
+            </AppText>
+          )}
+          {manual && (
+            <Pressable
+              style={({ pressed }) => [styles.button, confirming && styles.buttonBusy, pressed && styles.pressed]}
+              onPress={onConfirm}
+              disabled={confirming}
+              accessibilityRole="button"
+              accessibilityState={{ busy: confirming, disabled: confirming }}
+            >
+              {confirming && <ActivityIndicator color="#FFFFFF" />}
+              <AppText style={styles.buttonText}>{replied}</AppText>
+            </Pressable>
+          )}
           {status === "failed" && (
             <Pressable
               style={({ pressed }) => [styles.button, pressed && styles.pressed]}
@@ -183,19 +261,26 @@ export function InviteWaiting({
           <Pressable
             style={({ pressed }) => [
               styles.button,
-              status === "failed" && styles.buttonSecondary,
+              (status === "failed" || manual) && styles.buttonSecondary,
               pressed && styles.pressed,
             ]}
             onPress={onDashboard}
             accessibilityRole="button"
           >
-            <AppText style={[styles.buttonText, status === "failed" && styles.buttonTextSecondary]}>
+            <AppText
+              style={[
+                styles.buttonText,
+                (status === "failed" || manual) && styles.buttonTextSecondary,
+              ]}
+            >
               Go to my dashboard
             </AppText>
           </Pressable>
           {waiting && (
             <AppText style={styles.leaveNote}>
-              You can leave this screen. We&apos;ll show it on your dashboard when {who} replies.
+              {manual
+                ? "Mira's own texting isn't on yet, so the invite comes from your phone."
+                : `You can leave this screen. We'll show it on your dashboard when ${who} replies.`}
             </AppText>
           )}
         </View>
@@ -364,8 +449,32 @@ const styles = StyleSheet.create({
     height: 60,
     borderRadius: 18,
     backgroundColor: PRIMARY,
+    flexDirection: "row",
+    gap: 12,
     justifyContent: "center",
     alignItems: "center",
+  },
+  buttonBusy: {
+    opacity: 0.75,
+  },
+  smallButton: {
+    minHeight: 44,
+    paddingHorizontal: 14,
+    borderRadius: 14,
+    backgroundColor: PRIMARY,
+    justifyContent: "center",
+  },
+  smallButtonText: {
+    color: "#FFFFFF",
+    fontFamily: FigtreeFont.bold,
+    fontSize: 15,
+  },
+  confirmProblem: {
+    color: "#8C1D18",
+    fontFamily: FigtreeFont.semiBold,
+    fontSize: 16,
+    lineHeight: 23,
+    textAlign: "center",
   },
   buttonSecondary: {
     backgroundColor: "#FFFFFF",
