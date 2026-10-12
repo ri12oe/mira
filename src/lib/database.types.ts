@@ -362,6 +362,10 @@ export type Database = {
     }
     Functions: {
       is_valid_time_zone: { Args: { tz: string }; Returns: boolean }
+      save_taker: {
+        Args: { p_backups: Json; p_taker: Json }
+        Returns: undefined
+      }
     }
     Enums: {
       check_in_kind: "scheduled" | "on_demand"

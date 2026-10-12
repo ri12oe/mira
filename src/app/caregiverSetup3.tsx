@@ -45,16 +45,20 @@ export default function CaregiverSetup3() {
 
   const defaultInvite = `Hi ${displayName}, it's ${yourFirstName}. I set up Mira so I know you're okay each day.`;
   const [savedInvite, setSavedInvite] = useState<string | null>(null); // null = use the default
-  const [badPhone, setBadPhone] = useState(false);
+  const [badPhone, setBadPhone] = useState<null | "yours" | "theirs">(null);
 
   // Before the invite goes out, the caregiver confirms their own number with a texted code
   const sendInvite = () => {
     const e164 = toE164(yourPhone);
-    if (!e164) {
-      setBadPhone(true);
+    if (!toE164(phone)) {
+      setBadPhone("theirs");
       return;
     }
-    setBadPhone(false);
+    if (!e164) {
+      setBadPhone("yours");
+      return;
+    }
+    setBadPhone(null);
     router.push({
       pathname: "/verifyCode",
       params: { phone: e164, context: "setup" },
@@ -117,8 +121,13 @@ export default function CaregiverSetup3() {
         <View style={styles.buttons}>
           {badPhone && (
             <AppText style={styles.problemText} accessibilityRole="alert">
-              Your phone number in step 1 looks too short. Go back and enter
-              all 10 digits.
+              {badPhone === "yours"
+                ? "Your"
+                : firstName.trim()
+                  ? `${firstName.trim()}'s`
+                  : "Their"}{" "}
+              phone
+              number in step 1 looks too short. Go back and enter all 10 digits.
             </AppText>
           )}
           <Pressable

@@ -82,7 +82,7 @@ export default function CaregiverProfile() {
     setField(null);
   };
   const save = () => {
-    for (const key of ["name", "phone", "email"] as const) {
+    for (const key of ["name", "email"] as const) {
       const validationError = fieldError(key, draft[key]);
       if (validationError) {
         edit(key);
@@ -92,14 +92,13 @@ export default function CaregiverProfile() {
     }
     update({
       yourFirstName: draft.name.trim(),
-      yourPhone: draft.phone.trim(),
       yourEmail: draft.email.trim(),
       ...(!selectedPerson && { caregiverRelationship: draft.relationship.trim() }),
     });
     if (selectedPerson) {
       updatePerson(selectedPerson.id, { caregiverRelationship: draft.relationship.trim() });
     }
-    setMessage("Your profile changes have been saved for this app session.");
+    setMessage("Your profile changes are saved.");
   };
   const changePhoto = async () => {
     setMessage("");
@@ -184,7 +183,24 @@ export default function CaregiverProfile() {
           </View>
         </View>
         <View style={styles.details}>
-          {(["name", "phone", "email"] as const).map((key) => (
+          {(["name", "phone", "email"] as const).map((key) =>
+            key === "phone" ? (
+              // The sign-in number: changing it would need a new texted code
+              <View
+                key={key}
+                style={styles.field}
+                accessible
+                accessibilityLabel={`${FIELD_LABELS.phone}: ${draft.phone || "not set"}. This is the number you sign in with.`}
+              >
+                <View style={styles.fieldFrame}>
+                  <AppText style={styles.fieldLabel}>{FIELD_LABELS.phone}</AppText>
+                  <AppText style={styles.fieldValue}>{draft.phone}</AppText>
+                  <AppText style={styles.fieldHint}>
+                    This is the number you sign in with.
+                  </AppText>
+                </View>
+              </View>
+            ) : (
             <Pressable
               key={key}
               style={({ pressed }) => [
@@ -204,7 +220,8 @@ export default function CaregiverProfile() {
               </View>
               <ArrowRightIcon size={18} />
             </Pressable>
-          ))}
+            ),
+          )}
         </View>
         <Pressable
           style={({ pressed }) => [styles.how, pressed && styles.pressed]}
@@ -291,6 +308,13 @@ export default function CaregiverProfile() {
 }
 
 const styles = StyleSheet.create({
+  fieldHint: {
+    marginTop: 2,
+    color: SUBTITLE,
+    fontFamily: FigtreeFont.medium,
+    fontSize: 14,
+    lineHeight: 19,
+  },
   container: {
     flex: 1,
     backgroundColor: BACKGROUND,

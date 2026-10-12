@@ -7,7 +7,6 @@ import {
   useCaregiverSetup,
 } from "@/context/caregiver-setup";
 import {
-  ALL_DAYS,
   CheckInStatus,
   describeEntry,
   formatEntryDate,
@@ -45,6 +44,7 @@ export default function CaregiverHistory() {
     windowStart: primaryWindowStart,
     windowEnd: primaryWindowEnd,
     extraMinutes: primaryExtraMinutes,
+    days: primaryDays,
     people,
     selectedId,
     setSelectedId,
@@ -77,7 +77,7 @@ export default function CaregiverHistory() {
         windowStart: primaryWindowStart,
         windowEnd: primaryWindowEnd,
         extraMinutes: primaryExtraMinutes,
-        days: ALL_DAYS,
+        days: primaryDays,
       };
 
   const { year, month } = view;

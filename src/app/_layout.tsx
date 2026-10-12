@@ -21,9 +21,9 @@ import { useEffect } from "react";
 
 import { FigtreeFont, FontFamily } from "@/constants/fonts";
 import { AuthProvider, useAuth } from "@/context/auth";
-import { CaregiverSetupProvider } from "@/context/caregiver-setup";
+import { CaregiverSetupProvider, useCaregiverSetup } from "@/context/caregiver-setup";
 
-// Keep the splash screen up until the fonts and the saved sign-in are ready
+// Keep the splash screen up until the fonts, the saved sign-in and the caregiver's data are ready
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
@@ -54,12 +54,16 @@ export default function RootLayout() {
 
 function RootStack({ fontsReady }: { fontsReady: boolean }) {
   const { session, isLoading } = useAuth();
+  const { syncStatus } = useCaregiverSetup();
   const ready = fontsReady && !isLoading;
   const signedIn = !!session;
+  // The splash covers the screens until the data is in, so Home never shows
+  // blank names. Screens stay mounted underneath, so loading mid-setup doesn't reset them.
+  const dataSettled = syncStatus !== "loading";
 
   useEffect(() => {
-    if (ready) SplashScreen.hideAsync();
-  }, [ready]);
+    if (ready && dataSettled) SplashScreen.hideAsync();
+  }, [ready, dataSettled]);
 
   if (!ready) return null;
 

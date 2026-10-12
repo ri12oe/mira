@@ -1,6 +1,7 @@
 import { AlertOrder } from "@/components/alert-order";
 import { AppText } from "@/components/app-test";
 import { BackButton } from "@/components/back-button";
+import { SyncBanner } from "@/components/sync-banner";
 import { BackupSheet } from "@/components/backup-sheet";
 import { BottomSheet } from "@/components/bottom-sheet";
 import { CaregiverTabBar } from "@/components/caregiver-tab-bar";
@@ -265,6 +266,7 @@ export default function CaregiverHome() {
             <BellIcon size={22} color={notificationsActive ? ORANGE : INK} />
           </Pressable>
         </View>
+        <SyncBanner />
         <View style={styles.peopleChips}>
           {[
             { id: PRIMARY_ID, name: primaryName },

@@ -39,11 +39,18 @@ export default function CaregiverSetup2() {
   };
   const {
     displayName,
+    firstName,
     windowStart: start,
     windowEnd: end,
+    days,
     extraMinutes,
     update,
   } = useCaregiverSetup();
+  // Grammar for when no name was typed: "They check in", not "they checks in"
+  const name = firstName.trim();
+  const checksInBetween = name ? `${name} checks in between` : "They check in between";
+  const ifTheyDont = name ? `If ${name} doesn't check in` : "If they don't check in";
+  const setDays = (value: number[]) => update({ days: value });
 
   const setStart = (value: number) => update({ windowStart: value });
   const setEnd = (value: number) => update({ windowEnd: value });
@@ -55,7 +62,6 @@ export default function CaregiverSetup2() {
   const rangeText = formatTimeRange(start, end);
   const isValid = end > start;
 
-  const [days, setDays] = useState<number[]>([0, 1, 2, 3, 4, 5, 6]);
   const [sheet, setSheet] = useState<null | "window" | "extraTime">(null);
   const setExtraMinutes = (value: number) => update({ extraMinutes: value });
   return (
@@ -100,7 +106,7 @@ export default function CaregiverSetup2() {
               </View>
               <View style={styles.windowSummaryLabel}>
                 <AppText style={styles.windowSummaryHeader}>
-                  {displayName} checks in between
+                  {checksInBetween}
                 </AppText>
                 <AppText style={styles.windowSummaryBody}>{rangeText}</AppText>
               </View>
@@ -117,7 +123,7 @@ export default function CaregiverSetup2() {
         <WhichDays days={days} onChange={setDays} style={styles.whichDays} />
         <View style={styles.ifdontCheckIn}>
           <AppText style={styles.ifdontCheckInText}>
-            If {displayName} doesn&apos; check in
+            {ifTheyDont}
           </AppText>
           <View style={styles.methods}>
             <View style={styles.reminder}>
@@ -125,7 +131,7 @@ export default function CaregiverSetup2() {
                 <AlarmIcon />
               </View>
               <AppText style={styles.reminderText}>
-                We send {displayName} a gentle reminder
+                We send {name || "them"} a gentle reminder
               </AppText>
             </View>
             <View style={styles.divider}></View>

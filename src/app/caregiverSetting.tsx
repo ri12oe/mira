@@ -1,4 +1,5 @@
 import { AppText } from "@/components/app-test";
+import { SyncBanner } from "@/components/sync-banner";
 import { BottomSheet } from "@/components/bottom-sheet";
 import { CaregiverTabBar } from "@/components/caregiver-tab-bar";
 import {
@@ -92,6 +93,7 @@ export default function CaregiverSetting() {
         showsVerticalScrollIndicator={false}
       >
         <AppText style={styles.title}>Settings</AppText>
+        <SyncBanner />
         <View style={styles.checkIn}>
           <AppText style={styles.checkInText}>
             {name ? `${name}'s check in` : "Their check in"}

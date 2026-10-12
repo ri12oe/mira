@@ -2,6 +2,7 @@ import { AppText } from "@/components/app-test";
 import { BackButton } from "@/components/back-button";
 import { FigtreeFont, FontFamily } from "@/constants/fonts";
 import { useAuth } from "@/context/auth";
+import { useCaregiverSetup } from "@/context/caregiver-setup";
 import { useReduceMotion } from "@/hooks/use-entrance";
 import {
   AuthProblem,
@@ -66,6 +67,8 @@ export default function VerifyCode() {
   const phone = params.phone;
   const inSetup = params.context === "setup";
   const { session } = useAuth();
+  const { syncStatus, retry, prepareSetupSave, cancelSetupSave } =
+    useCaregiverSetup();
   const reduceMotion = useReduceMotion();
 
   const [code, setCode] = useState("");
@@ -111,11 +114,15 @@ export default function VerifyCode() {
     return () => clearInterval(id);
   }, []);
 
-  // Move on once Supabase has saved the session (protected screens need it)
+  // Move on once signed in AND the setup is saved/loaded. (Sign-in still goes
+  // to Home if loading failed: Home shows a "Try again" banner.)
+  const dataDone =
+    syncStatus === "ready" || (!inSetup && syncStatus === "failed");
   useEffect(() => {
-    if (!verified || !session) return;
+    if (!verified || !session || !dataDone) return;
     router.replace(inSetup ? "/connected" : "/caregiverHome");
-  }, [verified, session, inSetup]);
+  }, [verified, session, dataDone, inSetup]);
+  const setupSaveFailed = verified && inSetup && syncStatus === "failed";
 
   const playShake = () => {
     if (reduceMotion) return;
@@ -131,8 +138,11 @@ export default function VerifyCode() {
     if (!sentAt || value.length !== CODE_LENGTH || checking) return;
     setChecking(true);
     setProblem(null);
+    // Setup: once this code signs them in, save what they typed in steps 1–3
+    if (inSetup) prepareSetupSave();
     const result = await checkCode(phone, value, sentAt);
     if (result) {
+      cancelSetupSave();
       setChecking(false);
       setProblem(result);
       if (result === "wrongCode") playShake();
@@ -151,7 +161,7 @@ export default function VerifyCode() {
   const secondsLeft = sentAt
     ? Math.max(0, Math.ceil((sentAt + RESEND_AFTER_MS - now) / 1000))
     : 0;
-  const busy = checking || verified;
+  const busy = (checking || verified) && !setupSaveFailed;
   const canResend =
     !sending && !busy && (secondsLeft === 0 || problem === "expired");
   const wrong = problem === "wrongCode";
@@ -262,10 +272,38 @@ export default function VerifyCode() {
             <AppText style={styles.statusText}>Sending your code…</AppText>
           </View>
         )}
-        {checking && (
+        {busy && (
           <View style={styles.statusRow} accessibilityRole="text">
             <ActivityIndicator color={PRIMARY} />
-            <AppText style={styles.statusText}>Checking your code…</AppText>
+            <AppText style={styles.statusText}>
+              {!verified
+                ? "Checking your code…"
+                : inSetup
+                  ? "Saving your setup…"
+                  : "Loading your account…"}
+            </AppText>
+          </View>
+        )}
+
+        {setupSaveFailed && (
+          <View
+            style={styles.problemRow}
+            accessibilityRole="alert"
+            accessibilityLiveRegion="polite"
+          >
+            <Svg width={22} height={22} viewBox="0 0 24 24" fill="none">
+              <Circle cx={12} cy={12} r={10} stroke={RED} strokeWidth={2.2} />
+              <Path
+                d="M12 7.5v5.5M12 16.5v.5"
+                stroke={RED}
+                strokeWidth={2.2}
+                strokeLinecap="round"
+              />
+            </Svg>
+            <AppText style={styles.problemText}>
+              Your number is confirmed, but we couldn&apos;t save your setup.
+              Check that you&apos;re online, then try again.
+            </AppText>
           </View>
         )}
 
@@ -367,6 +405,15 @@ export default function VerifyCode() {
               </AppText>
             </View>
           )}
+          {setupSaveFailed ? (
+            <Pressable
+              style={({ pressed }) => [styles.button, pressed && styles.pressed]}
+              onPress={retry}
+              accessibilityRole="button"
+            >
+              <AppText style={styles.buttonText}>Try again</AppText>
+            </Pressable>
+          ) : (
           <Pressable
             style={({ pressed }) => [
               styles.button,
@@ -394,6 +441,7 @@ export default function VerifyCode() {
                   : "Sign in"}
             </AppText>
           </Pressable>
+          )}
         </View>
       </ScrollView>
     </SafeAreaView>

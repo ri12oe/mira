@@ -1,6 +1,7 @@
 import { AddPersonSheets } from "@/components/add-person-sheets";
 import { AlertOrder } from "@/components/alert-order";
 import { AppText } from "@/components/app-test";
+import { SyncBanner } from "@/components/sync-banner";
 import { BackupSheet } from "@/components/backup-sheet";
 import { CaregiverTabBar } from "@/components/caregiver-tab-bar";
 import { FigtreeFont, FontFamily } from "@/constants/fonts";
@@ -27,7 +28,6 @@ const RED = "#8A3A12";
 const MINT = "#DDF3EE";
 const GREEN = "#075E4F";
 const LILAC = "#E7E4FB";
-const ALL_DAYS = [0, 1, 2, 3, 4, 5, 6];
 
 const METHOD_LABELS: Record<CheckInMethod, string> = {
   text: "Text reply",
@@ -65,6 +65,7 @@ export default function CaregiverPeople() {
     windowStart: primaryWindowStart,
     windowEnd: primaryWindowEnd,
     backups: primaryBackups,
+    days: primaryDays,
     people,
     update,
     updatePerson,
@@ -82,7 +83,7 @@ export default function CaregiverPeople() {
       method: primaryMethod,
       windowStart: primaryWindowStart,
       windowEnd: primaryWindowEnd,
-      days: ALL_DAYS,
+      days: primaryDays,
       backups: primaryBackups,
     },
     ...people.map((p) => ({
@@ -127,6 +128,7 @@ export default function CaregiverPeople() {
         showsVerticalScrollIndicator={false}
       >
         <AppText style={styles.title}>People</AppText>
+        <SyncBanner />
         <View style={styles.wholookFor}>
           <AppText style={styles.subtitle}>Who you look after</AppText>
           {entries.map((entry, index) => {
