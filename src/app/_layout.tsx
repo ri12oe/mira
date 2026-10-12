@@ -21,6 +21,7 @@ import { useEffect } from "react";
 
 import { FigtreeFont, FontFamily } from "@/constants/fonts";
 import { CaregiverSetupProvider } from "@/context/caregiver-setup";
+import { checkSupabaseConnection } from "@/lib/supabase";
 
 // Keep the splash screen up until the fonts are ready
 SplashScreen.preventAutoHideAsync();
@@ -45,6 +46,11 @@ export default function RootLayout() {
   useEffect(() => {
     if (loaded || error) SplashScreen.hideAsync();
   }, [loaded, error]);
+
+  // TEMPORARY (step 1): remove once the connection is confirmed
+  useEffect(() => {
+    if (__DEV__) checkSupabaseConnection();
+  }, []);
 
   if (!loaded && !error) return null;
 
