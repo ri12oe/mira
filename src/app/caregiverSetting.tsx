@@ -17,6 +17,7 @@ import {
   useCaregiverSetup,
 } from "@/context/caregiver-setup";
 import { signOut as signOutOfMira } from "@/lib/auth";
+import { forgetThisPhone } from "@/lib/push";
 import { formatTimeRange } from "@/utils/format-time-short";
 import { router } from "expo-router";
 import { Image } from "expo-image";
@@ -81,6 +82,8 @@ export default function CaregiverSetting() {
   // Signed-in screens are protected in _layout.tsx, so once the session is
   // gone the router takes the caregiver back to Welcome by itself
   const signOut = async () => {
+    // Stop this caregiver's alerts arriving on this phone (needs to be signed in)
+    await forgetThisPhone();
     await signOutOfMira();
     reset();
   };

@@ -207,6 +207,41 @@ export type Database = {
           },
         ]
       }
+      push_tokens: {
+        Row: {
+          caregiver_id: string
+          created_at: string
+          id: string
+          last_seen_at: string
+          platform: string
+          token: string
+        }
+        Insert: {
+          caregiver_id?: string
+          created_at?: string
+          id?: string
+          last_seen_at?: string
+          platform: string
+          token: string
+        }
+        Update: {
+          caregiver_id?: string
+          created_at?: string
+          id?: string
+          last_seen_at?: string
+          platform?: string
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "push_tokens_caregiver_id_fkey"
+            columns: ["caregiver_id"]
+            isOneToOne: false
+            referencedRelation: "caregivers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sends: {
         Row: {
           attempts: number
@@ -474,6 +509,10 @@ export type Database = {
           caregiver_name: string
           taker_name: string
         }[]
+      }
+      register_push_token: {
+        Args: { p_platform: string; p_token: string }
+        Returns: undefined
       }
       save_taker: {
         Args: { p_backups: Json; p_taker: Json }

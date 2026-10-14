@@ -2,7 +2,10 @@ import { randomUUID } from "expo-crypto";
 import { AlertOrder } from "@/components/alert-order";
 import { AppText } from "@/components/app-test";
 import { BackButton } from "@/components/back-button";
+import { AlertsCard, AlertsSheet } from "@/components/alerts-prompt";
 import { SyncBanner } from "@/components/sync-banner";
+import { useAlerts } from "@/hooks/use-alerts";
+import { ALERTS_CARD_DISMISSED, readPreference, writePreference } from "@/lib/preferences";
 import { ThisWeek } from "@/components/this-week";
 import { TodayCard } from "@/components/today-card";
 import { useTakerActivity } from "@/hooks/use-taker-activity";
@@ -118,7 +121,17 @@ export default function CaregiverHome() {
     days: primaryDays,
     paused: primaryPaused,
   } = useCaregiverSetup();
-  const [notificationsActive, setNotificationsActive] = useState(false);
+  // Push alerts for this phone (the bell, and a one-time card until they're on)
+  const alerts = useAlerts();
+  const [alertsSheet, setAlertsSheet] = useState(false);
+  const [alertsCardDismissed, setAlertsCardDismissed] = useState(
+    () => readPreference(ALERTS_CARD_DISMISSED) === "1",
+  );
+  const dismissAlertsCard = () => {
+    writePreference(ALERTS_CARD_DISMISSED, "1");
+    setAlertsCardDismissed(true);
+  };
+  const alertsOn = alerts.status === "on";
   const [sheet, setSheet] = useState<
     | "person"
     | "time"
@@ -307,17 +320,27 @@ export default function CaregiverHome() {
           <Pressable
             style={[
               styles.notifications,
-              notificationsActive && styles.notificationsActive,
+              alertsOn && styles.notificationsActive,
             ]}
-            onPress={() => setNotificationsActive((active) => !active)}
+            onPress={() => setAlertsSheet(true)}
             accessibilityRole="button"
-            accessibilityLabel="Notifications"
-            accessibilityState={{ selected: notificationsActive }}
+            accessibilityLabel={alertsOn ? "Alerts are on" : "Turn on alerts"}
+            accessibilityHint="Shows whether this phone gets alerts"
           >
-            <BellIcon size={22} color={notificationsActive ? ORANGE : INK} />
+            <BellIcon size={22} color={alertsOn ? ORANGE : INK} />
           </Pressable>
         </View>
         <SyncBanner />
+        {alerts.status === "off" && !alertsCardDismissed && (
+          <AlertsCard
+            status={alerts.status}
+            busy={alerts.busy}
+            problem={alerts.problem}
+            onTurnOn={alerts.turnOn}
+            onDismiss={dismissAlertsCard}
+            name={displayName}
+          />
+        )}
         <View style={styles.peopleChips}>
           {[
             { id: PRIMARY_ID, name: primaryName },
@@ -410,6 +433,15 @@ export default function CaregiverHome() {
         </View>
       </ScrollView>
       <CaregiverTabBar />
+      <AlertsSheet
+        visible={alertsSheet}
+        onClose={() => setAlertsSheet(false)}
+        status={alerts.status}
+        busy={alerts.busy}
+        problem={alerts.problem}
+        onTurnOn={alerts.turnOn}
+        name={displayName}
+      />
       <BottomSheet
         visible={sheet === "person"}
         title="Who else are you caring for?"

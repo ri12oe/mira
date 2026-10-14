@@ -38,7 +38,7 @@ export type CheckInRow = Pick<
 
 export type SendRow = Pick<
   Tables<"sends">,
-  "id" | "purpose" | "channel" | "status" | "created_at" | "backup_id"
+  "id" | "purpose" | "channel" | "status" | "created_at" | "backup_id" | "provider_id"
 >;
 
 export type Activity = {
@@ -78,7 +78,7 @@ export async function fetchActivity(
   if (today) {
     const sends = await supabase
       .from("sends")
-      .select("id, purpose, channel, status, created_at, backup_id")
+      .select("id, purpose, channel, status, created_at, backup_id, provider_id")
       .eq("check_in_id", today.id)
       .order("created_at");
     if (sends.error) throw sends.error;
@@ -184,7 +184,7 @@ export async function fetchCheckInNow(checkInId: string): Promise<CheckInNow | n
       .maybeSingle(),
     supabase
       .from("sends")
-      .select("id, purpose, channel, status, created_at, backup_id")
+      .select("id, purpose, channel, status, created_at, backup_id, provider_id")
       .eq("check_in_id", checkInId)
       .order("created_at"),
   ]);

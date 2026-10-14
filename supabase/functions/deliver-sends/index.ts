@@ -5,6 +5,7 @@
 // Only the scheduler may call it: it must send the shared secret that's kept
 // in Vault (for pg_cron) and in the MIRA_CRON_SECRET Edge Function secret.
 
+import { pushToCaregiver } from "../_shared/expo-push.ts";
 import { type Send, textFor } from "../_shared/messages.ts";
 import { admin, json } from "../_shared/supabase.ts";
 import { isLive, makeCall, maskPhone, sendSms, type SmsResult } from "../_shared/twilio.ts";
@@ -18,10 +19,23 @@ async function deliver(s: Send): Promise<SmsResult> {
       // What the call says comes from twilio-voice when it's answered
       if (!s.send_to) return { ok: false, error: "No phone number" };
       return makeCall(s.send_to, s.send_id);
-    case "push":
-      // Push notifications come in step 10; until then they're only logged
-      console.log(`[test mode] would notify the app (${s.send_purpose})`);
+    case "push": {
+      // The caregiver's phones: always real (push is free)
+      if (s.send_purpose === "caregiver_alert" || s.send_purpose === "all_clear") {
+        const { data: owner } = await admin.from("sends").select("caregiver_id, taker_id").eq("id", s.send_id).single();
+        if (!owner) return { ok: false, error: "Send not found" };
+        const name = s.taker_name?.trim() || "They";
+        const title = s.send_purpose === "all_clear" ? `${name} checked in` : `${name} hasn't checked in`;
+        return pushToCaregiver(owner.caregiver_id, title, textFor(s).replace(/^Mira: /, ""), {
+          takerId: owner.taker_id,
+          purpose: s.send_purpose,
+        });
+      }
+      // A prompt for someone who checks in with the Mira app: that app (the
+      // "I'm checking in" flow) doesn't exist yet, so it's only recorded
+      console.log(`[waiting for the Mira app] ${s.send_purpose}`);
       return { ok: true, sid: `test-push-${crypto.randomUUID()}` };
+    }
   }
 }
 

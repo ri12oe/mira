@@ -166,8 +166,10 @@ begin
     responded_via = 'text', status = 'late' where id = lin_ci;
   perform public.scheduler_tick((day + time '13:01') at time zone indy);
   perform public.scheduler_tick((day + time '13:02') at time zone indy);
-  select count(*) into n from public.sends where check_in_id = lin_ci and purpose = 'all_clear';
+  select count(*) into n from public.sends where check_in_id = lin_ci and purpose = 'all_clear' and channel = 'sms';
   assert n = 3, 'C15 3 all-clear texts (caregiver, Sam, Ana), got ' || n;
+  select count(*) into n from public.sends where check_in_id = lin_ci and purpose = 'all_clear' and channel = 'push';
+  assert n = 1, 'C15 plus 1 push all-clear to the caregiver, got ' || n;
 
   -- C16: the app (and anyone signed out) can't run the scheduler
   perform set_config('request.jwt.claims', json_build_object('sub', a, 'role', 'authenticated')::text, true);

@@ -20,6 +20,7 @@ import * as SplashScreen from "expo-splash-screen";
 import { useEffect } from "react";
 
 import { FigtreeFont, FontFamily } from "@/constants/fonts";
+import { NotificationsBridge } from "@/components/notifications-bridge";
 import { AuthProvider, useAuth } from "@/context/auth";
 import { CaregiverSetupProvider, useCaregiverSetup } from "@/context/caregiver-setup";
 
@@ -69,24 +70,27 @@ function RootStack({ fontsReady }: { fontsReady: boolean }) {
 
   // Screens not listed here (setup, sign-in code, help) are open to everyone
   return (
-    <Stack screenOptions={{ headerShown: false }}>
-      {/* Signed in only. Listed first: a signed-in launch lands on caregiverHome */}
-      <Stack.Protected guard={signedIn}>
-        <Stack.Screen name="caregiverHome" />
-        <Stack.Screen name="caregiverHistory" />
-        <Stack.Screen name="caregiverPeople" />
-        <Stack.Screen name="caregiverSetting" />
-        <Stack.Screen name="caregiverProfile" />
-        <Stack.Screen name="checkInNow" />
-        <Stack.Screen name="waiting" />
-        <Stack.Screen name="connected" />
-        <Stack.Screen name="connected2" />
-      </Stack.Protected>
-      {/* Signed out only: Welcome and the phone screen */}
-      <Stack.Protected guard={!signedIn}>
-        <Stack.Screen name="index" />
-        <Stack.Screen name="signIn" />
-      </Stack.Protected>
-    </Stack>
+    <>
+      <NotificationsBridge />
+      <Stack screenOptions={{ headerShown: false }}>
+        {/* Signed in only. Listed first: a signed-in launch lands on caregiverHome */}
+        <Stack.Protected guard={signedIn}>
+          <Stack.Screen name="caregiverHome" />
+          <Stack.Screen name="caregiverHistory" />
+          <Stack.Screen name="caregiverPeople" />
+          <Stack.Screen name="caregiverSetting" />
+          <Stack.Screen name="caregiverProfile" />
+          <Stack.Screen name="checkInNow" />
+          <Stack.Screen name="waiting" />
+          <Stack.Screen name="connected" />
+          <Stack.Screen name="connected2" />
+        </Stack.Protected>
+        {/* Signed out only: Welcome and the phone screen */}
+        <Stack.Protected guard={!signedIn}>
+          <Stack.Screen name="index" />
+          <Stack.Screen name="signIn" />
+        </Stack.Protected>
+      </Stack>
+    </>
   );
 }

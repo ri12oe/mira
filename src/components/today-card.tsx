@@ -239,29 +239,37 @@ type TimelineItem = { key: string; kind: "done" | "now" | "later" | "failed"; te
 function buildTimeline(props: Props, alertAt: string): TimelineItem[] {
   const { sends, backups, timeZone, method } = props;
   const ok = (s: SendRow) => s.status === "sent" || s.status === "delivered";
+  // Really went out: not a test-mode stand-in (texting is off in free mode)
+  const real = (s: SendRow) => ok(s) && !s.provider_id?.startsWith("test-");
   const at = (iso: string) => formatClock(iso, timeZone);
   const items: TimelineItem[] = [];
 
   const reminders = sends.filter((s) => s.purpose === "reminder");
   if (reminders.length > 0) {
-    const sent = reminders.find(ok);
+    const sent = reminders.find(real);
+    const recorded = reminders.find(ok);
     items.push(
       sent
         ? { key: "reminder", kind: "done", text: `${at(sent.created_at)} · ${REMINDER_BY[method]}` }
-        : { key: "reminder", kind: "failed", text: `${at(reminders[0].created_at)} · The reminder couldn't be sent` },
+        : recorded
+          ? { key: "reminder", kind: "failed", text: `${at(recorded.created_at)} · Texting is off, so no reminder went out` }
+          : { key: "reminder", kind: "failed", text: `${at(reminders[0].created_at)} · The reminder couldn't be sent` },
     );
   }
 
   const alerts = sends.filter((s) => s.purpose === "caregiver_alert");
   if (alerts.length > 0) {
-    const sent = alerts.find(ok);
-    const allFailed = alerts.every((s) => s.status === "failed");
+    const sent = alerts.find(real);
+    const push = alerts.find((s) => s.channel === "push");
+    const stillTrying = alerts.some((s) => s.status === "queued");
     items.push(
       sent
         ? { key: "you", kind: "now", text: `${at(sent.created_at)} · You were alerted` }
-        : allFailed
-          ? { key: "you", kind: "failed", text: `${at(alerts[0].created_at)} · We couldn't reach you by text or call` }
-          : { key: "you", kind: "now", text: "Now · You're being alerted" },
+        : stillTrying
+          ? { key: "you", kind: "now", text: "Now · You're being alerted" }
+          : push?.status === "failed"
+            ? { key: "you", kind: "failed", text: `${at(push.created_at)} · We couldn't reach your phone. Turn on alerts with the bell` }
+            : { key: "you", kind: "failed", text: `${at(alerts[0].created_at)} · Texting is off, so no text or call went out` },
     );
   }
 
@@ -270,9 +278,12 @@ function buildTimeline(props: Props, alertAt: string): TimelineItem[] {
   for (const b of backups) {
     afterMinutes += b.alertAfter;
     const theirs = sends.filter((s) => s.purpose === "backup_alert" && s.backup_id === b.id);
-    const sent = theirs.find(ok);
+    const sent = theirs.find(real);
+    const recorded = theirs.find(ok);
     if (sent) {
       items.push({ key: b.id, kind: "done", text: `${at(sent.created_at)} · ${b.name} was told` });
+    } else if (recorded) {
+      items.push({ key: b.id, kind: "failed", text: `${at(recorded.created_at)} · Texting is off, so ${b.name} wasn't told` });
     } else if (theirs.length > 0 && theirs.every((s) => s.status === "failed")) {
       items.push({ key: b.id, kind: "failed", text: `${at(theirs[0].created_at)} · We couldn't reach ${b.name}` });
     } else {
