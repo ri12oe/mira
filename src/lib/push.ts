@@ -1,8 +1,9 @@
-import Constants, { ExecutionEnvironment } from "expo-constants";
+import { isRunningInExpoGo } from "expo";
+import Constants from "expo-constants";
 import * as Device from "expo-device";
-import * as Notifications from "expo-notifications";
 import { Platform } from "react-native";
 
+import { loadNotifications } from "@/lib/notifications-module";
 import { supabase } from "@/lib/supabase";
 
 /**
@@ -21,13 +22,15 @@ export type AlertsProblem = "unsupported" | "needsBuild" | "denied" | "noProject
 export const ALERTS_CHANNEL = "alerts";
 
 export function alertsUnavailableReason(): AlertsProblem | null {
-  if (Platform.OS === "web" || !Device.isDevice) return "unsupported";
-  if (Constants.executionEnvironment === ExecutionEnvironment.StoreClient) return "needsBuild";
+  if (Platform.OS === "web") return "unsupported";
+  if (isRunningInExpoGo()) return "needsBuild";
+  if (!Device.isDevice) return "unsupported";
   return null;
 }
 
 async function ensureAlertsChannel() {
-  if (Platform.OS !== "android") return;
+  const Notifications = loadNotifications();
+  if (!Notifications || Platform.OS !== "android") return;
   await Notifications.setNotificationChannelAsync(ALERTS_CHANNEL, {
     name: "Check-in alerts",
     description: "When someone you look after misses a check-in, or checks in late",
@@ -44,7 +47,8 @@ function projectId(): string | undefined {
 
 /** Is the notification permission already on? (never shows a prompt) */
 export async function alertsPermission() {
-  if (alertsUnavailableReason()) return "unavailable" as const;
+  const Notifications = loadNotifications();
+  if (alertsUnavailableReason() || !Notifications) return "unavailable" as const;
   const { status } = await Notifications.getPermissionsAsync();
   return status; // "granted" | "denied" | "undetermined"
 }
@@ -53,6 +57,8 @@ export async function alertsPermission() {
 export async function registerThisPhone(): Promise<{ ok: true } | { ok: false; problem: AlertsProblem }> {
   const unavailable = alertsUnavailableReason();
   if (unavailable) return { ok: false, problem: unavailable };
+  const Notifications = loadNotifications();
+  if (!Notifications) return { ok: false, problem: "unsupported" };
   const id = projectId();
   if (!id) return { ok: false, problem: "noProject" };
   try {
@@ -74,6 +80,8 @@ export async function registerThisPhone(): Promise<{ ok: true } | { ok: false; p
 export async function turnOnAlerts(): Promise<{ ok: true } | { ok: false; problem: AlertsProblem }> {
   const unavailable = alertsUnavailableReason();
   if (unavailable) return { ok: false, problem: unavailable };
+  const Notifications = loadNotifications();
+  if (!Notifications) return { ok: false, problem: "unsupported" };
   // Android 13+ only shows the permission prompt once a channel exists
   await ensureAlertsChannel();
   let { status } = await Notifications.getPermissionsAsync();
@@ -84,7 +92,8 @@ export async function turnOnAlerts(): Promise<{ ok: true } | { ok: false; proble
 
 /** On sign-out: stop sending this caregiver's alerts to this phone */
 export async function forgetThisPhone() {
-  if (alertsUnavailableReason()) return;
+  const Notifications = loadNotifications();
+  if (alertsUnavailableReason() || !Notifications) return;
   const id = projectId();
   if (!id) return;
   try {
