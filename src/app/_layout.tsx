@@ -73,7 +73,6 @@ function RootStack({ fontsReady }: { fontsReady: boolean }) {
       {/* Signed in only. Listed first: a signed-in launch lands on caregiverHome */}
       <Stack.Protected guard={signedIn}>
         <Stack.Screen name="caregiverHome" />
-        <Stack.Screen name="caregiverHomeNotCheckIn" />
         <Stack.Screen name="caregiverHistory" />
         <Stack.Screen name="caregiverPeople" />
         <Stack.Screen name="caregiverSetting" />

@@ -66,7 +66,7 @@ Screens and what each will need from the backend:
    - At window end + `extraMinutes` (default 30): **alert the caregiver** (text and call), then each backup in order after their own `alertAfter` delay.
    - A check-in at any point stops the escalation.
 3. **Pause**: a paused taker gets no check-ins and nobody is alerted.
-4. **Check in now** (on demand): send immediately by the chosen method; if no reply in **15 minutes**, alert **only the caregiver** (not backups).
+4. **Check in now** (on demand): send immediately by the chosen method; if no reply in **15 minutes**, alert **only the caregiver** (not backups). Those are the defaults; the Check in now screen lets the caregiver change the wait and add people to alert **for that one check-in** (kept on the check-in as `alert_contacts`). One open at a time per person, at most 10 a day.
 5. **Privacy**: Mira only shares *whether* a check-in happened and when. Never message contents or location. (This promise is shown on the Who is using Mira screen.)
 6. **Reliability matters more than features**: an alert that silently fails is the worst bug. Every send/alert should be logged with its status, and the scheduler must be safe to run twice (no double alerts).
 

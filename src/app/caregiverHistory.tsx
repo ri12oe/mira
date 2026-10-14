@@ -6,19 +6,20 @@ import {
   PRIMARY_PERSON_ID as PRIMARY_ID,
   useCaregiverSetup,
 } from "@/context/caregiver-setup";
+import { useTakerActivity } from "@/hooks/use-taker-activity";
 import {
   CheckInStatus,
+  dayKey,
   describeEntry,
+  entriesByDay,
   formatEntryDate,
-  getEntry,
   getMonthGrid,
   getMonthTotals,
   getRecentEntries,
-  HistorySubject,
   monthLabel,
-  startOfDay,
 } from "@/utils/check-in-history";
-import { useMemo, useState } from "react";
+import { dateFromKey } from "@/utils/local-date";
+import { useState } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Circle, Path } from "react-native-svg";
@@ -35,25 +36,23 @@ const STATUS_COLORS: Record<CheckInStatus, string> = {
   onTime: "#0B7A66",
   late: "#F5B53D",
   missed: "#C43A2B",
+  skipped: "#B9B6C8", // paused that day
 };
 
 export default function CaregiverHistory() {
   const {
     displayName: primaryName,
-    method: primaryMethod,
-    windowStart: primaryWindowStart,
-    windowEnd: primaryWindowEnd,
-    extraMinutes: primaryExtraMinutes,
     days: primaryDays,
+    takerId: primaryTakerId,
+    timeZone: primaryTimeZone,
     people,
     selectedId,
     setSelectedId,
   } = useCaregiverSetup();
 
-  const today = useMemo(() => startOfDay(new Date()), []);
-  const [view, setView] = useState({
-    year: today.getFullYear(),
-    month: today.getMonth(),
+  const [view, setView] = useState(() => {
+    const now = new Date();
+    return { year: now.getFullYear(), month: now.getMonth() };
   });
 
   const options = [
@@ -63,27 +62,18 @@ export default function CaregiverHistory() {
   const selectedPerson = people.find((p) => p.id === selectedId);
   // Fall back to the primary person if the selected one no longer exists
   const selectedName = selectedPerson?.firstName ?? primaryName;
-  const method = selectedPerson?.method ?? primaryMethod;
-  const subject: HistorySubject = selectedPerson
-    ? {
-        id: selectedPerson.id,
-        windowStart: selectedPerson.windowStart,
-        windowEnd: selectedPerson.windowEnd,
-        extraMinutes: selectedPerson.extraMinutes,
-        days: selectedPerson.days,
-      }
-    : {
-        id: PRIMARY_ID,
-        windowStart: primaryWindowStart,
-        windowEnd: primaryWindowEnd,
-        extraMinutes: primaryExtraMinutes,
-        days: primaryDays,
-      };
+  const takerId = selectedPerson?.id ?? primaryTakerId;
+  const timeZone = selectedPerson?.timeZone ?? primaryTimeZone;
+  const days = selectedPerson?.days ?? primaryDays;
 
   const { year, month } = view;
+  // Real check-ins from the database (this month + the last 60 days, live)
+  const { activity, todayKey } = useTakerActivity(takerId, timeZone, { kind: "month", year, month });
+  const today = dateFromKey(todayKey);
+  const entries = entriesByDay(activity?.checkIns ?? [], timeZone);
   const weeks = getMonthGrid(year, month);
-  const totals = getMonthTotals(subject, year, month, today);
-  const recent = getRecentEntries(subject, today);
+  const totals = getMonthTotals(entries, year, month);
+  const recent = getRecentEntries(entries);
 
   const monthsBack =
     (today.getFullYear() - year) * 12 + (today.getMonth() - month);
@@ -166,18 +156,20 @@ export default function CaregiverHistory() {
                 {week.map((day, i) => {
                   if (day === null) return <View key={i} style={styles.day} />;
 
-                  const date = new Date(year, month, day);
-                  const entry = getEntry(subject, date, today);
-                  const isToday = date.getTime() === today.getTime();
-                  const isFuture = date > today;
-                  const scheduled = subject.days.includes(i);
+                  const key = dayKey(year, month, day);
+                  const entry = entries.get(key);
+                  const isToday = key === todayKey;
+                  const isFuture = key > todayKey;
+                  const scheduled = days.includes(i);
 
                   let dayStyle;
                   let textStyle;
                   if (entry) {
                     dayStyle = { backgroundColor: STATUS_COLORS[entry.status] };
                     textStyle =
-                      entry.status === "late" ? { color: INK } : undefined;
+                      entry.status === "late" || entry.status === "skipped"
+                        ? { color: INK }
+                        : undefined;
                   } else if (isToday) {
                     dayStyle = styles.today;
                     textStyle = { color: INK };
@@ -226,13 +218,13 @@ export default function CaregiverHistory() {
             {recent.length === 0 ? (
               <View style={styles.row}>
                 <AppText style={styles.recentSubText}>
-                  No check-ins for {selectedName} yet.
+                  {activity ? `No check-ins for ${selectedName} yet.` : "Loading…"}
                 </AppText>
               </View>
             ) : (
               recent.map((entry, i) => (
                 <View
-                  key={entry.date.getTime()}
+                  key={entry.key}
                   style={[styles.row, i === recent.length - 1 && styles.lastRow]}
                 >
                   <Svg width={12} height={12} viewBox="0 0 12 12" fill="none">
@@ -247,7 +239,7 @@ export default function CaregiverHistory() {
                     {formatEntryDate(entry.date, today)}
                   </AppText>
                   <AppText style={styles.recentSubText}>
-                    {describeEntry(entry, method)}
+                    {describeEntry(entry)}
                   </AppText>
                 </View>
               ))

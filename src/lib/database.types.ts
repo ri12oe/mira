@@ -116,11 +116,13 @@ export type Database = {
       check_ins: {
         Row: {
           alert_at: string
+          alert_contacts: Json
           confirmed_by_caregiver: boolean
           created_at: string
           id: string
           kind: Database["public"]["Enums"]["check_in_kind"]
           local_date: string
+          prompt_message: string | null
           responded_at: string | null
           responded_via: Database["public"]["Enums"]["check_in_method"] | null
           status: Database["public"]["Enums"]["check_in_status"]
@@ -130,11 +132,13 @@ export type Database = {
         }
         Insert: {
           alert_at: string
+          alert_contacts?: Json
           confirmed_by_caregiver?: boolean
           created_at?: string
           id?: string
           kind?: Database["public"]["Enums"]["check_in_kind"]
           local_date: string
+          prompt_message?: string | null
           responded_at?: string | null
           responded_via?: Database["public"]["Enums"]["check_in_method"] | null
           status?: Database["public"]["Enums"]["check_in_status"]
@@ -144,11 +148,13 @@ export type Database = {
         }
         Update: {
           alert_at?: string
+          alert_contacts?: Json
           confirmed_by_caregiver?: boolean
           created_at?: string
           id?: string
           kind?: Database["public"]["Enums"]["check_in_kind"]
           local_date?: string
+          prompt_message?: string | null
           responded_at?: string | null
           responded_via?: Database["public"]["Enums"]["check_in_method"] | null
           status?: Database["public"]["Enums"]["check_in_status"]
@@ -381,6 +387,7 @@ export type Database = {
         Args: { p_caregiver_id: string; p_taker_id: string }
         Returns: boolean
       }
+      cancel_check_in_now: { Args: { p_check_in_id: string }; Returns: boolean }
       claim_due_sends: {
         Args: { p_limit?: number; p_now?: string }
         Returns: {
@@ -389,6 +396,7 @@ export type Database = {
           caregiver_name: string
           check_in_kind: Database["public"]["Enums"]["check_in_kind"]
           checked_in_at: string
+          prompt_message: string
           send_channel: Database["public"]["Enums"]["send_channel"]
           send_id: string
           send_purpose: Database["public"]["Enums"]["send_purpose"]
@@ -417,6 +425,7 @@ export type Database = {
           caregiver_name: string
           check_in_kind: Database["public"]["Enums"]["check_in_kind"]
           checked_in_at: string
+          prompt_message: string
           send_channel: Database["public"]["Enums"]["send_channel"]
           send_id: string
           send_purpose: Database["public"]["Enums"]["send_purpose"]
@@ -471,6 +480,16 @@ export type Database = {
         Returns: undefined
       }
       scheduler_tick: { Args: { p_now?: string }; Returns: Json }
+      start_check_in_now: {
+        Args: {
+          p_contacts?: Json
+          p_message?: string
+          p_method: Database["public"]["Enums"]["check_in_method"]
+          p_taker_id: string
+          p_wait_minutes?: number
+        }
+        Returns: string
+      }
     }
     Enums: {
       check_in_kind: "scheduled" | "on_demand"

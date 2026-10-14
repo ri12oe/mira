@@ -18,6 +18,8 @@ export type Send = {
   taker_window_end: number | null;
   check_in_kind: "scheduled" | "on_demand" | null;
   checked_in_at: string | null;
+  /** "Check in now": the caregiver's own words (null: the usual words) */
+  prompt_message: string | null;
 };
 
 /** 540 → "9:00 AM" */
@@ -42,12 +44,13 @@ export function textFor(s: Send) {
     : "";
   switch (s.send_purpose) {
     case "check_in_prompt":
+      if (s.prompt_message) return `Mira: ${s.prompt_message}`;
       return `Mira: Hi ${name}! Reply OK to let ${caregiver} know you're okay today.`;
     case "reminder":
       return `Mira: A gentle reminder, ${name}. Reply OK when you see this.`;
     case "caregiver_alert":
       return s.check_in_kind === "on_demand"
-        ? `Mira: ${name} hasn't answered your check-in from 15 minutes ago. Please check on ${name}.`
+        ? `Mira: ${name} hasn't answered your Check in now yet. Please check on ${name}.`
         : `Mira: ${name} hasn't checked in today${window}. Please check on ${name}.`;
     case "backup_alert":
       return `Mira: ${name} hasn't checked in today, and ${caregiver} has been alerted. As ${name}'s backup contact, please check on ${name} too.`;
@@ -71,6 +74,12 @@ export function callScriptFor(s: Send) {
   const { name, caregiver } = names(s);
   switch (s.send_purpose) {
     case "check_in_prompt":
+      if (s.prompt_message) {
+        // The caregiver's words, always ending with how to answer
+        return /press 1/i.test(s.prompt_message)
+          ? `This is Mira. ${s.prompt_message}`
+          : `This is Mira. ${s.prompt_message} If you're okay, please press 1.`;
+      }
       return `Hi ${name}, this is Mira, calling for ${caregiver}. If you're okay today, please press 1.`;
     case "reminder":
       return `Hi ${name}, this is Mira with a gentle reminder. If you're okay, please press 1.`;

@@ -1,24 +1,19 @@
-import { CheckInMethod } from "@/context/caregiver-setup";
+import type { CheckInMethod } from "@/context/caregiver-setup";
+import type { CheckInRow } from "@/lib/check-ins";
 import { formatTime } from "@/utils/format-time";
+import { dateFromKey, localMinutes } from "@/utils/local-date";
 
-export type CheckInStatus = "onTime" | "late" | "missed";
+export type CheckInStatus = "onTime" | "late" | "missed" | "skipped";
 
 export type HistoryEntry = {
+  /** "YYYY-MM-DD", the day in the person's own time zone */
+  key: string;
   date: Date;
   status: CheckInStatus;
-  minutes: number | null; // minutes after midnight when they checked in; null if missed
+  minutes: number | null; // minutes after midnight when they checked in; null if not
+  via: CheckInMethod | null;
+  byCaregiver: boolean; // you marked them as checked in
 };
-
-/** What the history needs to know about the person being checked in on */
-export type HistorySubject = {
-  id: string;
-  windowStart: number;
-  windowEnd: number;
-  extraMinutes: number;
-  days: number[]; // 0 = Monday … 6 = Sunday
-};
-
-export const ALL_DAYS = [0, 1, 2, 3, 4, 5, 6];
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const MONTHS = [
@@ -42,6 +37,13 @@ const METHOD_PHRASES: Record<CheckInMethod, string> = {
   app: "in the Mira app",
 };
 
+const STATUSES: Partial<Record<CheckInRow["status"], CheckInStatus>> = {
+  on_time: "onTime",
+  late: "late",
+  missed: "missed",
+  skipped: "skipped",
+};
+
 export function startOfDay(date: Date) {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate());
 }
@@ -50,53 +52,30 @@ export function monthLabel(year: number, month: number) {
   return `${MONTHS[month]} ${year}`;
 }
 
-function hash(text: string) {
-  let h = 2166136261;
-  for (let i = 0; i < text.length; i++) {
-    h ^= text.charCodeAt(i);
-    h = Math.imul(h, 16777619);
-  }
-  return h >>> 0;
+/** "YYYY-MM-DD" for a calendar cell */
+export function dayKey(year: number, month: number, day: number) {
+  return `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 }
 
 /**
- * Check-in result for one day, or null when there is nothing to show
- * (today or later, or a day the person isn't scheduled).
- * There is no backend yet, so results are generated deterministically per
- * person and date: the same day always gives the same answer.
+ * Finished check-ins by day. A check-in still in progress (pending) isn't
+ * history yet, so it's left out.
  */
-export function getEntry(
-  subject: HistorySubject,
-  date: Date,
-  today: Date,
-): HistoryEntry | null {
-  const day = startOfDay(date);
-  if (day >= startOfDay(today)) return null;
-  if (!subject.days.includes((day.getDay() + 6) % 7)) return null;
-
-  const h = hash(
-    `${subject.id}:${day.getFullYear()}-${day.getMonth()}-${day.getDate()}`,
-  );
-  const roll = h % 100;
-  const fraction = ((h >>> 8) % 1000) / 1000;
-  const windowLength = Math.max(subject.windowEnd - subject.windowStart, 1);
-
-  if (roll < 85) {
-    return {
-      date: day,
-      status: "onTime",
-      minutes: subject.windowStart + Math.floor(fraction * windowLength),
-    };
+export function entriesByDay(rows: CheckInRow[], timeZone: string) {
+  const entries = new Map<string, HistoryEntry>();
+  for (const row of rows) {
+    const status = STATUSES[row.status];
+    if (!status) continue;
+    entries.set(row.local_date, {
+      key: row.local_date,
+      date: dateFromKey(row.local_date),
+      status,
+      minutes: row.responded_at ? localMinutes(new Date(row.responded_at), timeZone) : null,
+      via: row.responded_via,
+      byCaregiver: row.confirmed_by_caregiver,
+    });
   }
-  if (roll < 95) {
-    const grace = Math.max(subject.extraMinutes, 15);
-    return {
-      date: day,
-      status: "late",
-      minutes: subject.windowEnd + 1 + Math.floor(fraction * grace),
-    };
-  }
-  return { date: day, status: "missed", minutes: null };
+  return entries;
 }
 
 /** Weeks starting on Monday; null marks cells outside the month */
@@ -114,53 +93,35 @@ export function getMonthGrid(year: number, month: number) {
   return weeks;
 }
 
-export function getMonthTotals(
-  subject: HistorySubject,
-  year: number,
-  month: number,
-  today: Date,
-) {
+export function getMonthTotals(entries: Map<string, HistoryEntry>, year: number, month: number) {
   const totals = { onTime: 0, late: 0, missed: 0 };
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
-  for (let d = 1; d <= daysInMonth; d++) {
-    const entry = getEntry(subject, new Date(year, month, d), today);
-    if (entry) totals[entry.status] += 1;
+  const prefix = dayKey(year, month, 1).slice(0, 8); // "YYYY-MM-"
+  for (const entry of entries.values()) {
+    if (entry.key.startsWith(prefix) && entry.status !== "skipped") totals[entry.status] += 1;
   }
   return totals;
 }
 
-/** Most recent results first, looking back up to 60 days */
-export function getRecentEntries(
-  subject: HistorySubject,
-  today: Date,
-  limit = 5,
-) {
-  const entries: HistoryEntry[] = [];
-  const start = startOfDay(today);
-  for (let back = 1; back <= 60 && entries.length < limit; back++) {
-    const entry = getEntry(
-      subject,
-      new Date(start.getFullYear(), start.getMonth(), start.getDate() - back),
-      today,
-    );
-    if (entry) entries.push(entry);
-  }
-  return entries;
+/** Most recent results first */
+export function getRecentEntries(entries: Map<string, HistoryEntry>, limit = 5) {
+  return [...entries.values()].sort((a, b) => (a.key < b.key ? 1 : -1)).slice(0, limit);
 }
 
-/** "Yesterday" or "Wed, Oct 23" */
+/** "Today", "Yesterday" or "Wed, Oct 23" */
 export function formatEntryDate(date: Date, today: Date) {
   const diff = Math.round(
     (startOfDay(today).getTime() - startOfDay(date).getTime()) / 86400000,
   );
+  if (diff === 0) return "Today";
   if (diff === 1) return "Yesterday";
   return `${WEEKDAYS[date.getDay()]}, ${MONTHS[date.getMonth()].slice(0, 3)} ${date.getDate()}`;
 }
 
-export function describeEntry(entry: HistoryEntry, method: CheckInMethod) {
+export function describeEntry(entry: HistoryEntry) {
+  if (entry.status === "skipped") return "Paused, no check-in";
   if (entry.minutes === null) return "Missed, no check-in";
   const time = formatTime(entry.minutes);
-  return entry.status === "late"
-    ? `${time}, after reminder`
-    : `${time} ${METHOD_PHRASES[method]}`;
+  if (entry.byCaregiver) return `${time}, you confirmed`;
+  const how = entry.via ? ` ${METHOD_PHRASES[entry.via]}` : "";
+  return entry.status === "late" ? `${time}, late${how}` : `${time}${how}`;
 }

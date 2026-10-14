@@ -12,7 +12,10 @@ import {
   PRIMARY_PERSON_ID as PRIMARY_ID,
   useCaregiverSetup,
 } from "@/context/caregiver-setup";
+import { usePeopleToday } from "@/hooks/use-people-today";
+import type { TodaySummary } from "@/lib/check-ins";
 import { formatTimeShort, formatTimeRange } from "@/utils/format-time-short";
+import { dayIndex, localDateKey, localMinutes } from "@/utils/local-date";
 import { router } from "expo-router";
 import { useState } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
@@ -29,6 +32,9 @@ const RED = "#8A3A12";
 const MINT = "#DDF3EE";
 const GREEN = "#075E4F";
 const LILAC = "#E7E4FB";
+const MISSED = "#A52F22";
+const MISSED_BG = "#FDE7E3";
+const PAUSED_BG = "#EFEDF5";
 
 const METHOD_LABELS: Record<CheckInMethod, string> = {
   text: "Text reply",
@@ -43,20 +49,34 @@ const AVATAR_COLORS = [
   { background: LILAC, text: PRIMARY },
 ];
 
-/** Where today's check-in stands for someone with this schedule */
-function todayStatus(windowStart: number, days: number[], now: Date) {
-  if (!days.includes((now.getDay() + 6) % 7)) {
+/** Where today's check-in stands, from the database (each in their own time zone) */
+function todayStatus(
+  entry: { windowStart: number; windowEnd: number; days: number[]; paused: boolean; timeZone: string },
+  summary: TodaySummary | undefined,
+  now: Date,
+) {
+  if (!summary) return { label: "…", background: BACKGROUND, color: SUBTITLE };
+  if (!summary.joined) return { label: "Invite sent", background: SUN, color: RED };
+  switch (summary.today) {
+    case "on_time":
+    case "late":
+      return { label: "Okay today", background: MINT, color: GREEN };
+    case "pending":
+      return { label: "Waiting", background: LILAC, color: PRIMARY };
+    case "missed":
+      return { label: "Missed", background: MISSED_BG, color: MISSED };
+    case "skipped":
+      return { label: "Paused", background: PAUSED_BG, color: SUBTITLE };
+  }
+  if (entry.paused) return { label: "Paused", background: PAUSED_BG, color: SUBTITLE };
+  const key = localDateKey(now, entry.timeZone);
+  if (!entry.days.includes(dayIndex(key))) {
     return { label: "Day off", background: LILAC, color: PRIMARY };
   }
-  const minutes = now.getHours() * 60 + now.getMinutes();
-  if (minutes < windowStart) {
-    return {
-      label: `Due ${formatTimeShort(windowStart)}`,
-      background: BACKGROUND,
-      color: SUBTITLE,
-    };
+  if (localMinutes(now, entry.timeZone) < entry.windowEnd) {
+    return { label: `Due ${formatTimeShort(entry.windowStart)}`, background: BACKGROUND, color: SUBTITLE };
   }
-  return { label: "Okay today", background: MINT, color: GREEN };
+  return { label: "Done for today", background: BACKGROUND, color: SUBTITLE };
 }
 
 export default function CaregiverPeople() {
@@ -67,6 +87,9 @@ export default function CaregiverPeople() {
     windowEnd: primaryWindowEnd,
     backups: primaryBackups,
     days: primaryDays,
+    takerId: primaryTakerId,
+    timeZone: primaryTimeZone,
+    paused: primaryPaused,
     people,
     update,
     updatePerson,
@@ -76,7 +99,6 @@ export default function CaregiverPeople() {
   const [sheet, setSheet] = useState<null | "person" | "backup">(null);
   const [editingBackup, setEditingBackup] = useState<Backup | null>(null);
 
-  const now = new Date();
   const entries = [
     {
       id: PRIMARY_ID,
@@ -86,6 +108,9 @@ export default function CaregiverPeople() {
       windowEnd: primaryWindowEnd,
       days: primaryDays,
       backups: primaryBackups,
+      takerId: primaryTakerId,
+      timeZone: primaryTimeZone,
+      paused: primaryPaused,
     },
     ...people.map((p) => ({
       id: p.id,
@@ -95,8 +120,12 @@ export default function CaregiverPeople() {
       windowEnd: p.windowEnd,
       days: p.days,
       backups: p.backups,
+      takerId: p.id,
+      timeZone: p.timeZone ?? primaryTimeZone,
+      paused: !!p.paused,
     })),
   ];
+  const { summaries, now } = usePeopleToday(entries);
   const selected = entries.find((e) => e.id === selectedId) ?? entries[0];
 
   const setBackups = (backups: Backup[]) => {
@@ -134,7 +163,7 @@ export default function CaregiverPeople() {
           <AppText style={styles.subtitle}>Who you look after</AppText>
           {entries.map((entry, index) => {
             const colors = AVATAR_COLORS[index % AVATAR_COLORS.length];
-            const status = todayStatus(entry.windowStart, entry.days, now);
+            const status = todayStatus(entry, summaries[entry.takerId], now);
             const isSelected = entry.id === selected.id;
             return (
               <Pressable

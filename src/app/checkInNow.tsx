@@ -15,6 +15,10 @@ import { RadioCircle } from "@/components/radio-circle";
 import { SegmentedSlider } from "@/components/segmented-slider";
 import { FigtreeFont, FontFamily } from "@/constants/fonts";
 import { Backup, CheckInMethod, useCaregiverSetup } from "@/context/caregiver-setup";
+import { useTakerActivity } from "@/hooks/use-taker-activity";
+import { startCheckInNow, StartProblem } from "@/lib/check-ins";
+import { formatClock } from "@/utils/local-date";
+import { toE164 } from "@/utils/phone";
 import { router, useLocalSearchParams } from "expo-router";
 import { ReactNode, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
@@ -36,19 +40,46 @@ const REACH_OPTIONS: { label: string; value: CheckInMethod; icon: (color: string
   { label: "Mira app", value: "app", icon: (color: string) => <PhoneSquareIcon size={20} color={color} /> },
 ];
 const WAIT_OPTIONS = [15, 30, 60, 120];
+const DEFAULT_WAIT_MINUTES = 15;
+const VIA: Record<CheckInMethod, string> = {
+  text: "by text",
+  call: "by phone call",
+  app: "in the Mira app",
+};
+const START_PROBLEMS: Record<StartProblem, (name: string) => string> = {
+  not_joined: (name) => `${name} hasn't said yes to your invite yet, so Mira can't check in with them.`,
+  paused: (name) => `Check-ins for ${name} are paused. Resume them in Settings first.`,
+  too_many: (name) => `You've checked on ${name} many times today. Please try calling instead.`,
+  bad_contacts: () => "One of the people to alert has a phone number that's too short. Check it under \"Then we alert\".",
+  offline: () => "We couldn't reach Mira. Check that you're online, then try again.",
+  failed: () => "Something went wrong. Please try again.",
+};
 
 export default function CheckInNow() {
   const {
     displayName,
     yourFirstName,
     method: primaryMethod,
-    extraMinutes: primaryExtraMinutes,
     people,
-    backups: primaryBackups,
+    takerId: primaryTakerId,
+    timeZone: primaryTimeZone,
   } = useCaregiverSetup();
   const { personId } = useLocalSearchParams<{ personId?: string }>();
   const person = people.find((person) => person.id === personId);
   const primaryName = person?.firstName ?? displayName;
+  const takerId = person?.id ?? primaryTakerId;
+  const timeZone = person?.timeZone ?? primaryTimeZone;
+
+  // "Lin already checked in today at 9:14 AM by text" (only if she has)
+  const { activity, todayKey } = useTakerActivity(takerId, timeZone, { kind: "week" });
+  const todayRow = activity?.checkIns.find((c) => c.local_date === todayKey);
+  const checkedInToday =
+    todayRow && (todayRow.status === "on_time" || todayRow.status === "late") && todayRow.responded_at
+      ? {
+          at: formatClock(todayRow.responded_at, timeZone),
+          how: todayRow.confirmed_by_caregiver ? "you confirmed it" : VIA[todayRow.responded_via ?? "text"],
+        }
+      : null;
   const [method, setMethod] = useState<CheckInMethod>(person?.method ?? primaryMethod);
   const defaultMessage = `Hi ${primaryName}, ${yourFirstName.trim() || "your caregiver"} is checking you're okay. Reply YES if you're fine.`;
   const defaultCallMessage = `Hi ${primaryName}, ${yourFirstName.trim() || "your caregiver"} is checking you're okay. Please confirm you're fine.`;
@@ -57,8 +88,40 @@ export default function CheckInNow() {
   const [callMessage, setCallMessage] = useState(defaultCallMessage);
   const [appMessage, setAppMessage] = useState(defaultAppMessage);
   const message = method === "text" ? textMessage : method === "call" ? callMessage : appMessage;
-  const [waitMinutes, setWaitMinutes] = useState(person?.extraMinutes ?? primaryExtraMinutes);
-  const [backups, setBackups] = useState<Backup[]>(person?.backups ?? primaryBackups);
+  // Defaults (design + Mira's rules): wait 15 minutes, then alert only you
+  const [waitMinutes, setWaitMinutes] = useState(DEFAULT_WAIT_MINUTES);
+  const [backups, setBackups] = useState<Backup[]>([]);
+  const [sending, setSending] = useState(false);
+  const [problem, setProblem] = useState<StartProblem | null>(null);
+
+  const send = async () => {
+    if (sending) return;
+    const contacts = backups.map((b) => ({ name: b.name.trim(), phone: toE164(b.phone), alertAfter: b.alertAfter }));
+    if (contacts.some((c) => !c.phone || !c.name)) {
+      setProblem("bad_contacts");
+      return;
+    }
+    setSending(true);
+    setProblem(null);
+    const defaultForMethod = method === "text" ? defaultMessage : method === "call" ? defaultCallMessage : defaultAppMessage;
+    const result = await startCheckInNow({
+      takerId,
+      method,
+      waitMinutes,
+      // Only send the words if they were changed; otherwise Mira's usual words
+      message: message.trim() === defaultForMethod ? null : message.trim(),
+      contacts: contacts.map((c) => ({ name: c.name, phone: c.phone!, alertAfter: c.alertAfter })),
+    });
+    setSending(false);
+    if (!result.ok) {
+      setProblem(result.problem);
+      return;
+    }
+    router.push({
+      pathname: "/waiting",
+      params: { checkInId: result.checkInId, personId: personId ?? "primary" },
+    });
+  };
   const [sheet, setSheet] = useState<"message" | "wait" | "alerts" | "backup" | null>(null);
   const [draftMessage, setDraftMessage] = useState("");
   const [draftWait, setDraftWait] = useState(waitMinutes);
@@ -106,14 +169,16 @@ export default function CheckInNow() {
             time.
           </AppText>
         </View>
-        <View style={styles.alreadyCheckedIn}>
-          <CheckBadgeLargeIcon />
-          <AppText style={styles.alreadyCheckedInText}>
-            {primaryName} checked in today at{" "}
-            <AppText style={styles.alreadyCheckedInTextBold}>9:14 AM</AppText>{" "}
-            by text.
-          </AppText>
-        </View>
+        {checkedInToday && (
+          <View style={styles.alreadyCheckedIn}>
+            <CheckBadgeLargeIcon />
+            <AppText style={styles.alreadyCheckedInText}>
+              {primaryName} already checked in today at{" "}
+              <AppText style={styles.alreadyCheckedInTextBold}>{checkedInToday.at}</AppText>{" "}
+              {checkedInToday.how}.
+            </AppText>
+          </View>
+        )}
         <View style={styles.howtoReach}>
           <AppText style={styles.howtoReachText}>
             How should we reach {primaryName}?
@@ -211,24 +276,22 @@ export default function CheckInNow() {
           </View>
         </View>
         <View style={styles.buttons}>
+          {problem && (
+            <AppText style={styles.problemText} accessibilityRole="alert">
+              {START_PROBLEMS[problem](primaryName)}
+            </AppText>
+          )}
           <Pressable
             style={({ pressed }) => [
               styles.nextButton,
+              sending && styles.disabled,
               pressed && styles.pressed,
             ]}
             accessibilityLabel={`Send check-in to ${primaryName}`}
             accessibilityRole="button"
-            onPress={() =>
-              router.push({
-                pathname: "/waiting",
-                params: {
-                  personId: personId ?? "primary",
-                  method,
-                  waitMinutes: String(waitMinutes),
-                  sentAt: String(Date.now()),
-                },
-              })
-            }
+            accessibilityState={{ busy: sending, disabled: sending }}
+            disabled={sending}
+            onPress={send}
           >
             <Svg width={20} height={20} viewBox="0 0 20 20" fill="none">
               <Path
@@ -402,6 +465,13 @@ export default function CheckInNow() {
 }
 
 const styles = StyleSheet.create({
+  problemText: {
+    color: "#8C1D18",
+    fontFamily: FigtreeFont.semiBold,
+    fontSize: 16,
+    lineHeight: 23,
+    marginBottom: 12,
+  },
   container: {
     flex: 1,
     backgroundColor: BACKGROUND,

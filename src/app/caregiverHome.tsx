@@ -3,6 +3,13 @@ import { AlertOrder } from "@/components/alert-order";
 import { AppText } from "@/components/app-test";
 import { BackButton } from "@/components/back-button";
 import { SyncBanner } from "@/components/sync-banner";
+import { ThisWeek } from "@/components/this-week";
+import { TodayCard } from "@/components/today-card";
+import { useTakerActivity } from "@/hooks/use-taker-activity";
+import { markCheckedIn } from "@/lib/check-ins";
+import { confirmJoined } from "@/lib/invites";
+import { weekKeys } from "@/utils/local-date";
+import { nextCheckInLabel, todayState } from "@/utils/today-state";
 import { BackupSheet } from "@/components/backup-sheet";
 import { BottomSheet } from "@/components/bottom-sheet";
 import { CaregiverTabBar } from "@/components/caregiver-tab-bar";
@@ -14,8 +21,6 @@ import {
 } from "@/components/extra-time-picker";
 import ArrowRightIcon from "@/components/icons/ArrowRightIcon";
 import BellIcon from "@/components/icons/BellIcon";
-import CheckBadgeIcon from "@/components/icons/CheckBadgeIcon";
-import CircleIcon from "@/components/icons/CircleIcon";
 import ClockIcon from "@/components/icons/ClockIcon";
 import DashedCircleIcon from "@/components/icons/DashedCircleIcon";
 import MessageIcon from "@/components/icons/MessageIcon";
@@ -42,7 +47,6 @@ import {
   useCaregiverSetup,
 } from "@/context/caregiver-setup";
 import { formatTime } from "@/utils/format-time";
-import { formatTimeRange } from "@/utils/format-time-short";
 import * as Linking from "expo-linking";
 import { router } from "expo-router";
 import { useState } from "react";
@@ -66,16 +70,9 @@ const SUN = "#FFE8DB";
 const LILAC = "#E7E4FB";
 const RISE = "#8A3A12";
 const GREEN = "#075E4F";
-const YELLOW = "#F5B53D";
 const ORANGE = "#C2551F";
 const PLACEHOLDER = "#8B8DA3";
 const ALERT = "#C43A2B";
-
-const METHOD_LABELS: Record<CheckInMethod, string> = {
-  text: "Text reply",
-  call: "Phone call",
-  app: "Mira app",
-};
 
 const METHOD_OPTIONS = [
   {
@@ -95,7 +92,11 @@ const METHOD_OPTIONS = [
   },
 ];
 
-const DAYS = ["M", "T", "W", "Th", "F", "S", "Su"];
+const MARK_MESSAGES = {
+  nothing_open: "There's no check-in open right now, so there's nothing to mark.",
+  offline: "We couldn't reach Mira. Check that you're online, then try again.",
+  failed: "Something went wrong. Please try again.",
+};
 const ALL_DAYS = [0, 1, 2, 3, 4, 5, 6];
 
 export default function CaregiverHome() {
@@ -112,6 +113,10 @@ export default function CaregiverHome() {
     queueInvite,
     selectedId,
     setSelectedId,
+    takerId: primaryTakerId,
+    timeZone: primaryTimeZone,
+    days: primaryDays,
+    paused: primaryPaused,
   } = useCaregiverSetup();
   const [notificationsActive, setNotificationsActive] = useState(false);
   const [sheet, setSheet] = useState<
@@ -157,6 +162,51 @@ export default function CaregiverHome() {
   const method = selectedPerson?.method ?? primaryMethod;
   const windowStart = selectedPerson?.windowStart ?? primaryWindowStart;
   const windowEnd = selectedPerson?.windowEnd ?? primaryWindowEnd;
+  const takerId = selectedPerson?.id ?? primaryTakerId;
+  const timeZone = selectedPerson?.timeZone ?? primaryTimeZone;
+  const days = selectedPerson?.days ?? primaryDays;
+  const paused = selectedPerson?.paused ?? primaryPaused;
+  const backups = selectedPerson?.backups ?? primaryBackups;
+
+  // Today and this week, from the database (live)
+  const { activity, now, todayKey, reload } = useTakerActivity(takerId, timeZone, { kind: "week" });
+  const schedule = { paused, days, windowEnd, timeZone };
+  const today = todayState(activity, schedule, todayKey, now);
+  // After today's check-in, the next one is on a later day
+  const nextAfterToday = nextCheckInLabel({ ...schedule, windowEnd: -1 }, todayKey, now);
+
+  // "Lin checked in" / "I reached Lin, Lin is okay"
+  const [marking, setMarking] = useState(false);
+  const [markMessage, setMarkMessage] = useState<{ id: string; text: string } | null>(null);
+  const markIn = async () => {
+    if (marking) return;
+    setMarking(true);
+    setMarkMessage(null);
+    const result = await markCheckedIn(takerId);
+    setMarking(false);
+    if (result === "recorded") reload();
+    else setMarkMessage({ id: takerId, text: MARK_MESSAGES[result] });
+  };
+
+  // Free mode: "Lin replied YES" (the invite went from your phone)
+  const [confirming, setConfirming] = useState(false);
+  const [confirmMessage, setConfirmMessage] = useState<{ id: string; text: string } | null>(null);
+  const confirmYes = async () => {
+    if (confirming) return;
+    setConfirming(true);
+    setConfirmMessage(null);
+    const result = await confirmJoined(takerId);
+    setConfirming(false);
+    if (result === "joined") reload();
+    else
+      setConfirmMessage({
+        id: takerId,
+        text:
+          result === "offline"
+            ? "We couldn't reach Mira. Check that you're online, then try again."
+            : `We couldn't confirm that. If ${displayName}'s invite hasn't gone out yet, open it from the People screen.`,
+      });
+  };
 
   const canSavePerson =
     newName.trim().length > 0 && newPhone.replace(/\D/g, "").length >= 10;
@@ -229,7 +279,6 @@ export default function CaregiverHome() {
     router.push("/connected2");
   };
 
-  const now = new Date();
   const hour = now.getHours();
   const greeting =
     hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
@@ -239,7 +288,6 @@ export default function CaregiverHome() {
     month: "short",
     day: "numeric",
   });
-  const checkInWindow = formatTimeRange(windowStart, windowEnd);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -294,45 +342,33 @@ export default function CaregiverHome() {
             onPress={() => setSheet("person")}
           />
         </View>
-        <View style={styles.statusCard}>
-          <View style={styles.frame3}>
-            <CheckBadgeIcon size={64} />
-            <View style={styles.texts}>
-              <AppText style={styles.textHeader}>Checked in</AppText>
-              <AppText style={styles.textSubHeader}>
-                Mira checks in with {displayName}
-              </AppText>
-              <AppText style={styles.method}>
-                Checks in by {METHOD_LABELS[method]}
-              </AppText>
-            </View>
-          </View>
-          <View style={styles.nextCheckIn}>
-            <AppText style={styles.nextCheckInText}>Check-in window</AppText>
-            <AppText style={styles.nextCheckInTime}>{checkInWindow}</AppText>
-          </View>
-        </View>
-        <View style={styles.thisWeek}>
-          <AppText style={styles.title}>This week</AppText>
-          <View style={styles.days}>
-            {DAYS.map((day) => (
-              <View key={day} style={styles.day}>
-                <AppText style={styles.dayLabel}>{day}</AppText>
-                <CircleIcon size={30} outlined color={SUBTITLE} />
-              </View>
-            ))}
-          </View>
-          <View style={styles.Legend}>
-            <View style={styles.legendItem}>
-              <CircleIcon size={10} />
-              <AppText style={styles.LegendLabel}>On time</AppText>
-            </View>
-            <View style={styles.legendItem}>
-              <CircleIcon size={10} color={YELLOW} />
-              <AppText style={styles.LegendLabel}>Late</AppText>
-            </View>
-          </View>
-        </View>
+        <TodayCard
+          state={today}
+          name={displayName}
+          method={method}
+          windowStart={windowStart}
+          windowEnd={windowEnd}
+          timeZone={timeZone}
+          backups={backups}
+          sends={activity?.todaySends ?? []}
+          nextLabel={nextAfterToday}
+          onMarkCheckedIn={markIn}
+          marking={marking}
+          markMessage={markMessage?.id === takerId ? markMessage.text : null}
+          onCall={callPerson}
+          onConfirmJoined={confirmYes}
+          confirming={confirming}
+          confirmMessage={confirmMessage?.id === takerId ? confirmMessage.text : null}
+          onOpenSettings={() => router.push("/caregiverSetting")}
+        />
+        {today.kind !== "notJoined" && (
+          <ThisWeek
+            week={weekKeys(todayKey)}
+            todayKey={todayKey}
+            checkIns={activity?.checkIns ?? []}
+            days={days}
+          />
+        )}
         <View style={styles.quickActions}>
           <Pressable
             style={({ pressed }) => [
@@ -372,15 +408,6 @@ export default function CaregiverHome() {
             <AppText style={styles.iconTileLabel}>Check in now</AppText>
           </Pressable>
         </View>
-        <Pressable
-          onPress={() =>
-            router.push({
-              pathname: "/caregiverHomeNotCheckIn",
-            })
-          }
-        >
-          <AppText>Dev Test Caregiver If not check in</AppText>
-        </Pressable>
       </ScrollView>
       <CaregiverTabBar />
       <BottomSheet
@@ -753,119 +780,6 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
     gap: 8,
     flexDirection: "row",
-  },
-  statusCard: {
-    padding: 22,
-    flexDirection: "column",
-    alignItems: "flex-start",
-    gap: 18,
-    alignSelf: "stretch",
-    borderRadius: 28,
-    backgroundColor: MINT,
-  },
-  frame3: {
-    alignItems: "center",
-    gap: 16,
-    alignSelf: "stretch",
-    flexDirection: "row",
-  },
-  texts: {
-    flexDirection: "column",
-    alignItems: "flex-start",
-    gap: 3,
-    flex: 1,
-  },
-  textHeader: {
-    color: GREEN,
-    fontSize: 14,
-    lineHeight: 18.2,
-    fontFamily: FigtreeFont.extraBold,
-  },
-  textSubHeader: {
-    color: INK,
-    fontSize: 25,
-    lineHeight: 28.65,
-    letterSpacing: -0.4,
-    fontFamily: FontFamily.bold,
-  },
-  method: {
-    color: GREEN,
-    fontSize: 16,
-    fontFamily: FigtreeFont.semiBold,
-    lineHeight: 23.2,
-  },
-  nextCheckIn: {
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    justifyContent: "space-between",
-    alignItems: "center",
-    alignSelf: "stretch",
-    borderRadius: 16,
-    backgroundColor: "#fff",
-    flexDirection: "row",
-  },
-  nextCheckInText: {
-    color: SUBTITLE,
-    fontSize: 15,
-    fontFamily: FigtreeFont.semiBold,
-    lineHeight: 21,
-  },
-  nextCheckInTime: {
-    color: INK,
-    fontSize: 16,
-    lineHeight: 20.8,
-    fontFamily: FigtreeFont.bold,
-  },
-  thisWeek: {
-    paddingVertical: 18,
-    paddingHorizontal: 20,
-    flexDirection: "column",
-    alignItems: "flex-start",
-    gap: 14,
-    alignSelf: "stretch",
-    borderRadius: 24,
-    borderWidth: 1,
-    borderColor: BORDERCOLOR,
-    backgroundColor: "#fff",
-  },
-  title: {
-    fontSize: 16,
-    color: INK,
-    fontFamily: FigtreeFont.bold,
-    lineHeight: 20.8,
-  },
-  days: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignSelf: "stretch",
-    alignItems: "flex-start",
-  },
-  day: {
-    flexDirection: "column",
-    alignItems: "center",
-    gap: 8,
-  },
-  dayLabel: {
-    fontSize: 14,
-    color: SUBTITLE,
-    lineHeight: 16.9,
-    fontFamily: FigtreeFont.extraBold,
-  },
-  Legend: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 16,
-  },
-  legendItem: {
-    alignItems: "center",
-    gap: 6,
-    flexDirection: "row",
-  },
-  LegendLabel: {
-    color: SUBTITLE,
-    fontSize: 14,
-    lineHeight: 19.6,
-    fontFamily: FigtreeFont.semiBold,
   },
   quickActions: {
     alignItems: "flex-start",

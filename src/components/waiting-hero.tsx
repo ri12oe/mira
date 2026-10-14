@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useState } from "react";
 import { AccessibilityInfo, Animated, Easing, StyleSheet, View } from "react-native";
 
 import { AppText } from "@/components/app-test";
@@ -20,15 +20,29 @@ const PLATE = 120; // white circle behind the avatar
 const AVATAR = 96;
 const BADGE = 44;
 
+/** How the check-in is going: still waiting, or how it ended */
+export type WaitingOutcome = "waiting" | "checkedIn" | "alerted" | "cancelled";
+
 type Props = {
   name: string; // "Lin"
   sentAt: string; // "12:11 PM"
   method: CheckInMethod;
+  outcome?: WaitingOutcome;
+  /** When it ended: when they checked in, or when you were alerted */
+  endedAt?: string;
+};
+
+const BADGE_COLORS: Record<WaitingOutcome, string> = {
+  waiting: PRIMARY,
+  checkedIn: "#0B7A66",
+  alerted: "#C43A2B",
+  cancelled: "#8B8DA3",
 };
 
 /** One ring that grows and fades out, forever. `delay` offsets the second ring. */
 function PulseRing({ delay }: { delay: number }) {
-  const progress = useRef(new Animated.Value(0)).current;
+  // useState, not useRef(...).current: reading a ref during render breaks the React Compiler
+  const [progress] = useState(() => new Animated.Value(0));
 
   useEffect(() => {
     let loop: Animated.CompositeAnimation | undefined;
@@ -58,7 +72,7 @@ function PulseRing({ delay }: { delay: number }) {
   return <Animated.View style={[styles.ring, { opacity, transform: [{ scale }] }]} />;
 }
 
-export function WaitingHero({ name, sentAt, method }: Props) {
+export function WaitingHero({ name, sentAt, method, outcome = "waiting", endedAt }: Props) {
   const initial = name.trim().charAt(0).toUpperCase() || "?";
   const MethodIcon = method === "text" ? MessageIcon : method === "call" ? PhoneIcon : PhoneSquareIcon;
   const sentDescription = method === "text"
@@ -71,8 +85,9 @@ export function WaitingHero({ name, sentAt, method }: Props) {
     <View style={styles.wrap}>
       {/* the picture: rings, white plate, avatar, badge */}
       <View style={styles.picture} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-        <PulseRing delay={0} />
-        <PulseRing delay={1200} />
+        {/* the rings pulse only while we're still waiting */}
+        {outcome === "waiting" && <PulseRing delay={0} />}
+        {outcome === "waiting" && <PulseRing delay={1200} />}
 
         <View style={styles.plate} />
 
@@ -80,7 +95,7 @@ export function WaitingHero({ name, sentAt, method }: Props) {
           <AppText style={styles.avatarText}>{initial}</AppText>
         </View>
 
-        <View style={styles.badge}>
+        <View style={[styles.badge, { backgroundColor: BADGE_COLORS[outcome] }]}>
           <MethodIcon size={20} color="#FFFFFF" />
         </View>
       </View>
@@ -88,10 +103,22 @@ export function WaitingHero({ name, sentAt, method }: Props) {
       {/* the words */}
       <View style={styles.text}>
         <AppText style={styles.title} accessibilityRole="header">
-          Waiting for {name}…
+          {outcome === "checkedIn"
+            ? `${name} is okay`
+            : outcome === "alerted"
+              ? `${name} hasn't answered`
+              : outcome === "cancelled"
+                ? "Check-in cancelled"
+                : `Waiting for ${name}…`}
         </AppText>
         <AppText style={styles.subtitle}>
-          {sentDescription} at {sentAt}. You&apos;ll get a notification as soon as they confirm.
+          {outcome === "checkedIn"
+            ? `${name} checked in${endedAt ? ` at ${endedAt}` : ""}. Nobody was alerted.`
+            : outcome === "alerted"
+              ? `${sentDescription} at ${sentAt} and didn't hear back, so we alerted you${endedAt ? ` at ${endedAt}` : ""}.`
+              : outcome === "cancelled"
+                ? "You cancelled this check-in, so nobody will be alerted."
+                : `${sentDescription} at ${sentAt}. This screen updates as soon as ${name} answers.`}
         </AppText>
       </View>
     </View>
