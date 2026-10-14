@@ -46,3 +46,6 @@ example
 # Firebase service account (private key for push) — never commit; upload to EAS instead
 *firebase-adminsdk*.json
 service-account*.json
+
+# Firebase client config: provided to EAS Build as the GOOGLE_SERVICES_JSON file variable
+google-services.json
