@@ -12,6 +12,7 @@ import {
 
 import { useAuth } from "@/context/auth";
 import type { Json, Tables } from "@/lib/database.types";
+import { PHOTO_LINK_SECONDS, photoLink } from "@/lib/photos";
 import { supabase } from "@/lib/supabase";
 import { formatPhone, toE164 } from "@/utils/phone";
 
@@ -58,7 +59,10 @@ export type CaregiverSetupData = {
   yourFirstName: string;
   yourPhone: string;
   yourEmail: string;
+  /** What the app shows: a temporary link to the stored photo (or "") */
   yourPhotoUri: string;
+  /** Where the photo is stored (avatars bucket), or null for no photo */
+  yourPhotoPath: string | null;
   caregiverRelationship: string;
   windowStart: number; // minutes after midnight
   windowEnd: number;
@@ -137,6 +141,7 @@ function createInitial(): CaregiverSetupData {
     yourPhone: "",
     yourEmail: "",
     yourPhotoUri: "",
+    yourPhotoPath: null,
     caregiverRelationship: "",
     windowStart: 9 * 60,
     windowEnd: 11 * 60,
@@ -254,7 +259,7 @@ async function saveCaregiver(userId: string, payload: ReturnType<typeof caregive
 
 async function loadEverything(userId: string) {
   const [caregiver, takers] = await Promise.all([
-    supabase.from("caregivers").select("first_name, phone, email").eq("id", userId).single(),
+    supabase.from("caregivers").select("first_name, phone, email, photo_path").eq("id", userId).single(),
     supabase.from("takers").select("*, backups(*)").order("created_at"),
   ]);
   if (caregiver.error) throw caregiver.error;
@@ -397,7 +402,8 @@ export function CaregiverSetupProvider({ children }: { children: ReactNode }) {
           yourPhone: caregiver.phone ? formatPhone(caregiver.phone) : "",
           yourEmail: caregiver.email ?? "",
           // The photo isn't stored online yet, so keep the one on this phone
-          yourPhotoUri: latest.current.data.yourPhotoUri,
+          yourPhotoPath: caregiver.photo_path,
+          yourPhotoUri: (await photoLink(caregiver.photo_path)) ?? "",
           ...(first && {
             takerId: first.id,
             firstName: first.firstName,
@@ -489,6 +495,17 @@ export function CaregiverSetupProvider({ children }: { children: ReactNode }) {
       );
     }
   }, [ready, userId, data, people, saveAttempt, markSaved]);
+
+  // Photo links expire; make a fresh one a little before that
+  const photoPath = data.yourPhotoPath;
+  useEffect(() => {
+    if (!ready || !photoPath) return;
+    const timer = setInterval(async () => {
+      const link = await photoLink(photoPath);
+      if (link) setData((prev) => (prev.yourPhotoPath === photoPath ? { ...prev, yourPhotoUri: link } : prev));
+    }, (PHOTO_LINK_SECONDS - 5 * 60) * 1000);
+    return () => clearInterval(timer);
+  }, [ready, photoPath]);
 
   const syncStatus: SyncStatus = !userId
     ? "signedOut"

@@ -3,11 +3,13 @@ import { BackButton } from "@/components/back-button";
 import { BottomSheet } from "@/components/bottom-sheet";
 import { Chip } from "@/components/chip";
 import { FontFamily, FigtreeFont } from "@/constants/fonts";
+import { useAuth } from "@/context/auth";
 import { useCaregiverSetup } from "@/context/caregiver-setup";
+import { PhotoProblem, removeProfilePhoto, saveProfilePhoto } from "@/lib/photos";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
 import { useState } from "react";
-import { Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Path, Svg } from "react-native-svg";
 import ArrowRightIcon from "@/components/icons/ArrowRightIcon";
@@ -47,7 +49,7 @@ function fieldError(field: ProfileField, value: string) {
 
 export default function CaregiverProfile() {
   const {
-    firstName, yourFirstName, yourPhone, yourEmail, yourPhotoUri,
+    firstName, yourFirstName, yourPhone, yourEmail, yourPhotoUri, yourPhotoPath,
     caregiverRelationship, people, selectedId, update, updatePerson,
   } = useCaregiverSetup();
   const selectedPerson = people.find((person) => person.id === selectedId);
@@ -100,25 +102,66 @@ export default function CaregiverProfile() {
     }
     setMessage("Your profile changes are saved.");
   };
+  // The photo is saved in Supabase Storage (private), so it survives restarts
+  const { session } = useAuth();
+  const userId = session?.user.id;
+  const [photoBusy, setPhotoBusy] = useState<null | "saving" | "removing">(null);
+  const [photoMessage, setPhotoMessage] = useState("");
+
   const changePhoto = async () => {
-    setMessage("");
+    if (photoBusy || !userId) return;
+    setPhotoMessage("");
+    let photo: ImagePicker.ImagePickerAsset | undefined;
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ["images"],
         allowsMultipleSelection: false,
-        allowsEditing: false,
-        quality: 0.8,
+        // Square crop (it's shown as a circle) and compressed, so it uploads quickly
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.7,
+        base64: true,
       });
       if (result.canceled) return;
-      const photo = result.assets[0];
-      if (!photo?.uri) {
-        throw new Error("The photo picker did not return a usable photo.");
-      }
-      update({ yourPhotoUri: photo.uri });
+      photo = result.assets[0];
     } catch (cause) {
       console.error("Unable to select a profile photo", cause);
-      setMessage("Unable to open or use the selected photo. Please try again.");
+      setPhotoMessage("We couldn't open your photos. Please try again.");
+      return;
     }
+    if (!photo?.base64) {
+      setPhotoMessage("We couldn't use that photo. Please choose another one.");
+      return;
+    }
+
+    setPhotoBusy("saving");
+    const saved = await saveProfilePhoto(
+      userId,
+      { base64: photo.base64, mimeType: photo.mimeType ?? "image/jpeg" },
+      yourPhotoPath,
+    );
+    setPhotoBusy(null);
+    if (!saved.ok) {
+      setPhotoMessage(PHOTO_PROBLEMS[saved.problem]);
+      return;
+    }
+    // Show the new photo right away (the picked file, until the link is used next time)
+    update({ yourPhotoPath: saved.path, yourPhotoUri: saved.link ?? photo.uri });
+    setPhotoMessage("Your new photo is saved.");
+  };
+
+  const removePhoto = async () => {
+    if (photoBusy || !userId) return;
+    setPhotoMessage("");
+    setPhotoBusy("removing");
+    const removed = await removeProfilePhoto(userId, yourPhotoPath);
+    setPhotoBusy(null);
+    if (!removed.ok) {
+      setPhotoMessage(PHOTO_PROBLEMS[removed.problem]);
+      return;
+    }
+    update({ yourPhotoPath: null, yourPhotoUri: "" });
+    setPhotoMessage("Your photo is removed.");
   };
 
   return (
@@ -143,7 +186,7 @@ export default function CaregiverProfile() {
                 accessibilityLabel="Your profile photo"
                 onError={(event) => {
                   console.error("Unable to display profile photo", event.error);
-                  setMessage("Your profile photo could not be displayed. Please choose another photo.");
+                  setPhotoMessage("Your photo couldn't be shown right now. It's still saved.");
                 }}
               />
             ) : (
@@ -151,11 +194,18 @@ export default function CaregiverProfile() {
                 {draft.name.trim().charAt(0).toUpperCase() || "?"}
               </AppText>
             )}
+            {photoBusy && (
+              <View style={styles.avatarBusy} accessibilityLabel={photoBusy === "saving" ? "Saving your photo" : "Removing your photo"}>
+                <ActivityIndicator color="#fff" size="large" />
+              </View>
+            )}
             <Pressable
               style={({ pressed }) => [styles.changePhoto, pressed && styles.changePhotoPressed]}
               onPress={changePhoto}
+              disabled={!!photoBusy}
               accessibilityRole="button"
               accessibilityLabel="Change photo"
+              accessibilityState={{ busy: !!photoBusy }}
               hitSlop={6}
             >
               <Svg width={18} height={18} viewBox="0 0 18 18" fill="none">
@@ -176,6 +226,21 @@ export default function CaregiverProfile() {
               </Svg>
             </Pressable>
           </View>
+          {(photoBusy || photoMessage) && (
+            <AppText style={styles.photoMessage} accessibilityLiveRegion="polite">
+              {photoBusy === "saving" ? "Saving your photo…" : photoBusy === "removing" ? "Removing your photo…" : photoMessage}
+            </AppText>
+          )}
+          {yourPhotoPath && !photoBusy && (
+            <Pressable
+              style={({ pressed }) => [styles.removePhoto, pressed && styles.changePhotoPressed]}
+              onPress={removePhoto}
+              accessibilityRole="button"
+              accessibilityLabel="Remove photo"
+            >
+              <AppText style={styles.removePhotoText}>Remove photo</AppText>
+            </Pressable>
+          )}
           <View style={styles.pill}>
             <AppText style={styles.pillText}>
               {personName ? `Caregiver for ${personName}` : "Caregiver"}
@@ -307,7 +372,37 @@ export default function CaregiverProfile() {
   );
 }
 
+const PHOTO_PROBLEMS: Record<PhotoProblem, string> = {
+  unsupported: "That kind of photo isn't supported. Please choose a JPEG or PNG photo.",
+  offline: "We couldn't save your photo. Check that you're online, then try again.",
+  failed: "We couldn't save your photo. Please try again.",
+};
+
 const styles = StyleSheet.create({
+  avatarBusy: {
+    ...StyleSheet.absoluteFill,
+    borderRadius: AVATAR_SIZE / 2,
+    backgroundColor: "rgba(21, 22, 58, 0.45)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  photoMessage: {
+    color: SUBTITLE,
+    fontFamily: FigtreeFont.semiBold,
+    fontSize: 15,
+    lineHeight: 21,
+    textAlign: "center",
+  },
+  removePhoto: {
+    minHeight: 44,
+    paddingHorizontal: 16,
+    justifyContent: "center",
+  },
+  removePhotoText: {
+    color: "#B3261E",
+    fontFamily: FigtreeFont.bold,
+    fontSize: 16,
+  },
   fieldHint: {
     marginTop: 2,
     color: SUBTITLE,
