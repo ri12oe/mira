@@ -18,7 +18,7 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.maesp.mira"
+      "package": "com.rios0.mira"
     },
     "web": {
       "output": "static",

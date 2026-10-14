@@ -1,7 +1,13 @@
 import { useEffect, useState } from "react";
 import { AppState } from "react-native";
 
-import { AlertsProblem, alertsPermission, alertsUnavailableReason, turnOnAlerts } from "@/lib/push";
+import {
+  AlertsProblem,
+  alertsPermission,
+  alertsUnavailableReason,
+  registerThisPhone,
+  turnOnAlerts,
+} from "@/lib/push";
 
 /**
  * - checking: reading the phone's permission
@@ -27,7 +33,15 @@ export function useAlerts() {
         return;
       }
       const permission = await alertsPermission();
-      setStatus(permission === "granted" ? "on" : permission === "denied" ? "denied" : "off");
+      if (permission !== "granted") {
+        setStatus(permission === "denied" ? "denied" : "off");
+        return;
+      }
+      // Permission alone isn't enough: "on" only once Mira has this phone's
+      // push address. Otherwise show the problem instead of a false "on".
+      const result = await registerThisPhone();
+      setProblem(result.ok ? null : result.problem);
+      setStatus(result.ok ? "on" : "off");
     };
     check();
     const subscription = AppState.addEventListener("change", (state) => {

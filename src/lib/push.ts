@@ -35,7 +35,8 @@ async function ensureAlertsChannel() {
     name: "Check-in alerts",
     description: "When someone you look after misses a check-in, or checks in late",
     importance: Notifications.AndroidImportance.MAX,
-    sound: "default",
+    // No `sound`: here it means a custom sound file. Left out, the channel uses
+    // the phone's normal notification sound.
     vibrationPattern: [0, 400, 200, 400],
     lightColor: "#4338CA",
   });
@@ -68,7 +69,10 @@ export async function registerThisPhone(): Promise<{ ok: true } | { ok: false; p
       p_token: token,
       p_platform: Platform.OS === "ios" ? "ios" : "android",
     });
-    if (error) return { ok: false, problem: error.code ? "failed" : "offline" };
+    if (error) {
+      console.warn("Couldn't save this phone for alerts", error);
+      return { ok: false, problem: error.code ? "failed" : "offline" };
+    }
     return { ok: true };
   } catch (error) {
     console.warn("Couldn't get a push token", error);
