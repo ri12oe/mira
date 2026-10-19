@@ -4,7 +4,8 @@ import HomeIcon from "@/components/icons/HomeIcon";
 import SunIcon from "@/components/icons/SunIcon";
 import UserActivityIcon from "@/components/icons/UserActivityIcon";
 import { FigtreeFont } from "@/constants/fonts";
-import { router } from "expo-router";
+import { Href, router } from "expo-router";
+import { ReactNode } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 
 const PRIMARY = "#4338CA";
@@ -33,12 +34,57 @@ const TABS = [
   },
 ] as const;
 
+const SELF_TABS = [
+  { key: "home", label: "Home", href: "/selfHome", Icon: HomeIcon },
+  {
+    key: "history",
+    label: "History",
+    href: "/selfHistory",
+    Icon: ClockLargeIcon,
+  },
+  {
+    key: "people",
+    label: "My people",
+    href: "/selfPeople",
+    Icon: UserActivityIcon,
+  },
+  {
+    key: "settings",
+    label: "Settings",
+    href: "/selfSetting",
+    Icon: SunIcon,
+  },
+] as const;
+
 export type CaregiverTab = (typeof TABS)[number]["key"];
+export type SelfTab = (typeof SELF_TABS)[number]["key"];
+
+type TabItem = {
+  key: string;
+  label: string;
+  href: Href;
+  Icon: (props: { size?: number; color?: string }) => ReactNode;
+};
 
 export function CaregiverTabBar({ active = "home" }: { active?: CaregiverTab }) {
+  return <TabBar tabs={TABS} active={active} />;
+}
+
+/** The same bar for someone using Mira for themselves. */
+export function SelfTabBar({ active = "home" }: { active?: SelfTab }) {
+  return <TabBar tabs={SELF_TABS} active={active} />;
+}
+
+function TabBar({
+  tabs,
+  active,
+}: {
+  tabs: readonly TabItem[];
+  active: string;
+}) {
   return (
     <View style={styles.tabBar}>
-      {TABS.map(({ key, label, href, Icon }) => (
+      {tabs.map(({ key, label, href, Icon }) => (
         <Pressable
           key={key}
           style={styles.tabBarItem}

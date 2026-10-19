@@ -106,7 +106,7 @@ export default function SelfSetup5() {
               ]}
               accessibilityLabel="Go to my dashboard"
               accessibilityRole="button"
-              onPress={() => router.push("/caregiverHome")}
+              onPress={() => router.push("/selfHome")}
             >
               <AppText style={styles.nextButtonText}>Go to my dashboard</AppText>
             </Pressable>
