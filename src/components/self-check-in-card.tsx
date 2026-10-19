@@ -20,8 +20,8 @@ const AMBER_TEXT = "#8A5A06";
 type Props = {
   /** Minutes after midnight */
   windowEnd: number;
-  /** When they tapped "I'm okay" today, or null if they haven't yet */
-  checkedInAt: Date | null;
+  /** Minutes after midnight when they tapped "I'm okay" today, or null if they haven't yet */
+  checkedInMinutes: number | null;
   /** The window has closed and they haven't checked in */
   late: boolean;
   /** Who gets told, e.g. "Maya" (null if nobody is set up) */
@@ -50,14 +50,14 @@ function CheckMark({ size = 30 }: { size?: number }) {
 /** "Today's check-in": the big I'm okay button, which turns into a thank-you once tapped. */
 export function SelfCheckInCard({
   windowEnd,
-  checkedInAt,
+  checkedInMinutes,
   late,
   told,
   nextLabel,
   windowStart,
   onCheckIn,
 }: Props) {
-  const done = checkedInAt !== null;
+  const done = checkedInMinutes !== null;
   const pulse = useLoop({ duration: 2400, easing: EASE_IN_OUT });
   const ringScale = pulse.interpolate({
     inputRange: [0, 0.5, 1],
@@ -81,7 +81,7 @@ export function SelfCheckInCard({
         </View>
       </View>
 
-      {done ? (
+      {checkedInMinutes !== null ? (
         <Rise duration={450} style={styles.center}>
           <Dot size={150} pose="cheer" label={null} />
           <AppText style={styles.doneTitle} accessibilityRole="alert">
@@ -89,7 +89,7 @@ export function SelfCheckInCard({
           </AppText>
           <AppText style={styles.doneLine}>
             {told ? `${told} knows` : "Everyone knows"} you&apos;re okay.
-            {"\n"}You checked in at {formatTime(checkedInAt.getHours() * 60 + checkedInAt.getMinutes())}.
+            {"\n"}You checked in at {formatTime(checkedInMinutes)}.
           </AppText>
           {nextLabel && (
             <View style={styles.nextRow}>

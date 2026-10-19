@@ -5,7 +5,9 @@ import { Dot } from "@/components/dot";
 import { SelfCheckInCard } from "@/components/self-check-in-card";
 import { FigtreeFont, FontFamily } from "@/constants/fonts";
 import { Backup, useCaregiverSetup } from "@/context/caregiver-setup";
-import { readPreference, writePreference } from "@/lib/preferences";
+import { openMessages } from "@/lib/invites";
+import { loadSelfCheckIns, recordSelfCheckIn } from "@/lib/self-check-ins";
+import { avatarColors } from "@/utils/avatar-colors";
 import { joinNames } from "@/utils/day-period";
 import { localDateKey, localMinutes } from "@/utils/local-date";
 import { nextCheckInLabel } from "@/utils/today-state";
@@ -16,6 +18,7 @@ import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Circle, Path } from "react-native-svg";
 import PhoneIcon from "@/components/icons/PhoneIcon";
+import MessageIcon from "@/components/icons/MessageIcon";
 
 const INK = "#15163A";
 const SUBTITLE = "#54566E";
@@ -25,19 +28,11 @@ const BORDERCOLOR = "#E6E4EF";
 const MINT = "#DDF3EE";
 const GREEN = "#075E4F";
 const LILAC = "#E7E4FB";
+const SUN = "#FFE8DB";
+const RISE = "#8A3A12";
 const HELP = "#B3261E";
 const HELP_BG = "#FDE4E1";
 const HELP_BORDER = "#E8998F";
-
-// Kept on this phone as "YYYY-MM-DD|time", so today's check-in survives a restart
-const CHECK_IN_KEY = "mira.selfCheckIn";
-
-function readCheckIn(todayKey: string): Date | null {
-  const [day, at] = (readPreference(CHECK_IN_KEY) ?? "").split("|");
-  if (day !== todayKey || !at) return null;
-  const date = new Date(at);
-  return Number.isNaN(date.getTime()) ? null : date;
-}
 
 function HelpIcon() {
   return (
@@ -61,19 +56,23 @@ export default function SelfHome() {
   }, []);
 
   const todayKey = localDateKey(now, timeZone);
-  const [checkIn, setCheckIn] = useState<{ key: string; at: Date } | null>(() => {
-    const at = readCheckIn(localDateKey(new Date(), timeZone));
-    return at ? { key: localDateKey(new Date(), timeZone), at } : null;
-  });
+  const [record, setRecord] = useState(() =>
+    loadSelfCheckIns(localDateKey(new Date(), timeZone)),
+  );
   // A check-in only counts for the day it was made
-  const checkedInAt = checkIn?.key === todayKey ? checkIn.at : null;
-  const late = !checkedInAt && localMinutes(now, timeZone) >= windowEnd;
+  const checkedInMinutes = record.days[todayKey]?.minutes ?? null;
+  const late = checkedInMinutes === null && localMinutes(now, timeZone) >= windowEnd;
 
   const checkInNow = () => {
     const at = new Date();
-    const key = localDateKey(at, timeZone);
-    writePreference(CHECK_IN_KEY, `${key}|${at.toISOString()}`);
-    setCheckIn({ key, at });
+    setRecord((current) =>
+      recordSelfCheckIn(
+        current,
+        localDateKey(at, timeZone),
+        localMinutes(at, timeZone),
+        windowEnd,
+      ),
+    );
   };
 
   const nextLabel = nextCheckInLabel(
@@ -86,19 +85,27 @@ export default function SelfHome() {
   const [callProblem, setCallProblem] = useState<string | null>(null);
   const names = backups.map((b) => b.name);
 
-  const call = (backup: Backup) => {
+  const reach = (backup: Backup, how: "call" | "text") => {
     const dial = backup.phone.trim().replace(/[^\d+]/g, "");
     if (!/\d/.test(dial)) {
       setCallProblem(`We don't have a phone number for ${backup.name}.`);
       return;
     }
     setCallProblem(null);
-    Linking.openURL(`tel:${dial}`).catch(() =>
+    const opening =
+      how === "call"
+        ? Linking.openURL(`tel:${dial}`)
+        : openMessages(
+            dial,
+            `Hi ${backup.name}, it's ${yourFirstName.trim() || "me"}. I need help. Please call me back.`,
+          );
+    opening.catch(() =>
       setCallProblem(
-        `We couldn't open the phone. You can call ${backup.name} at ${backup.phone}.`,
+        `We couldn't open that. You can reach ${backup.name} at ${backup.phone}.`,
       ),
     );
   };
+  const call = (backup: Backup) => reach(backup, "call");
 
   const hour = now.getHours();
   const greeting =
@@ -125,13 +132,13 @@ export default function SelfHome() {
               {name ? `, ${name}` : ""}
             </AppText>
           </View>
-          <Dot size={64} pose={checkedInAt ? "cheer" : "wave"} label={null} />
+          <Dot size={64} pose={checkedInMinutes !== null ? "cheer" : "wave"} label={null} />
         </View>
 
         <SelfCheckInCard
           windowStart={windowStart}
           windowEnd={windowEnd}
-          checkedInAt={checkedInAt}
+          checkedInMinutes={checkedInMinutes}
           late={late}
           told={names.length ? joinNames(names) : null}
           nextLabel={nextLabel}
@@ -147,8 +154,15 @@ export default function SelfHome() {
                   key={backup.id}
                   style={[styles.person, index > 0 && styles.personDivider]}
                 >
-                  <View style={styles.avatar}>
-                    <AppText style={styles.avatarText}>
+                  <View
+                    style={[
+                      styles.avatar,
+                      { backgroundColor: avatarColors(index).background },
+                    ]}
+                  >
+                    <AppText
+                      style={[styles.avatarText, { color: avatarColors(index).text }]}
+                    >
                       {backup.name.charAt(0).toUpperCase()}
                     </AppText>
                   </View>
@@ -192,26 +206,63 @@ export default function SelfHome() {
 
       <BottomSheet
         visible={helpOpen}
-        title="Do you need help?"
+        title="Who should we contact?"
         subtitle={
-          backups[0]
-            ? `We'll call ${backups[0].name} for you.`
-            : "Add someone you trust first, then we can call them for you."
+          backups.length > 0
+            ? "Pick someone to call or text."
+            : "Add someone you trust first, then you can reach them from here."
         }
         onClose={() => setHelpOpen(false)}
       >
-        {backups[0] ? (
-          <Pressable
-            style={({ pressed }) => [styles.sheetHelp, pressed && styles.pressed]}
-            accessibilityRole="button"
-            accessibilityLabel={`Call ${backups[0].name}`}
-            onPress={() => {
-              setHelpOpen(false);
-              call(backups[0]);
-            }}
-          >
-            <AppText style={styles.sheetHelpText}>Call {backups[0].name}</AppText>
-          </Pressable>
+        {backups.length > 0 ? (
+          <View style={styles.helpList}>
+            {backups.map((backup, index) => (
+              <View key={backup.id} style={styles.helpRow}>
+                <View
+                  style={[
+                    styles.avatar,
+                    { backgroundColor: avatarColors(index).background },
+                  ]}
+                >
+                  <AppText
+                    style={[styles.avatarText, { color: avatarColors(index).text }]}
+                  >
+                    {backup.name.charAt(0).toUpperCase()}
+                  </AppText>
+                </View>
+                <View style={styles.personText}>
+                  <AppText style={styles.personName}>{backup.name}</AppText>
+                  <AppText style={styles.personRelationship}>
+                    My {backup.relationship.toLowerCase()}
+                  </AppText>
+                </View>
+                <Pressable
+                  style={({ pressed }) => [styles.helpCall, pressed && styles.pressed]}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Call ${backup.name}`}
+                  onPress={() => {
+                    setHelpOpen(false);
+                    reach(backup, "call");
+                  }}
+                >
+                  <PhoneIcon size={18} color="#fff" />
+                  <AppText style={styles.helpCallText}>Call</AppText>
+                </Pressable>
+                <Pressable
+                  style={({ pressed }) => [styles.helpText2, pressed && styles.pressed]}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Text ${backup.name}`}
+                  onPress={() => {
+                    setHelpOpen(false);
+                    reach(backup, "text");
+                  }}
+                >
+                  <MessageIcon size={18} color={RISE} />
+                  <AppText style={styles.helpTextLabel}>Text</AppText>
+                </Pressable>
+              </View>
+            ))}
+          </View>
         ) : (
           <Pressable
             style={({ pressed }) => [styles.sheetPrimary, pressed && styles.pressed]}
@@ -366,17 +417,46 @@ const styles = StyleSheet.create({
     transform: [{ scale: 0.97 }],
     opacity: 0.9,
   },
-  sheetHelp: {
-    height: 60,
-    justifyContent: "center",
+  helpList: {
+    gap: 10,
+  },
+  helpRow: {
+    padding: 12,
+    flexDirection: "row",
     alignItems: "center",
-    borderRadius: 18,
+    gap: 10,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: BORDERCOLOR,
+    backgroundColor: "#fff",
+  },
+  helpCall: {
+    minHeight: 48,
+    paddingHorizontal: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    borderRadius: 14,
     backgroundColor: HELP,
   },
-  sheetHelpText: {
+  helpCallText: {
     color: "#fff",
-    fontSize: 19,
-    fontFamily: FigtreeFont.bold,
+    fontSize: 16,
+    fontFamily: FigtreeFont.extraBold,
+  },
+  helpText2: {
+    minHeight: 48,
+    paddingHorizontal: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    borderRadius: 14,
+    backgroundColor: SUN,
+  },
+  helpTextLabel: {
+    color: RISE,
+    fontSize: 16,
+    fontFamily: FigtreeFont.extraBold,
   },
   sheetPrimary: {
     height: 60,
