@@ -1,6 +1,7 @@
 import { AppText } from "@/components/app-test";
 import { FigtreeFont, FontFamily } from "@/constants/fonts";
 import { useScreenScale } from "@/hooks/use-screen-scale";
+import { useGoBack } from "@/components/back-button";
 import { router } from "expo-router";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -18,6 +19,7 @@ const SUN = "#FFE8DB";
 const CALM = "#134A40";
 export default function WhoUsesMira() {
   const { space } = useScreenScale();
+  const goBack = useGoBack();
 
   return (
     <SafeAreaView style={styles.container}>
@@ -28,7 +30,7 @@ export default function WhoUsesMira() {
         bounces={false}
       >
         <Pressable
-          onPress={() => router.back()}
+          onPress={goBack}
           accessibilityLabel="Go Back"
           accessibilityRole="button"
           hitSlop={12}
@@ -73,6 +75,7 @@ export default function WhoUsesMira() {
           <Pressable 
             style={({ pressed }) => [styles.optionButton, pressed && styles.pressed]}
             accessibilityLabel="button"
+            onPress={() => router.push("/selfSetupindex")}
             >
             <View style={styles.optionButtonContent}>
               <View style={styles.optionButtonIcon2}>
