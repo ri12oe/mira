@@ -454,6 +454,11 @@ export type Database = {
         Returns: boolean
       }
       cancel_check_in_now: { Args: { p_check_in_id: string }; Returns: boolean }
+      check_in_as_invited: { Args: never; Returns: string }
+      check_in_invited_at: {
+        Args: { p_account_id: string; p_now: string }
+        Returns: string
+      }
       check_in_myself: { Args: never; Returns: string }
       check_in_self_at: {
         Args: { p_account_id: string; p_now: string }
@@ -509,8 +514,46 @@ export type Database = {
           taker_window_start: number
         }[]
       }
+      invited_day_at: {
+        Args: { p_account_id: string; p_now: string }
+        Returns: {
+          caregiver_name: string
+          caregiver_phone: string
+          check_in_status: Database["public"]["Enums"]["check_in_status"]
+          days: number[]
+          first_name: string
+          local_date: string
+          method: Database["public"]["Enums"]["check_in_method"]
+          paused: boolean
+          responded_at: string
+          taker_id: string
+          time_zone: string
+          window_end: number
+          window_start: number
+        }[]
+      }
+      invited_phone_of: { Args: { p_account_id: string }; Returns: string }
       is_valid_time_zone: { Args: { tz: string }; Returns: boolean }
+      join_as_invited: { Args: never; Returns: number }
       mark_checked_in: { Args: { p_taker_id: string }; Returns: string }
+      my_invited_day: {
+        Args: never
+        Returns: {
+          caregiver_name: string
+          caregiver_phone: string
+          check_in_status: Database["public"]["Enums"]["check_in_status"]
+          days: number[]
+          first_name: string
+          local_date: string
+          method: Database["public"]["Enums"]["check_in_method"]
+          paused: boolean
+          responded_at: string
+          taker_id: string
+          time_zone: string
+          window_end: number
+          window_start: number
+        }[]
+      }
       prepare_backup_invite: {
         Args: {
           p_backup_id: string
