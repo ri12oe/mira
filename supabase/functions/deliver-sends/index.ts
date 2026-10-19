@@ -41,12 +41,18 @@ async function deliver(s: Send): Promise<SmsResult> {
           .single();
         if (!owner) return { ok: false, error: "Send not found" };
         const { title, body } = selfPushFor(s);
-        return pushToCaregiver(owner.caregiver_id, title, body, {
-          type: "check_in",
-          takerId: owner.taker_id,
-          checkInId: owner.check_in_id,
-          purpose: s.send_purpose,
-        });
+        return pushToCaregiver(
+          owner.caregiver_id,
+          title,
+          body,
+          {
+            type: "check_in",
+            takerId: owner.taker_id,
+            checkInId: owner.check_in_id,
+            purpose: s.send_purpose,
+          },
+          { reminder: true },
+        );
       }
       // A prompt for someone a caregiver set up on the Mira app: they don't
       // have the app (only the caregiver does), so it's only recorded

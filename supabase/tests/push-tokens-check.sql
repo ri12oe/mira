@@ -55,6 +55,31 @@ begin
     raise exception 'P6 FAIL: anon registered a phone';
   exception when insufficient_privilege then null; end;
   reset role;
+
+  -- P7: an older app (two arguments) gets reminder sound on
+  select count(*) into n from public.push_tokens where token = tok and reminder_sound;
+  assert n = 1, 'P7 reminder sound should default to on';
+
+  -- P8: the phone turns the reminder sound off, then on again
+  perform set_config('request.jwt.claims', json_build_object('sub', b, 'role', 'authenticated')::text, true);
+  set local role authenticated;
+  perform public.register_push_token(tok, 'android', false);
+  reset role;
+  select count(*) into n from public.push_tokens where token = tok and not reminder_sound;
+  assert n = 1, 'P8 reminder sound should be off';
+  set local role authenticated;
+  perform public.register_push_token(tok, 'android', true);
+  reset role;
+  select count(*) into n from public.push_tokens where token = tok and reminder_sound;
+  assert n = 1, 'P8 reminder sound should be back on';
+
+  -- P9: the app can't flip it any other way (only by registering its own phone)
+  set local role authenticated;
+  begin
+    update public.push_tokens set reminder_sound = false where token = tok;
+    raise exception 'P9 FAIL: changed reminder_sound directly';
+  exception when insufficient_privilege then null; end;
+  reset role;
 end $$;
 
 select 'ALL CHECKS PASSED' as result;

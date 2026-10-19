@@ -15,8 +15,8 @@ import { ToggleSwitch } from "@/components/toggle-switch";
 import { FigtreeFont, FontFamily } from "@/constants/fonts";
 import { useCaregiverSetup } from "@/context/caregiver-setup";
 import { signOut as signOutOfMira } from "@/lib/auth";
-import { REMINDER_SOUND, readPreference, writePreference } from "@/lib/preferences";
-import { forgetThisPhone } from "@/lib/push";
+import { REMINDER_SOUND, readPreference } from "@/lib/preferences";
+import { forgetThisPhone, saveReminderSound } from "@/lib/push";
 import { isBiggerText, setBiggerText } from "@/lib/text-size";
 import { windowEndFor } from "@/utils/day-period";
 import { formatTime } from "@/utils/format-time";
@@ -62,6 +62,21 @@ export default function SelfSetting() {
   const [reminderSound, setReminderSound] = useState(
     () => readPreference(REMINDER_SOUND) !== "0",
   );
+  const [soundProblem, setSoundProblem] = useState<string | null>(null);
+  // Shown at once; saved to this phone and the server (works while Mira is
+  // closed). If the server can't be told, it flips back and says so.
+  const changeReminderSound = async (on: boolean) => {
+    setReminderSound(on);
+    setSoundProblem(null);
+    const result = await saveReminderSound(on);
+    if (result.ok) return;
+    setReminderSound(!on);
+    setSoundProblem(
+      result.problem === "offline"
+        ? "We couldn't reach Mira, so the reminder sound wasn't changed. Check that you're online, then try again."
+        : "Something went wrong, so the reminder sound wasn't changed. Please try again.",
+    );
+  };
 
   const setTime = (value: number) =>
     update({ windowStart: value, windowEnd: windowEndFor(value) });
@@ -212,14 +227,16 @@ export default function SelfSetting() {
               <AppText style={[styles.rowText, styles.rowTextBold]}>Reminder sound</AppText>
               <ToggleSwitch
                 value={reminderSound}
-                onValueChange={(value) => {
-                  setReminderSound(value);
-                  writePreference(REMINDER_SOUND, value ? "1" : "0");
-                }}
+                onValueChange={changeReminderSound}
                 label="Reminder sound"
               />
             </View>
           </View>
+          {soundProblem && (
+            <AppText style={styles.soundProblem} accessibilityRole="alert">
+              {soundProblem}
+            </AppText>
+          )}
         </View>
 
         <View style={styles.group}>
@@ -362,6 +379,12 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
+  },
+  soundProblem: {
+    color: RED_TEXT,
+    fontFamily: FigtreeFont.semiBold,
+    fontSize: 15,
+    lineHeight: 21,
   },
   deleteButton: {
     minHeight: 48,

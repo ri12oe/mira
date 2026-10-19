@@ -19,20 +19,36 @@ export async function pushToCaregiver(
   title: string,
   body: string,
   data: Record<string, unknown>,
+  /**
+   * reminder: a self user's own daily reminder, which follows each phone's
+   * "Reminder sound" setting. Everything else (alerts about someone) always
+   * makes a sound.
+   */
+  options: { reminder?: boolean } = {},
 ): Promise<SmsResult> {
-  const { data: rows, error } = await admin.from("push_tokens").select("token").eq("caregiver_id", caregiverId);
+  const { data: rows, error } = await admin
+    .from("push_tokens")
+    .select("token, reminder_sound")
+    .eq("caregiver_id", caregiverId);
   if (error) return { ok: false, error: `Couldn't read phones: ${error.message}` };
   if (!rows || rows.length === 0) return { ok: false, error: "No phone has alerts turned on" };
 
-  const messages = rows.map((r) => ({
-    to: r.token,
-    title,
-    body,
-    data,
-    sound: "default",
-    priority: "high",
-    channelId: "alerts", // the high-importance channel the app creates on Android
-  }));
+  const messages = rows.map((r) => {
+    const quiet = options.reminder && r.reminder_sound === false;
+    return {
+      to: r.token,
+      title,
+      body,
+      data,
+      // iOS: leaving `sound` out plays no sound
+      ...(quiet ? {} : { sound: "default" }),
+      priority: "high",
+      // Android: the sound belongs to the channel. "reminders-quiet" only ever
+      // goes to a phone whose app created it (it's that app that turned the
+      // sound off), because a push to a missing channel isn't shown at all.
+      channelId: quiet ? "reminders-quiet" : "alerts",
+    };
+  });
 
   const headers: Record<string, string> = { "Content-Type": "application/json", Accept: "application/json" };
   const accessToken = Deno.env.get("EXPO_ACCESS_TOKEN");

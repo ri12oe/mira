@@ -4,6 +4,7 @@ import * as Device from "expo-device";
 import { Platform } from "react-native";
 
 import { loadNotifications } from "@/lib/notifications-module";
+import { REMINDER_SOUND, readPreference, writePreference } from "@/lib/preferences";
 import { supabase } from "@/lib/supabase";
 
 /**
@@ -20,6 +21,13 @@ export type AlertsProblem = "unsupported" | "needsBuild" | "denied" | "noProject
 
 /** Android channel for alerts: high importance, so they pop up and make a sound */
 export const ALERTS_CHANNEL = "alerts";
+/**
+ * Android channel for a self user's daily reminder with "Reminder sound" off:
+ * pops up and vibrates, no sound. (A channel's sound can't be changed once
+ * it's made, hence a second channel.) Must exist before the server is told
+ * the sound is off: a push to a missing channel isn't shown at all.
+ */
+export const QUIET_REMINDERS_CHANNEL = "reminders-quiet";
 
 export function alertsUnavailableReason(): AlertsProblem | null {
   if (Platform.OS === "web") return "unsupported";
@@ -38,6 +46,15 @@ async function ensureAlertsChannel() {
     // No `sound`: here it means a custom sound file. Left out, the channel uses
     // the phone's normal notification sound.
     vibrationPattern: [0, 400, 200, 400],
+    lightColor: "#4338CA",
+  });
+  await Notifications.setNotificationChannelAsync(QUIET_REMINDERS_CHANNEL, {
+    name: "Quiet reminders",
+    description: "Your daily reminder to check in, without a sound (Reminder sound is off)",
+    importance: Notifications.AndroidImportance.HIGH,
+    sound: null, // "null" means "no sound" (expo-notifications, Android)
+    enableVibrate: true,
+    vibrationPattern: [0, 300, 150, 300],
     lightColor: "#4338CA",
   });
 }
@@ -63,11 +80,14 @@ export async function registerThisPhone(): Promise<{ ok: true } | { ok: false; p
   const id = projectId();
   if (!id) return { ok: false, problem: "noProject" };
   try {
+    // The channels first: only then may the server send through the quiet one
     await ensureAlertsChannel();
     const { data: token } = await Notifications.getExpoPushTokenAsync({ projectId: id });
     const { error } = await supabase.rpc("register_push_token", {
       p_token: token,
       p_platform: Platform.OS === "ios" ? "ios" : "android",
+      // This phone's "Reminder sound" (self Settings); on unless turned off
+      p_reminder_sound: readPreference(REMINDER_SOUND) !== "0",
     });
     if (error) {
       console.warn("Couldn't save this phone for alerts", error);
@@ -78,6 +98,22 @@ export async function registerThisPhone(): Promise<{ ok: true } | { ok: false; p
     console.warn("Couldn't get a push token", error);
     return { ok: false, problem: "failed" };
   }
+}
+
+/**
+ * "Reminder sound" (self Settings). Saved on this phone, and, if reminders
+ * are on, on the server too (so it works while Mira is closed). If the server
+ * can't be told, the old choice is put back, so the switch never shows
+ * something the reminders won't do.
+ */
+export async function saveReminderSound(on: boolean): Promise<{ ok: true } | { ok: false; problem: AlertsProblem }> {
+  const before = readPreference(REMINDER_SOUND);
+  writePreference(REMINDER_SOUND, on ? "1" : "0");
+  // Reminders not on yet: nothing to tell the server; it's sent when they are
+  if ((await alertsPermission()) !== "granted") return { ok: true };
+  const result = await registerThisPhone();
+  if (!result.ok) writePreference(REMINDER_SOUND, before ?? "1");
+  return result;
 }
 
 /** "Turn on alerts": asks the phone for permission (once), then registers it */

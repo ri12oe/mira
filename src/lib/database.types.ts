@@ -227,6 +227,7 @@ export type Database = {
           id: string
           last_seen_at: string
           platform: string
+          reminder_sound: boolean
           token: string
         }
         Insert: {
@@ -235,6 +236,7 @@ export type Database = {
           id?: string
           last_seen_at?: string
           platform: string
+          reminder_sound?: boolean
           token: string
         }
         Update: {
@@ -243,6 +245,7 @@ export type Database = {
           id?: string
           last_seen_at?: string
           platform?: string
+          reminder_sound?: boolean
           token?: string
         }
         Relationships: [
@@ -559,7 +562,11 @@ export type Database = {
         }[]
       }
       register_push_token: {
-        Args: { p_platform: string; p_token: string }
+        Args: {
+          p_platform: string
+          p_reminder_sound?: boolean
+          p_token: string
+        }
         Returns: undefined
       }
       save_taker: {

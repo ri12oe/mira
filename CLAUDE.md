@@ -4,7 +4,7 @@
 
 Mira is a daily check-in app for older and disabled adults. A **caregiver** sets it up for the person they look after (the **taker**, e.g. "Lin"). Every day Mira asks the taker to check in (by text reply, a short phone call where they press 1, or a tap in the app). If they don't, Mira alerts the caregiver, then their backup contacts in order.
 
-The front end for the **Welcome** and **Caregiver** sections is built. The current job is the **backend** for those sections. The "I'm checking in" (self) flow is out of scope for now.
+The front end for the **Welcome**, **Caregiver** and **"I'm checking in"** (self) sections is built, and so is the backend for all three (see the build orders below). The current job is the **invited person** flow ("Someone invited me"), planned at the end of this file's build orders.
 
 ## How to work with me
 
@@ -103,6 +103,23 @@ Steps, one at a time:
 6. **Check in**: `check_in_myself()`; History from the server; remove `mira.selfCheckIns`.
 7. **Push**: permission during setup; tapping a reminder opens the check-in.
 8. **Privacy / delete account** checks.
+
+All 8 are done (Oct 2026), plus "Reminder sound" per phone (`push_tokens.reminder_sound`).
+
+## Invited person ("Someone invited me") — build order
+
+Someone a caregiver set up (e.g. Lin) can use the Mira app to check in, instead of only texts/calls. Design: the **CheckIn** and **CheckInDone** artboards on the canvas (`SelfIntro` → "Someone invited me" → `CheckIn`). Decisions (Oct 2026):
+- They sign in with **the phone number they were invited on** + the SMS code. **Signing in counts as their YES**: the code proves they own the number, the same proof as a YES text. A number nobody invited gets a plain "We don't have an invite for this number".
+- It's a third account type: an account with **no takers of its own** whose verified phone matches one or more takers' phone. One tap checks in **for every caregiver** who set them up with that number ("Tap once to let Jordan and Maya know").
+- They see only what they need: their own day, their window, and the first names (and, for "Call Jordan" / "I need help", the phone numbers) of the caregivers who set them up. Never the caregivers' other people, backups or history. Everything goes through `security definer` functions keyed on the caller's verified phone; no table access.
+- Asking them: if their caregiver chose **Mira app** for them, the prompt and reminder are pushes to *their* phone (today they're only logged). If the caregiver chose text or call, that stays the way they're asked; a tap in the app still counts.
+
+Steps, one at a time:
+1. **Server**: `join_as_invited()` (accepts the pending invite(s) for the caller's number), `my_invited_day()` (today's check-in(s), window, caregivers' names/numbers), `check_in_as_invited()` (records for every taker with the caller's number, server clock); tests.
+2. **Sign-in and routing**: "Someone invited me" → phone → code (creates the account) → join → their Home (CheckIn); "I already have an account" routes invited people there too; their own protected screens.
+3. **CheckIn screen** from the design: I'm okay → Thanks (CheckInDone), Call [caregiver], I need help; live status; no flash.
+4. **Push**: prompts/reminders for "Mira app" takers go to the invited person's phone(s); turn on reminders; tapping opens the check-in.
+5. **Settings-lite, privacy and delete**: sign out, delete account (their own account only; the caregiver's setup stays), privacy tests.
 
 ## Code conventions in this repo
 
