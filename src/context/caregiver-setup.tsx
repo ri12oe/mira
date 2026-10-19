@@ -51,6 +51,8 @@ export type Person = {
   paused?: boolean;
   caregiverRelationship?: string;
   timeZone?: string; // IANA zone, e.g. "America/Indianapolis"; defaults to this phone's
+  /** The account holder themselves ("I'm checking in"), not someone they look after */
+  isSelf?: boolean;
 };
 
 export type CaregiverSetupData = {
@@ -74,6 +76,12 @@ export type CaregiverSetupData = {
   /** Database id of the first person (made on the phone, so it exists before saving) */
   takerId: string;
   timeZone: string;
+  /**
+   * The account uses Mira for themselves: the first person is "me", and their
+   * name and phone are yourFirstName / yourPhone. Set by the self setup's
+   * prepareSetupSave({ isSelf: true }), then read from the database.
+   */
+  isSelf: boolean;
 };
 
 /**
@@ -103,11 +111,6 @@ type CaregiverSetupContextValue = CaregiverSetupData & {
   saveFailed: boolean;
   retry: () => void;
   /**
-   * End of onboarding: call right before checking the sign-in code. Once the
-   * caregiver is signed in, the setup typed so far is saved to their account
-   * before anything is loaded. `cancelSetupSave()` if the code was wrong.
-   */
-  /**
    * Stops looking after someone: deletes them with their backups, invites,
    * check-ins and alert log. Use PRIMARY_PERSON_ID for the first person; the
    * next person then moves up.
@@ -115,8 +118,20 @@ type CaregiverSetupContextValue = CaregiverSetupData & {
   removePerson: (id: string) => Promise<{ ok: true } | { ok: false; problem: "offline" | "failed" }>;
   /** False when nobody is set up (e.g. the last person was removed) */
   hasPeople: boolean;
-  prepareSetupSave: () => void;
+  /**
+   * End of onboarding: call right before checking the sign-in code. Once the
+   * caregiver is signed in, the setup typed so far is saved to their account
+   * before anything is loaded. `cancelSetupSave()` if the code was wrong.
+   * The self setup passes { isSelf: true }.
+   */
+  prepareSetupSave: (options?: { isSelf?: boolean }) => void;
   cancelSetupSave: () => void;
+  /**
+   * The setup wasn't saved because this number already has the other kind of
+   * account (one that looks after someone vs. one for yourself). `retry()`
+   * then opens that account as it is.
+   */
+  setupRefused: boolean;
 
   /** Invites waiting to be sent (or already sent), by taker id */
   invites: Record<string, QueuedInvite>;
@@ -160,6 +175,7 @@ function createInitial(): CaregiverSetupData {
     paused: false,
     takerId: randomUUID(),
     timeZone: deviceTimeZone(),
+    isSelf: false,
   };
 }
 
@@ -191,6 +207,7 @@ function personFromRow(row: TakerRow): Person {
     paused: row.paused,
     caregiverRelationship: row.caregiver_relationship ?? "",
     timeZone: row.time_zone,
+    isSelf: row.is_self,
   };
 }
 
@@ -198,9 +215,12 @@ function personFromRow(row: TakerRow): Person {
 function primaryAsPerson(data: CaregiverSetupData): Person {
   return {
     id: data.takerId,
-    firstName: data.firstName,
-    phone: data.phone,
-    method: data.method,
+    // "Me" is the account holder (the server uses their verified number anyway)
+    firstName: data.isSelf ? data.yourFirstName : data.firstName,
+    phone: data.isSelf ? data.yourPhone : data.phone,
+    isSelf: data.isSelf,
+    // Self users check in with the app (the server enforces this too)
+    method: data.isSelf ? "app" : data.method,
     windowStart: data.windowStart,
     windowEnd: data.windowEnd,
     days: data.days,
@@ -237,6 +257,7 @@ function toSavePayload(p: Person): SavePayload | null {
       days: [...p.days].sort(),
       extra_minutes: p.extraMinutes,
       paused: !!p.paused,
+      is_self: !!p.isSelf, // only used when the row is created
     },
     p_backups: backups.map((b) => ({
       id: b.id,
@@ -294,6 +315,7 @@ export function CaregiverSetupProvider({ children }: { children: ReactNode }) {
   const [loadAttempt, setLoadAttempt] = useState(0);
   const [saveFailed, setSaveFailed] = useState(false);
   const [saveAttempt, setSaveAttempt] = useState(0);
+  const [setupRefused, setSetupRefused] = useState(false);
   const [invites, setInvites] = useState<Record<string, QueuedInvite>>({});
   const [savedTakerIds, setSavedTakerIds] = useState<ReadonlySet<string>>(
     () => new Set(),
@@ -353,6 +375,7 @@ export function CaregiverSetupProvider({ children }: { children: ReactNode }) {
     setLoadedUserId(null);
     setLoadFailed(false);
     setSaveFailed(false);
+    setSetupRefused(false);
     setInvites({});
     setSavedTakerIds(new Set());
   }, []);
@@ -401,8 +424,10 @@ export function CaregiverSetupProvider({ children }: { children: ReactNode }) {
     }));
   }, []);
 
-  const prepareSetupSave = useCallback(() => {
-    pendingSetup.current = { data: latest.current.data };
+  const prepareSetupSave = useCallback((options?: { isSelf?: boolean }) => {
+    pendingSetup.current = {
+      data: { ...latest.current.data, isSelf: !!options?.isSelf },
+    };
   }, []);
 
   const cancelSetupSave = useCallback(() => {
@@ -431,15 +456,28 @@ export function CaregiverSetupProvider({ children }: { children: ReactNode }) {
         if (setup) {
           const payload = toSavePayload(primaryAsPerson(setup.data));
           if (!payload) throw new Error("The setup has a missing name or phone number");
+          try {
+            await saveTaker(payload);
+          } catch (error) {
+            // This number already has the other kind of account: don't touch it
+            if ((error as { message?: string }).message === "account_type_mismatch") {
+              pendingSetup.current = null;
+              if (!cancelled) setSetupRefused(true);
+            }
+            throw error;
+          }
+          // (after the taker, so a refused setup doesn't rename the account)
           await saveCaregiver(userId, caregiverPayload(setup.data));
-          await saveTaker(payload);
           pendingSetup.current = null;
         }
 
         const { caregiver, takers } = await loadEverything(userId);
         if (cancelled) return;
 
-        const [first, ...others] = takers.map(personFromRow);
+        // "Me" first (a self account has only that one person)
+        const [first, ...others] = takers
+          .map(personFromRow)
+          .sort((a, b) => Number(!!b.isSelf) - Number(!!a.isSelf));
         const base = createInitial();
         const next: CaregiverSetupData = {
           ...base,
@@ -462,6 +500,7 @@ export function CaregiverSetupProvider({ children }: { children: ReactNode }) {
             paused: !!first.paused,
             caregiverRelationship: first.caregiverRelationship ?? "",
             timeZone: first.timeZone ?? base.timeZone,
+            isSelf: !!first.isSelf,
           }),
         };
 
@@ -479,6 +518,7 @@ export function CaregiverSetupProvider({ children }: { children: ReactNode }) {
           id === PRIMARY_PERSON_ID || others.some((p) => p.id === id) ? id : PRIMARY_PERSON_ID,
         );
         setLoadedUserId(userId);
+        setSetupRefused(false);
       } catch (error) {
         console.warn("Couldn't load the caregiver's setup", error);
         if (!cancelled) setLoadFailed(true);
@@ -576,6 +616,7 @@ export function CaregiverSetupProvider({ children }: { children: ReactNode }) {
       retry,
       prepareSetupSave,
       cancelSetupSave,
+      setupRefused,
       invites,
       queueInvite,
       savedTakerIds,
@@ -599,6 +640,7 @@ export function CaregiverSetupProvider({ children }: { children: ReactNode }) {
       retry,
       prepareSetupSave,
       cancelSetupSave,
+      setupRefused,
     ],
   );
 

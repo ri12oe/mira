@@ -53,7 +53,7 @@ const LINES: Partial<Record<AuthProblem, string>> = {
 
 type Params = {
   phone: string; // E.164
-  context?: "signIn" | "setup";
+  context?: "signIn" | "setup" | "self";
   sentAt?: string; // set when the previous screen already sent the code
 };
 
@@ -61,14 +61,23 @@ type Params = {
  * Enter the 6-digit code.
  * - signIn: after "Welcome back" (the code is already sent)
  * - setup: at the end of Setup step 3 (this screen sends the code)
+ * - self: at the end of the "I'm checking in" setup (this screen sends the code)
  */
 export default function VerifyCode() {
   const params = useLocalSearchParams<Params>();
   const phone = params.phone;
-  const inSetup = params.context === "setup";
+  const selfSetup = params.context === "self";
+  /** Either setup: this creates the account and saves what was typed */
+  const inSetup = params.context === "setup" || selfSetup;
   const { session } = useAuth();
-  const { syncStatus, retry, prepareSetupSave, cancelSetupSave } =
-    useCaregiverSetup();
+  const {
+    syncStatus,
+    retry,
+    prepareSetupSave,
+    cancelSetupSave,
+    setupRefused,
+    isSelf,
+  } = useCaregiverSetup();
   const reduceMotion = useReduceMotion();
 
   const [code, setCode] = useState("");
@@ -79,6 +88,8 @@ export default function VerifyCode() {
   const [checking, setChecking] = useState(false);
   const [verified, setVerified] = useState(false);
   const [problem, setProblem] = useState<AuthProblem | null>(null);
+  /** The setup was refused and they chose to open the account they already have */
+  const [openedExisting, setOpenedExisting] = useState(false);
   const [now, setNow] = useState(() => Date.now());
   const [shake] = useState(() => new Animated.Value(0));
   const inputRef = useRef<TextInput>(null);
@@ -116,13 +127,20 @@ export default function VerifyCode() {
 
   // Move on once signed in AND the setup is saved/loaded. (Sign-in still goes
   // to Home if loading failed: Home shows a "Try again" banner.)
+  const savedSetup = inSetup && !openedExisting;
   const dataDone =
-    syncStatus === "ready" || (!inSetup && syncStatus === "failed");
+    syncStatus === "ready" || (!savedSetup && syncStatus === "failed");
   useEffect(() => {
     if (!verified || !session || !dataDone) return;
-    router.replace(inSetup ? "/connected" : "/caregiverHome");
-  }, [verified, session, dataDone, inSetup]);
-  const setupSaveFailed = verified && inSetup && syncStatus === "failed";
+    // Where to go depends on the account (a self account has its own Home)
+    if (isSelf) router.replace(savedSetup ? "/selfSetup5" : "/selfHome");
+    else router.replace(savedSetup ? "/connected" : "/caregiverHome");
+  }, [verified, session, dataDone, savedSetup, isSelf]);
+  const setupSaveFailed = verified && savedSetup && syncStatus === "failed";
+  const openExisting = () => {
+    setOpenedExisting(true);
+    retry(); // loads the account as it is, without the setup
+  };
 
   const playShake = () => {
     if (reduceMotion) return;
@@ -139,7 +157,8 @@ export default function VerifyCode() {
     setChecking(true);
     setProblem(null);
     // Setup: once this code signs them in, save what they typed in steps 1–3
-    if (inSetup) prepareSetupSave();
+    if (inSetup) prepareSetupSave({ isSelf: selfSetup });
+    setOpenedExisting(false);
     const result = await checkCode(phone, value, sentAt);
     if (result) {
       cancelSetupSave();
@@ -171,10 +190,11 @@ export default function VerifyCode() {
 
   const goBack = () => {
     if (router.canGoBack()) router.back();
-    else router.replace(inSetup ? "/caregiverSetup3" : "/signIn");
+    else router.replace(selfSetup ? "/selfSetup4" : inSetup ? "/caregiverSetup3" : "/signIn");
   };
   const changeNumber = () => {
-    if (inSetup) router.navigate("/caregiverSetup1");
+    if (selfSetup) router.navigate("/selfSetup1");
+    else if (inSetup) router.navigate("/caregiverSetup1");
     else goBack();
   };
 
@@ -193,9 +213,11 @@ export default function VerifyCode() {
 
         <View style={styles.callout}>
           <AppText style={styles.title} accessibilityRole="header">
-            {inSetup
-              ? "Confirm your number to send the invite"
-              : "Enter the code we texted you"}
+            {selfSetup
+              ? "Confirm your number to start Mira"
+              : inSetup
+                ? "Confirm your number to send the invite"
+                : "Enter the code we texted you"}
           </AppText>
           <AppText style={styles.body}>
             {inSetup
@@ -278,7 +300,7 @@ export default function VerifyCode() {
             <AppText style={styles.statusText}>
               {!verified
                 ? "Checking your code…"
-                : inSetup
+                : savedSetup
                   ? "Saving your setup…"
                   : "Loading your account…"}
             </AppText>
@@ -301,8 +323,11 @@ export default function VerifyCode() {
               />
             </Svg>
             <AppText style={styles.problemText}>
-              Your number is confirmed, but we couldn&apos;t save your setup.
-              Check that you&apos;re online, then try again.
+              {setupRefused
+                ? selfSetup
+                  ? "This number already has a Mira account for looking after someone, so we didn't change it. Open it, or go back and use a different number."
+                  : "This number already has a Mira account for checking in yourself, so we didn't change it. Open it, or go back and use a different number."
+                : "Your number is confirmed, but we couldn't save your setup. Check that you're online, then try again."}
             </AppText>
           </View>
         )}
@@ -408,10 +433,12 @@ export default function VerifyCode() {
           {setupSaveFailed ? (
             <Pressable
               style={({ pressed }) => [styles.button, pressed && styles.pressed]}
-              onPress={retry}
+              onPress={setupRefused ? openExisting : retry}
               accessibilityRole="button"
             >
-              <AppText style={styles.buttonText}>Try again</AppText>
+              <AppText style={styles.buttonText}>
+                {setupRefused ? "Open my account" : "Try again"}
+              </AppText>
             </Pressable>
           ) : (
           <Pressable
@@ -436,9 +463,11 @@ export default function VerifyCode() {
                 ? inSetup
                   ? "Confirming…"
                   : "Signing in…"
-                : inSetup
-                  ? "Confirm and send invite"
-                  : "Sign in"}
+                : selfSetup
+                  ? "Confirm and start"
+                  : inSetup
+                    ? "Confirm and send invite"
+                    : "Sign in"}
             </AppText>
           </Pressable>
           )}

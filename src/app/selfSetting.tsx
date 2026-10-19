@@ -1,17 +1,17 @@
 import { AppText } from "@/components/app-test";
 import { BottomSheet } from "@/components/bottom-sheet";
 import { SelfTabBar } from "@/components/caregiver-tab-bar";
-import { CheckInMethodSheet } from "@/components/check-in-method-sheet";
 import ArrowRightIcon from "@/components/icons/ArrowRightIcon";
 import ClockIcon from "@/components/icons/ClockIcon";
-import MessageIcon from "@/components/icons/MessageIcon";
-import PhoneIcon from "@/components/icons/PhoneIcon";
 import PhoneSquareIcon from "@/components/icons/PhoneSquareIcon";
+import { SyncBanner } from "@/components/sync-banner";
 import { SingleTimePicker } from "@/components/time-window-picker";
 import { ToggleSwitch } from "@/components/toggle-switch";
 import { FigtreeFont, FontFamily } from "@/constants/fonts";
-import { CheckInMethod, useCaregiverSetup } from "@/context/caregiver-setup";
+import { useCaregiverSetup } from "@/context/caregiver-setup";
+import { signOut as signOutOfMira } from "@/lib/auth";
 import { REMINDER_SOUND, readPreference, writePreference } from "@/lib/preferences";
+import { forgetThisPhone } from "@/lib/push";
 import { isBiggerText, setBiggerText } from "@/lib/text-size";
 import { windowEndFor } from "@/utils/day-period";
 import { formatTime } from "@/utils/format-time";
@@ -32,28 +32,16 @@ const MINT = "#DDF3EE";
 const AMBER_BG = "#FFF3D1";
 const AMBER_TEXT = "#9A6408";
 const TEAL = "#0B7A66";
-
-// How "How I check in" reads in the row (the sheet uses the longer names)
-const METHOD_VALUE: Record<CheckInMethod, string> = {
-  text: "Text reply",
-  call: "Phone call",
-  app: "This app",
-};
-
-// The icon beside "How I check in" follows the method that's picked
-const METHOD_TILE: Record<CheckInMethod, { background: string; icon: ReactNode }> = {
-  text: { background: LILAC, icon: <MessageIcon size={20} color={PRIMARY} /> },
-  call: { background: SUN, icon: <PhoneIcon size={20} color="#C2551F" /> },
-  app: { background: MINT, icon: <PhoneSquareIcon size={20} color={TEAL} /> },
-};
+const RED_BG = "#FDE7E3";
+const RED_TEXT = "#A52F22";
 
 function Tile({ background, children }: { background: string; children: ReactNode }) {
   return <View style={[styles.tile, { backgroundColor: background }]}>{children}</View>;
 }
 
 export default function SelfSetting() {
-  const { windowStart, method, paused, update } = useCaregiverSetup();
-  const [sheet, setSheet] = useState<null | "time" | "method">(null);
+  const { windowStart, paused, update, reset } = useCaregiverSetup();
+  const [sheet, setSheet] = useState<null | "time">(null);
   const [bigger, setBigger] = useState(isBiggerText);
   const [reminderSound, setReminderSound] = useState(
     () => readPreference(REMINDER_SOUND) !== "0",
@@ -61,6 +49,15 @@ export default function SelfSetting() {
 
   const setTime = (value: number) =>
     update({ windowStart: value, windowEnd: windowEndFor(value) });
+
+  // Signed-in screens are protected in _layout.tsx, so once the session is
+  // gone the router goes back to Welcome by itself
+  const signOut = async () => {
+    // Stop reminders for this account arriving on this phone (needs to be signed in)
+    await forgetThisPhone();
+    await signOutOfMira();
+    reset();
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -70,6 +67,7 @@ export default function SelfSetting() {
         showsVerticalScrollIndicator={false}
       >
         <AppText style={styles.title}>Settings</AppText>
+        <SyncBanner />
 
         <View style={styles.section}>
           <AppText style={styles.sectionTitle}>My check-in</AppText>
@@ -87,19 +85,18 @@ export default function SelfSetting() {
               <AppText style={styles.rowValue}>{formatTime(windowStart)}</AppText>
               <ArrowRightIcon size={18} />
             </Pressable>
-            <Pressable
-              style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
-              onPress={() => setSheet("method")}
-              accessibilityRole="button"
-              accessibilityLabel={`How I check in, ${METHOD_VALUE[method]}`}
+            {/* Self users check in with the app (see selfSetup1), so nothing to pick */}
+            <View
+              style={styles.row}
+              accessible
+              accessibilityLabel="How I check in, This app"
             >
-              <Tile background={METHOD_TILE[method].background}>
-                {METHOD_TILE[method].icon}
+              <Tile background={MINT}>
+                <PhoneSquareIcon size={20} color={TEAL} />
               </Tile>
               <AppText style={styles.rowText}>How I check in</AppText>
-              <AppText style={styles.rowValue}>{METHOD_VALUE[method]}</AppText>
-              <ArrowRightIcon size={18} />
-            </Pressable>
+              <AppText style={styles.rowValue}>This app</AppText>
+            </View>
             <View style={styles.rowLast}>
               <Tile background={AMBER_BG}>
                 <Svg width={20} height={20} viewBox="0 0 20 20" fill="none">
@@ -175,7 +172,11 @@ export default function SelfSetting() {
 
         <View style={styles.group}>
           <Pressable
-            style={({ pressed }) => [styles.rowLast, pressed && styles.rowPressed]}
+            style={({ pressed }) => [
+              styles.rowLast,
+              styles.rowDivider,
+              pressed && styles.rowPressed,
+            ]}
             onPress={() => router.push("/selfHelp")}
             accessibilityRole="button"
             accessibilityLabel="Help"
@@ -208,6 +209,34 @@ export default function SelfSetting() {
             <AppText style={[styles.rowText, styles.rowTextBold]}>Help</AppText>
             <ArrowRightIcon size={18} />
           </Pressable>
+          <Pressable
+            style={({ pressed }) => [styles.rowLast, pressed && styles.rowPressed]}
+            onPress={signOut}
+            accessibilityRole="button"
+            accessibilityLabel="Sign out"
+          >
+            <Tile background={RED_BG}>
+              <Svg width={18} height={18} viewBox="0 0 18 18" fill="none">
+                <Path
+                  d="M10.5 3.75H13.5C13.6989 3.75 13.8897 3.82902 14.0303 3.96967C14.171 4.11032 14.25 4.30109 14.25 4.5V13.5C14.25 13.6989 14.171 13.8897 14.0303 14.0303C13.8897 14.171 13.6989 14.25 13.5 14.25H10.5"
+                  stroke={RED_TEXT}
+                  strokeWidth={1.65}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+                <Path
+                  d="M7.5 6L4.5 9L7.5 12M4.5 9H11.25"
+                  stroke={RED_TEXT}
+                  strokeWidth={1.65}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </Svg>
+            </Tile>
+            <AppText style={[styles.rowText, styles.rowTextBold, { color: RED_TEXT }]}>
+              Sign out
+            </AppText>
+          </Pressable>
         </View>
       </ScrollView>
       <SelfTabBar active="settings" />
@@ -228,14 +257,6 @@ export default function SelfSetting() {
         </Pressable>
       </BottomSheet>
 
-      <CheckInMethodSheet
-        self
-        visible={sheet === "method"}
-        name=""
-        method={method}
-        onChange={(value) => update({ method: value })}
-        onClose={() => setSheet(null)}
-      />
     </SafeAreaView>
   );
 }

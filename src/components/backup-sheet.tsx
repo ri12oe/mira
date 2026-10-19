@@ -4,6 +4,7 @@ import { Chip } from "@/components/chip";
 import { SegmentedSlider } from "@/components/segmented-slider";
 import { FigtreeFont } from "@/constants/fonts";
 import { Backup } from "@/context/caregiver-setup";
+import { toE164 } from "@/utils/phone";
 import { useState } from "react";
 import { Pressable, StyleSheet, TextInput, View } from "react-native";
 
@@ -11,6 +12,7 @@ const INK = "#15163A";
 const PRIMARY = "#4338CA";
 const SURFACE = "#DCD9E8";
 const MUTED = "#8B8DA3";
+const ORANGE_TEXT = "#9A4416";
 
 const RELATIONSHIPS = ["Family", "Friend", "Neighbor"];
 
@@ -53,7 +55,17 @@ function BackupForm({ recipientName, backup, onSave, self, onDelete }: FormProps
   );
   const [alertAfter, setAlertAfter] = useState(backup?.alertAfter ?? 30);
 
-  const canSave = !!name.trim() && !!phone.trim() && !!relationship.trim();
+  // A number Mira can't use would stop the whole person from saving, so it
+  // has to be a full one (US, 10 digits) before Save works
+  const phoneOk = !!toE164(phone);
+  // Say why Save is grey: once the number is long enough to be "done", or
+  // once it's the only thing missing (not on every keystroke while typing)
+  const digits = phone.replace(/\D/g, "").length;
+  const showPhoneHint =
+    digits > 0 &&
+    !phoneOk &&
+    (digits >= 10 || (!!name.trim() && !!relationship.trim()));
+  const canSave = !!name.trim() && phoneOk && !!relationship.trim();
 
   const save = () => {
     if (!canSave) return;
@@ -97,6 +109,12 @@ function BackupForm({ recipientName, backup, onSave, self, onDelete }: FormProps
           />
         </View>
       </View>
+      {showPhoneHint && (
+        <AppText style={styles.hint} accessibilityLiveRegion="polite">
+          Check the phone number. It should be a 10-digit US number, like (555)
+          123-4567.
+        </AppText>
+      )}
       <View style={styles.relationship}>
         <AppText style={styles.headerText}>
           {self ? "They are your" : `They are ${recipientName}'s`}
@@ -151,7 +169,9 @@ function BackupForm({ recipientName, backup, onSave, self, onDelete }: FormProps
         accessibilityLabel="Save backup contact"
         style={[styles.saveButton, !canSave && styles.saveButtonDisabled]}
       >
-        <AppText style={styles.saveButtonText}>Add backup</AppText>
+        <AppText style={styles.saveButtonText}>
+          {backup ? "Save changes" : "Add backup"}
+        </AppText>
       </Pressable>
       {backup && onDelete ? (
         <Pressable
@@ -234,6 +254,13 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: SURFACE,
     backgroundColor: "#fff",
+  },
+  hint: {
+    marginTop: -6,
+    color: ORANGE_TEXT,
+    fontFamily: FigtreeFont.semiBold,
+    fontSize: 15,
+    lineHeight: 21,
   },
   relationship: {
     flexDirection: "column",

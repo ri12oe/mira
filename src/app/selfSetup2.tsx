@@ -13,10 +13,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { StepProgress } from "@/components/step-progress";
 import AfternoonIcon from "@/components/icons/AfternoonIcon";
 import EveningIcon from "@/components/icons/EveningIcon";
-import MessageIcon from "@/components/icons/MessageIcon";
 import MiraIcon from "@/components/icons/MiraIcon";
 import MorningIcon from "@/components/icons/MorningIcon";
-import PhoneIcon from "@/components/icons/PhoneIcon";
 const INK = "#15163A";
 const SUBTITLE = "#54566E";
 const PRIMARY = "#4338CA";
@@ -45,7 +43,6 @@ export default function SelfSetup2() {
   const {
     yourFirstName,
     windowStart: start,
-    method,
     update,
   } = useCaregiverSetup();
   const name = yourFirstName.trim();
@@ -61,30 +58,14 @@ export default function SelfSetup2() {
   const [sheetOpen, setSheetOpen] = useState(false);
 
   const greeting = `Good ${period}${name ? `, ${name}` : ""}!`;
-  const preview =
-    method === "call"
-      ? {
-          title: `Each ${period} you'll get a call`,
-          sender: "Mira is calling",
-          body: `${greeting} Press 1 to let everyone know you're okay.`,
-          icon: <PhoneIcon />,
-          iconBg: SUN,
-        }
-      : method === "text"
-        ? {
-            title: `Each ${period} you'll get a text`,
-            sender: "Mira",
-            body: `${greeting} Reply OK to let everyone know you're okay.`,
-            icon: <MessageIcon />,
-            iconBg: LILAC,
-          }
-        : {
-            title: `Each ${period} you'll see`,
-            sender: "Mira",
-            body: `${greeting} Tap to let everyone know you're okay.`,
-            icon: <MiraIcon size={26} strokeColor="#fff" />,
-            iconBg: PRIMARY,
-          };
+  // Self users check in with the app (see selfSetup1), so this is its prompt
+  const preview = {
+    title: `Each ${period} you'll see`,
+    sender: "Mira",
+    body: `${greeting} Tap to let everyone know you're okay.`,
+    icon: <MiraIcon size={26} strokeColor="#fff" />,
+    iconBg: PRIMARY,
+  };
 
   return (
     <SafeAreaView style={styles.container}>

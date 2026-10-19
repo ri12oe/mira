@@ -1,7 +1,9 @@
 import { AppText } from "@/components/app-test";
 import { Rise } from "@/components/rise";
 import { FigtreeFont, FontFamily } from "@/constants/fonts";
+import { useCaregiverSetup } from "@/context/caregiver-setup";
 import { EASE_OUT, useLoop } from "@/hooks/use-entrance";
+import { toE164 } from "@/utils/phone";
 import { router } from "expo-router";
 import { Animated, Pressable, StyleSheet, useWindowDimensions, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -35,6 +37,7 @@ const BUTTON_RATIO = 216 / 310;
  */
 export default function SelfSetup4() {
   const { width: screenW } = useWindowDimensions();
+  const { yourPhone } = useCaregiverSetup();
   // 310px like the design, but never wider than the screen minus its 24px padding
   const size = Math.max(0, Math.min(DESIGN_SIZE, screenW - 48));
   const plate = size * PLATE_RATIO;
@@ -51,8 +54,17 @@ export default function SelfSetup4() {
     transform: [{ scale: hint.interpolate({ inputRange: [0, 1], outputRange: [1, 1.45] }) }],
   };
 
-  // Both buttons go to the "You're all set" step
-  const finish = () => router.push("/selfSetup5");
+  // Both buttons finish setup: confirm the phone with a code (that saves
+  // everything and signs them in), then "You're all set". Step 1 only lets
+  // them past with a full phone number; the fallback is just in case.
+  const finish = () => {
+    const phone = toE164(yourPhone);
+    if (!phone) {
+      router.navigate("/selfSetup1");
+      return;
+    }
+    router.push({ pathname: "/verifyCode", params: { phone, context: "self" } });
+  };
 
   return (
     <SafeAreaView style={styles.container}>

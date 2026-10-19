@@ -3,6 +3,7 @@ import { BackButton } from "@/components/back-button";
 import { RadioCircle } from "@/components/radio-circle";
 import { FigtreeFont, FontFamily } from "@/constants/fonts";
 import { useCaregiverSetup } from "@/context/caregiver-setup";
+import { toE164 } from "@/utils/phone";
 import { router } from "expo-router";
 import {
   Pressable,
@@ -13,8 +14,6 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StepProgress } from "@/components/step-progress";
-import MessageIcon from "@/components/icons/MessageIcon";
-import PhoneIcon from "@/components/icons/PhoneIcon";
 import PhoneSquareIcon from "@/components/icons/PhoneSquareIcon";
 
 const INK = "#15163A";
@@ -22,100 +21,42 @@ const SUBTITLE = "#54566E";
 const PRIMARY = "#4338CA";
 const BACKGROUND = "#F5F4FA";
 const MINT = "#DDF3EE";
-const SUN = "#FFE8DB";
 const SURFACE = "#DCD9E8";
-const LILAC = "#E7E4FB";
 const SELECTED_BG = "#F1EFFD";
 const MUTED = "#8B8DA3";
 
-type MethodId = "text" | "call" | "app";
-
-type Method = {
-  id: MethodId;
-  title: string;
-  subtitle: string;
-  iconBg: string;
-  icon: React.ReactNode;
-};
-
-const METHODS: Method[] = [
-  {
-    id: "text",
-    title: "Text reply",
-    subtitle: "Replies OK to a daily text",
-    iconBg: LILAC,
-    icon: (
-      <MessageIcon />
-    ),
-  },
-  {
-    id: "call",
-    title: "Phone call",
-    subtitle: "Presses 1 on a short call",
-    iconBg: SUN,
-    icon: (
-      <PhoneIcon />
-    ),
-  },
-  {
-    id: "app",
-    title: "Mira app",
-    subtitle: "Taps one button in the app",
-    iconBg: MINT,
-    icon: (
-      <PhoneSquareIcon />
-    ),
-  },
-];
-
-function MethodOption({
-  method,
-  selected,
-  onSelect,
-}: {
-  method: Method;
-  selected: boolean;
-  onSelect: () => void;
-}) {
+/**
+ * Someone using Mira for themselves checks in with the app: it's the one way
+ * that really reaches them while Mira is in free/test mode (no real texts or
+ * calls yet). Text and phone call can come back here once real delivery is on.
+ */
+function AppMethodCard() {
   return (
-    <Pressable
-      onPress={onSelect}
-      accessibilityRole="radio"
-      accessibilityState={{ checked: selected }}
-      accessibilityLabel={`${method.title}. ${method.subtitle}`}
-      style={({ pressed }) => [
-        styles.methodButton,
-        selected && styles.methodButtonSelected,
-        pressed && styles.methodButtonPressed,
-      ]}
+    <View
+      style={[styles.methodButton, styles.methodButtonSelected]}
+      accessible
+      accessibilityLabel="You'll check in with the Mira app. Tap one button each day."
     >
       <View style={styles.methodButtonContent}>
-        <View
-          style={[styles.methodButtonIcon, { backgroundColor: method.iconBg }]}
-        >
-          {method.icon}
+        <View style={[styles.methodButtonIcon, { backgroundColor: MINT }]}>
+          <PhoneSquareIcon />
         </View>
         <View style={styles.methodButtonLabel}>
-          <AppText style={styles.methodButtonLabelHeader}>
-            {method.title}
-          </AppText>
+          <AppText style={styles.methodButtonLabelHeader}>Mira app</AppText>
           <AppText style={styles.methodButtonLabelSubtext}>
-            {method.subtitle}
+            Tap one button each day
           </AppText>
         </View>
-        <RadioCircle selected={selected} />
+        <RadioCircle selected />
       </View>
-    </Pressable>
+    </View>
   );
 }
 
-export default function CaregiverSetup1() {
-  const {
-    yourFirstName,
-    yourPhone,
-    method,
-    update,
-  } = useCaregiverSetup();
+export default function SelfSetup1() {
+  const { yourFirstName, yourPhone, update } = useCaregiverSetup();
+  // This number becomes how they sign in, so it has to be a full one
+  const isValid = !!yourFirstName.trim() && !!toE164(yourPhone);
   const goBack = () => {
     if (router.canGoBack()) {
       router.back();
@@ -139,7 +80,7 @@ export default function CaregiverSetup1() {
         </View>
 
         <View style={styles.callout}>
-          <AppText style={styles.calloutText}>Who are you caring for?</AppText>
+          <AppText style={styles.calloutText}>Tell us about you</AppText>
         </View>
 
         <View style={styles.information}>
@@ -173,31 +114,32 @@ export default function CaregiverSetup1() {
           </View>
         </View>
 
-        <View style={styles.methods} accessibilityRole="radiogroup">
-          <AppText style={styles.methodCallout}>
-            How will {yourFirstName.trim() || "you"} check in?
-          </AppText>
-          {METHODS.map((m) => (
-            <MethodOption
-              key={m.id}
-              method={m}
-              selected={method === m.id}
-              onSelect={() => update({ method: m.id })}
-            />
-          ))}
+        <View style={styles.methods}>
+          <AppText style={styles.methodCallout}>How you&apos;ll check in</AppText>
+          <AppMethodCard />
         </View>
 
         <View style={styles.buttons}>
           <Pressable
             style={({ pressed }) => [
               styles.nextButton,
-              pressed && styles.pressed,
+              !isValid && styles.nextButtonDisabled,
+              pressed && isValid && styles.pressed,
             ]}
             accessibilityLabel="Next"
             accessibilityRole="button"
+            accessibilityState={{ disabled: !isValid }}
+            disabled={!isValid}
             onPress={() => router.push("/selfSetup2")}
           >
-            <AppText style={styles.nextButtonText}>Next</AppText>
+            <AppText
+              style={[
+                styles.nextButtonText,
+                !isValid && styles.nextButtonTextDisabled,
+              ]}
+            >
+              Next
+            </AppText>
           </Pressable>
         </View>
       </ScrollView>
@@ -299,11 +241,6 @@ const styles = StyleSheet.create({
     paddingVertical: 11,
     paddingHorizontal: 15,
   },
-  // While the finger is down
-  methodButtonPressed: {
-    transform: [{ scale: 0.98 }],
-  },
-
   methodButtonContent: {
     flexDirection: "row",
     gap: 14,
@@ -353,6 +290,12 @@ const styles = StyleSheet.create({
     fontFamily: FigtreeFont.bold,
     fontSize: 19,
     lineHeight: 22.8,
+  },
+  nextButtonDisabled: {
+    backgroundColor: "#D9D6EA",
+  },
+  nextButtonTextDisabled: {
+    color: SUBTITLE,
   },
   pressed: {
     transform: [{ scale: 0.97 }],

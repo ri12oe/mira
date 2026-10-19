@@ -1,6 +1,7 @@
 import { AppText } from "@/components/app-test";
 import { BottomSheet } from "@/components/bottom-sheet";
 import { SelfTabBar } from "@/components/caregiver-tab-bar";
+import { SyncBanner } from "@/components/sync-banner";
 import { Dot } from "@/components/dot";
 import { SelfCheckInCard } from "@/components/self-check-in-card";
 import { FigtreeFont, FontFamily } from "@/constants/fonts";
@@ -124,6 +125,7 @@ export default function SelfHome() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
+        <SyncBanner />
         <View style={styles.header}>
           <View style={styles.headerText}>
             <AppText style={styles.date}>{dateLabel}</AppText>

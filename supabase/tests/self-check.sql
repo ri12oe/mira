@@ -2,21 +2,23 @@
 -- only by the server; backup invites and taker invites don't affect each
 -- other. Runs in a transaction that is rolled back.
 -- Run: npx supabase db query --linked -f supabase/tests/self-check.sql
--- Prints ALL CHECKS PASSED, or an error naming the failed check (S1-S10).
+-- Prints ALL CHECKS PASSED, or an error naming the failed check (S1-S14).
 
 begin;
 
 do $$
 declare
-  a uuid := '00000000-0000-0000-0000-00000000000a';
+  a uuid := '00000000-0000-0000-0000-00000000000a';  -- uses Mira for themselves
+  b uuid := '00000000-0000-0000-0000-00000000000b';  -- a caregiver
   nophone uuid := '00000000-0000-0000-0000-00000000000c';
-  me uuid := gen_random_uuid(); lin uuid := gen_random_uuid();
+  me uuid := gen_random_uuid(); lin uuid := gen_random_uuid(); me2 uuid := gen_random_uuid();
   sam uuid := gen_random_uuid(); k1 uuid := gen_random_uuid();
   indy text := 'America/Indianapolis';
   r record; n int; st text; ph text;
 begin
   insert into auth.users (id, phone, aud, role) values
     (a, '13175550101', 'authenticated', 'authenticated'),
+    (b, '13175550102', 'authenticated', 'authenticated'),
     (nophone, null, 'authenticated', 'authenticated');
 
   perform set_config('request.jwt.claims', json_build_object('sub', a, 'role', 'authenticated')::text, true);
@@ -46,10 +48,12 @@ begin
   select phone, status::text into ph, st from public.takers where id = me;
   assert ph = '+13175550101' and st = 'active', 'S4 self taker should keep own number and stay active, got ' || ph || '/' || st;
 
-  -- S5: a normal taker is unchanged: draft until they say yes
+  -- S5: a normal taker (on a caregiver's account) is unchanged: draft until they say yes
+  perform set_config('request.jwt.claims', json_build_object('sub', b, 'role', 'authenticated')::text, true);
   insert into public.takers (id, first_name, phone, time_zone) values (lin, 'Lin', '+13175550161', indy);
   select status::text into st from public.takers where id = lin;
   assert st = 'draft', 'S5 a normal taker starts as draft, is ' || st;
+  perform set_config('request.jwt.claims', json_build_object('sub', a, 'role', 'authenticated')::text, true);
 
   -- S6: backups: the app can add one, but can't mark it confirmed
   insert into public.backups (id, taker_id, name, phone, position) values (sam, me, 'Sam', '+13175550171', 1);
@@ -72,6 +76,7 @@ begin
   assert n = 1, 'S7 a backup''s new number must clear confirmed_at';
 
   -- S8: save_taker (the app's auto-save) still works with backups
+  perform set_config('request.jwt.claims', json_build_object('sub', b, 'role', 'authenticated')::text, true);
   set local role authenticated;
   perform public.save_taker(
     jsonb_build_object('id', lin, 'first_name', 'Lin', 'phone', '+13175550161', 'caregiver_relationship', '',
@@ -85,7 +90,7 @@ begin
   -- S9: a backup invite and a taker invite don't affect each other
   insert into public.invites (taker_id, backup_id, message) values (me, sam, 'Will you be my backup?');
   set local role service_role;
-  perform public.prepare_invite(a, lin, gen_random_uuid(), 'Hi Lin');
+  perform public.prepare_invite(b, lin, gen_random_uuid(), 'Hi Lin');
   reset role;
   select count(*) into n from public.invites where backup_id = sam and status = 'pending';
   assert n = 1, 'S9 inviting a taker must not cancel a backup invite';
@@ -94,6 +99,55 @@ begin
   select count(*) into n from public.accept_invite('+13175550101');
   reset role;
   assert n = 0, 'S9 a YES from the self user''s number must not accept a backup invite';
+
+  -- S11: one account type per number: no "me" on a caregiver's account…
+  perform set_config('request.jwt.claims', json_build_object('sub', b, 'role', 'authenticated')::text, true);
+  set local role authenticated;
+  begin
+    insert into public.takers (first_name, phone, time_zone, is_self) values ('Bea', '+13175550102', indy, true);
+    raise exception 'S11 FAIL: a caregiver account got a self taker';
+  exception when raise_exception then
+    if sqlerrm <> 'account_type_mismatch' then raise exception 'S11 wrong error: %', sqlerrm; end if;
+  end;
+  -- …and nobody else on a self account
+  perform set_config('request.jwt.claims', json_build_object('sub', a, 'role', 'authenticated')::text, true);
+  begin
+    insert into public.takers (first_name, phone, time_zone) values ('Kim', '+13175550191', indy);
+    raise exception 'S11 FAIL: a self account got another taker';
+  exception when raise_exception then
+    if sqlerrm <> 'account_type_mismatch' then raise exception 'S11 wrong error: %', sqlerrm; end if;
+  end;
+  reset role;
+
+  -- S12: save_taker can create "me" (end of self setup): own number, active
+  delete from public.takers where id = me;
+  perform set_config('request.jwt.claims', json_build_object('sub', a, 'role', 'authenticated')::text, true);
+  set local role authenticated;
+  perform public.save_taker(
+    jsonb_build_object('id', me2, 'first_name', 'Ana', 'phone', '+13175550101', 'caregiver_relationship', '',
+      'method', 'app', 'time_zone', indy, 'window_start', 540, 'window_end', 660, 'days', '[0,1,2,3,4,5,6]'::jsonb,
+      'extra_minutes', 30, 'paused', false, 'is_self', true),
+    '[]'::jsonb);
+  select phone, status::text into ph, st from public.takers where id = me2 and is_self;
+  assert ph = '+13175550101' and st = 'active', 'S12 save_taker should create an active self taker, got ' || coalesce(ph, 'nothing');
+
+  -- S13: saving "me" again (auto-save) keeps it "me", even if is_self is left out
+  perform public.save_taker(
+    jsonb_build_object('id', me2, 'first_name', 'Ana B', 'phone', '+13175550101', 'caregiver_relationship', '',
+      'method', 'app', 'time_zone', indy, 'window_start', 600, 'window_end', 720, 'days', '[0,1,2,3,4,5,6]'::jsonb,
+      'extra_minutes', 30, 'paused', false),
+    '[]'::jsonb);
+  select count(*) into n from public.takers where id = me2 and is_self and first_name = 'Ana B' and window_start = 600;
+  assert n = 1, 'S13 re-saving the self taker should update it and keep is_self';
+
+  -- S14: "me" always checks in with the app, whatever the app sends
+  reset role;
+  update public.takers set method = 'text' where id = me2;
+  select method::text into st from public.takers where id = me2;
+  assert st = 'app', 'S14 a self taker must stay on the app method, is ' || st;
+  select method::text into st from public.takers where id = lin;
+  assert st = 'text', 'S14 a normal taker keeps their own method, is ' || st;
+  reset role;
 
   -- S10: no verified phone → can't create "me"
   perform set_config('request.jwt.claims', json_build_object('sub', nophone, 'role', 'authenticated')::text, true);

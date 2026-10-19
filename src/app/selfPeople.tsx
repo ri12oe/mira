@@ -1,6 +1,7 @@
 import { AppText } from "@/components/app-test";
 import { BackupSheet } from "@/components/backup-sheet";
 import { SelfTabBar } from "@/components/caregiver-tab-bar";
+import { SyncBanner } from "@/components/sync-banner";
 import { SwipeToDelete } from "@/components/swipe-to-delete";
 import { FigtreeFont, FontFamily } from "@/constants/fonts";
 import { Backup, useCaregiverSetup } from "@/context/caregiver-setup";
@@ -104,6 +105,7 @@ export default function SelfPeople() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
+        <SyncBanner />
         <View style={styles.header}>
           <AppText style={styles.title}>My people</AppText>
           <AppText style={styles.subtitle}>
