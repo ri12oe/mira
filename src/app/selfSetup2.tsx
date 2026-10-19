@@ -5,6 +5,7 @@ import { SingleTimePicker } from "@/components/time-window-picker";
 import { FigtreeFont, FontFamily } from "@/constants/fonts";
 import { useCaregiverSetup } from "@/context/caregiver-setup";
 import { formatTime } from "@/utils/format-time";
+import { PeriodId, periodOf } from "@/utils/day-period";
 import { router } from "expo-router";
 import { useState } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
@@ -31,8 +32,6 @@ const AMBER_BG = "#FFF3D1";
 // How long the person has to check in after the time they pick
 const CHECK_IN_MINUTES = 120;
 
-type PeriodId = "morning" | "afternoon" | "evening";
-
 const PERIODS: {
   id: PeriodId;
   label: string;
@@ -44,12 +43,6 @@ const PERIODS: {
   { id: "afternoon", label: "Afternoon", start: 13 * 60, iconBg: AMBER_BG, Icon: AfternoonIcon },
   { id: "evening", label: "Evening", start: 19 * 60, iconBg: LILAC, Icon: EveningIcon },
 ];
-
-function periodOf(minutes: number): PeriodId {
-  if (minutes < 12 * 60) return "morning";
-  if (minutes < 17 * 60) return "afternoon";
-  return "evening";
-}
 
 export default function SelfSetup2() {
   const {

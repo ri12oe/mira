@@ -21,6 +21,7 @@ import BellIcon from "@/components/icons/BellIcon";
 import PhoneIcon from "@/components/icons/PhoneIcon";
 import PlusIcon from "@/components/icons/PlusIcon";
 import UserIcon from "@/components/icons/UserIcon";
+import { joinNames } from "@/utils/day-period";
 const INK = "#15163A";
 const SUBTITLE = "#54566E";
 const PRIMARY = "#4338CA";
@@ -31,12 +32,6 @@ const GREEN = "#075E4F";
 const TEAL = "#2F8F7C";
 const AMBER_BG = "#FFF3D1";
 const LILAC = "#E7E4FB";
-
-// "Maya" / "Maya and Sam" / "Maya, Sam and Lee"
-function joinNames(names: string[]) {
-  if (names.length <= 1) return names[0] ?? "";
-  return `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
-}
 
 export default function SelfSetup3() {
   const { backups, update } = useCaregiverSetup();
