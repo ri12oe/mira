@@ -4,7 +4,9 @@ import { BottomSheet } from "@/components/bottom-sheet";
 import { Chip } from "@/components/chip";
 import { FontFamily, FigtreeFont } from "@/constants/fonts";
 import { useAuth } from "@/context/auth";
+import { ConfirmSheet } from "@/components/confirm-sheet";
 import { useCaregiverSetup } from "@/context/caregiver-setup";
+import { deleteAccount } from "@/lib/account";
 import { PhotoProblem, removeProfilePhoto, saveProfilePhoto } from "@/lib/photos";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
@@ -50,7 +52,7 @@ function fieldError(field: ProfileField, value: string) {
 export default function CaregiverProfile() {
   const {
     firstName, yourFirstName, yourPhone, yourEmail, yourPhotoUri, yourPhotoPath,
-    caregiverRelationship, people, selectedId, update, updatePerson,
+    caregiverRelationship, people, selectedId, update, updatePerson, reset,
   } = useCaregiverSetup();
   const selectedPerson = people.find((person) => person.id === selectedId);
   const personName = (selectedPerson?.firstName ?? firstName).trim();
@@ -66,6 +68,28 @@ export default function CaregiverProfile() {
   const [value, setValue] = useState("");
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
+
+  // "Delete my account": a sheet that lists what's deleted, then a second tap
+  const [deleteSheet, setDeleteSheet] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteProblem, setDeleteProblem] = useState<string | null>(null);
+  const confirmDelete = async () => {
+    if (deleting) return;
+    setDeleting(true);
+    setDeleteProblem(null);
+    const result = await deleteAccount();
+    if (!result.ok) {
+      setDeleting(false);
+      setDeleteProblem(
+        result.problem === "offline"
+          ? "We couldn't reach Mira. Nothing was deleted. Check that you're online, then try again."
+          : "Something went wrong and nothing was deleted. Please try again.",
+      );
+      return;
+    }
+    // Signed out now: the protected screens close and Welcome shows
+    reset();
+  };
 
   const edit = (nextField: ProfileField) => {
     setValue(draft[nextField]);
@@ -317,7 +341,11 @@ export default function CaregiverProfile() {
           <Pressable
             style={styles.deleteButton}
             accessibilityRole="button"
-            onPress={() => setMessage("Account deletion is not available yet. No account or data has been deleted.")}
+            onPress={() => {
+              setDeleteProblem(null);
+              setDeleteSheet(true);
+            }}
+            accessibilityHint="Asks you to confirm twice"
           >
             <AppText style={styles.deleteButtonText}>Delete my account</AppText>
           </Pressable>
@@ -368,6 +396,25 @@ export default function CaregiverProfile() {
           </>
         )}
       </BottomSheet>
+      <ConfirmSheet
+        visible={deleteSheet}
+        title="Delete your account?"
+        consequences={[
+          "Your profile and photo are deleted.",
+          `Everyone you look after${personName ? `, including ${personName},` : ""} is removed, and Mira stops checking in on them.`,
+          "All check-in history and alerts are deleted.",
+          "Nobody gets alerted by Mira anymore.",
+        ]}
+        confirmLabel="Delete my account"
+        secondStep={{
+          question: "This can't be undone. Are you sure?",
+          confirmLabel: "Yes, delete everything",
+        }}
+        busy={deleting}
+        problem={deleteProblem}
+        onConfirm={confirmDelete}
+        onClose={() => setDeleteSheet(false)}
+      />
     </SafeAreaView>
   );
 }

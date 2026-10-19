@@ -2,6 +2,7 @@ import { randomUUID } from "expo-crypto";
 import { AddPersonSheets } from "@/components/add-person-sheets";
 import { AlertOrder } from "@/components/alert-order";
 import { AppText } from "@/components/app-test";
+import { ConfirmSheet } from "@/components/confirm-sheet";
 import { SyncBanner } from "@/components/sync-banner";
 import { BackupSheet } from "@/components/backup-sheet";
 import { CaregiverTabBar } from "@/components/caregiver-tab-bar";
@@ -93,14 +94,18 @@ export default function CaregiverPeople() {
     people,
     update,
     updatePerson,
+    removePerson,
+    firstName: primaryFirstName,
     selectedId,
     setSelectedId,
   } = useCaregiverSetup();
-  const [sheet, setSheet] = useState<null | "person" | "backup">(null);
+  const [sheet, setSheet] = useState<null | "person" | "backup" | "remove">(null);
+  const [removing, setRemoving] = useState(false);
+  const [removeProblem, setRemoveProblem] = useState<string | null>(null);
   const [editingBackup, setEditingBackup] = useState<Backup | null>(null);
 
   const entries = [
-    {
+    ...(primaryFirstName.trim() ? [{
       id: PRIMARY_ID,
       name: primaryName,
       method: primaryMethod,
@@ -111,7 +116,7 @@ export default function CaregiverPeople() {
       takerId: primaryTakerId,
       timeZone: primaryTimeZone,
       paused: primaryPaused,
-    },
+    }] : []),
     ...people.map((p) => ({
       id: p.id,
       name: p.firstName,
@@ -126,9 +131,29 @@ export default function CaregiverPeople() {
     })),
   ];
   const { summaries, now } = usePeopleToday(entries);
-  const selected = entries.find((e) => e.id === selectedId) ?? entries[0];
+  // Nobody left (the last person was removed): no selected person
+  const selected: (typeof entries)[number] | undefined =
+    entries.find((e) => e.id === selectedId) ?? entries[0];
+
+  const confirmRemove = async () => {
+    if (!selected || removing) return;
+    setRemoving(true);
+    setRemoveProblem(null);
+    const result = await removePerson(selected.id);
+    setRemoving(false);
+    if (!result.ok) {
+      setRemoveProblem(
+        result.problem === "offline"
+          ? "We couldn't reach Mira. Check that you're online, then try again."
+          : "Something went wrong. Please try again.",
+      );
+      return;
+    }
+    setSheet(null);
+  };
 
   const setBackups = (backups: Backup[]) => {
+    if (!selected) return;
     if (selected.id === PRIMARY_ID) update({ backups });
     else updatePerson(selected.id, { backups });
   };
@@ -139,6 +164,7 @@ export default function CaregiverPeople() {
   };
 
   const saveBackup = (data: Omit<Backup, "id">) => {
+    if (!selected) return;
     const addBackup = () => ({ id: randomUUID(), ...data });
     setBackups(
       editingBackup
@@ -222,6 +248,7 @@ export default function CaregiverPeople() {
             </AppText>
           </Pressable>
         </View>
+        {selected && (
         <View style={styles.alertOrder}>
           <View style={styles.frame2}>
             <AppText style={styles.frame2Text}>
@@ -239,13 +266,42 @@ export default function CaregiverPeople() {
             onEditBackup={openBackupSheet}
             onAddBackup={() => openBackupSheet(null)}
           />
+          <Pressable
+            style={({ pressed }) => [styles.removeButton, pressed && styles.pressed]}
+            onPress={() => {
+              setRemoveProblem(null);
+              setSheet("remove");
+            }}
+            accessibilityRole="button"
+            accessibilityLabel={`Remove ${selected.name}`}
+            accessibilityHint="Asks you to confirm first"
+          >
+            <AppText style={styles.removeButtonText}>Remove {selected.name}</AppText>
+          </Pressable>
         </View>
+        )}
       </ScrollView>
       <CaregiverTabBar active="people" />
+      {selected && (
+        <ConfirmSheet
+          visible={sheet === "remove"}
+          title={`Remove ${selected.name}?`}
+          consequences={[
+            `Mira stops checking in on ${selected.name}.`,
+            `Nobody gets alerted about ${selected.name} anymore.`,
+            `${selected.name}'s backups and check-in history are deleted.`,
+          ]}
+          confirmLabel={`Remove ${selected.name}`}
+          busy={removing}
+          problem={removeProblem}
+          onConfirm={confirmRemove}
+          onClose={() => setSheet(null)}
+        />
+      )}
       <BackupSheet
         visible={sheet === "backup"}
         onClose={() => setSheet(null)}
-        recipientName={selected.name}
+        recipientName={selected?.name ?? ""}
         backup={editingBackup}
         onSave={saveBackup}
       />
@@ -262,6 +318,22 @@ export default function CaregiverPeople() {
 }
 
 const styles = StyleSheet.create({
+  removeButton: {
+    marginTop: 8,
+    minHeight: 52,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: "#F0C2BA",
+    backgroundColor: "#fff",
+    justifyContent: "center",
+    alignItems: "center",
+    alignSelf: "stretch",
+  },
+  removeButtonText: {
+    color: "#B3261E",
+    fontFamily: FigtreeFont.bold,
+    fontSize: 17,
+  },
   container: {
     flex: 1,
     backgroundColor: BACKGROUND,

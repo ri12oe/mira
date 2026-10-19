@@ -116,6 +116,8 @@ export default function CaregiverHome() {
     queueInvite,
     selectedId,
     setSelectedId,
+    hasPeople,
+    firstName: primaryFirstName,
     takerId: primaryTakerId,
     timeZone: primaryTimeZone,
     days: primaryDays,
@@ -343,7 +345,7 @@ export default function CaregiverHome() {
         )}
         <View style={styles.peopleChips}>
           {[
-            { id: PRIMARY_ID, name: primaryName },
+            ...(primaryFirstName.trim() ? [{ id: PRIMARY_ID, name: primaryName }] : []),
             ...people.map((p) => ({ id: p.id, name: p.firstName })),
           ].map((person) => {
             const selected = person.id === selectedId;
@@ -365,72 +367,78 @@ export default function CaregiverHome() {
             onPress={() => setSheet("person")}
           />
         </View>
-        <TodayCard
-          state={today}
-          name={displayName}
-          method={method}
-          windowStart={windowStart}
-          windowEnd={windowEnd}
-          timeZone={timeZone}
-          backups={backups}
-          sends={activity?.todaySends ?? []}
-          nextLabel={nextAfterToday}
-          onMarkCheckedIn={markIn}
-          marking={marking}
-          markMessage={markMessage?.id === takerId ? markMessage.text : null}
-          onCall={callPerson}
-          onConfirmJoined={confirmYes}
-          confirming={confirming}
-          confirmMessage={confirmMessage?.id === takerId ? confirmMessage.text : null}
-          onOpenSettings={() => router.push("/caregiverSetting")}
-        />
-        {today.kind !== "notJoined" && (
-          <ThisWeek
-            week={weekKeys(todayKey)}
-            todayKey={todayKey}
-            checkIns={activity?.checkIns ?? []}
-            days={days}
-          />
+        {hasPeople ? (
+          <>
+            <TodayCard
+              state={today}
+              name={displayName}
+              method={method}
+              windowStart={windowStart}
+              windowEnd={windowEnd}
+              timeZone={timeZone}
+              backups={backups}
+              sends={activity?.todaySends ?? []}
+              nextLabel={nextAfterToday}
+              onMarkCheckedIn={markIn}
+              marking={marking}
+              markMessage={markMessage?.id === takerId ? markMessage.text : null}
+              onCall={callPerson}
+              onConfirmJoined={confirmYes}
+              confirming={confirming}
+              confirmMessage={confirmMessage?.id === takerId ? confirmMessage.text : null}
+              onOpenSettings={() => router.push("/caregiverSetting")}
+            />
+            {today.kind !== "notJoined" && (
+              <ThisWeek
+                week={weekKeys(todayKey)}
+                todayKey={todayKey}
+                checkIns={activity?.checkIns ?? []}
+                days={days}
+              />
+            )}
+            <View style={styles.quickActions}>
+              <Pressable
+                style={({ pressed }) => [
+                  styles.quickActionItem,
+                  pressed && styles.pressed,
+                ]}
+                onPress={callPerson}
+                accessibilityRole="button"
+                accessibilityLabel={`Call ${displayName}`}
+                accessibilityHint="Opens the phone app to make a call"
+                hitSlop={6}
+              >
+                <View style={[styles.iconTile, { backgroundColor: LILAC }]}>
+                  <PhoneIcon size={20} color={PRIMARY} />
+                </View>
+                <AppText style={styles.iconTileLabel}>Call {displayName}</AppText>
+              </Pressable>
+              <Pressable
+                style={({ pressed }) => [
+                  styles.quickActionItem,
+                  pressed && styles.pressed,
+                ]}
+                onPress={() =>
+                  router.push({
+                    pathname: "/checkInNow",
+                    params: { personId: selectedId },
+                  })
+                }
+                accessibilityRole="button"
+                accessibilityLabel="Check in now"
+                accessibilityHint="Opens the check-in screen"
+                hitSlop={6}
+              >
+                <View style={[styles.iconTile, { backgroundColor: SUN }]}>
+                  <PointerIcon size={20} />
+                </View>
+                <AppText style={styles.iconTileLabel}>Check in now</AppText>
+              </Pressable>
+            </View>
+          </>
+        ) : (
+          <EmptyHome onAdd={() => setSheet("person")} />
         )}
-        <View style={styles.quickActions}>
-          <Pressable
-            style={({ pressed }) => [
-              styles.quickActionItem,
-              pressed && styles.pressed,
-            ]}
-            onPress={callPerson}
-            accessibilityRole="button"
-            accessibilityLabel={`Call ${displayName}`}
-            accessibilityHint="Opens the phone app to make a call"
-            hitSlop={6}
-          >
-            <View style={[styles.iconTile, { backgroundColor: LILAC }]}>
-              <PhoneIcon size={20} color={PRIMARY} />
-            </View>
-            <AppText style={styles.iconTileLabel}>Call {displayName}</AppText>
-          </Pressable>
-          <Pressable
-            style={({ pressed }) => [
-              styles.quickActionItem,
-              pressed && styles.pressed,
-            ]}
-            onPress={() =>
-              router.push({
-                pathname: "/checkInNow",
-                params: { personId: selectedId },
-              })
-            }
-            accessibilityRole="button"
-            accessibilityLabel="Check in now"
-            accessibilityHint="Opens the check-in screen"
-            hitSlop={6}
-          >
-            <View style={[styles.iconTile, { backgroundColor: SUN }]}>
-              <PointerIcon size={20} />
-            </View>
-            <AppText style={styles.iconTileLabel}>Check in now</AppText>
-          </Pressable>
-        </View>
       </ScrollView>
       <CaregiverTabBar />
       <AlertsSheet
@@ -744,7 +752,64 @@ export default function CaregiverHome() {
   );
 }
 
+/** Home when nobody is set up yet (e.g. the last person was removed) */
+function EmptyHome({ onAdd }: { onAdd: () => void }) {
+  return (
+    <View style={styles.emptyCard}>
+      <AppText style={styles.emptyTitle}>Add someone to look after</AppText>
+      <AppText style={styles.emptyBody}>
+        Mira checks in with them every day and lets you know if they don&apos;t answer.
+      </AppText>
+      <Pressable
+        style={({ pressed }) => [styles.emptyButton, pressed && styles.pressed]}
+        onPress={onAdd}
+        accessibilityRole="button"
+      >
+        <PlusIcon size={18} color="#fff" />
+        <AppText style={styles.emptyButtonText}>Add someone</AppText>
+      </Pressable>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
+  emptyCard: {
+    padding: 22,
+    gap: 12,
+    alignSelf: "stretch",
+    borderRadius: 28,
+    backgroundColor: "#fff",
+    borderWidth: 1,
+    borderColor: BORDERCOLOR,
+  },
+  emptyTitle: {
+    color: INK,
+    fontSize: 25,
+    lineHeight: 28.65,
+    letterSpacing: -0.4,
+    fontFamily: FontFamily.bold,
+  },
+  emptyBody: {
+    color: SUBTITLE,
+    fontSize: 16,
+    lineHeight: 23.2,
+    fontFamily: FigtreeFont.semiBold,
+  },
+  emptyButton: {
+    marginTop: 6,
+    height: 58,
+    borderRadius: 18,
+    backgroundColor: PRIMARY,
+    flexDirection: "row",
+    gap: 10,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  emptyButtonText: {
+    color: "#fff",
+    fontSize: 18,
+    fontFamily: FigtreeFont.bold,
+  },
   container: {
     flex: 1,
     backgroundColor: BACKGROUND,

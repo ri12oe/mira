@@ -107,6 +107,14 @@ type CaregiverSetupContextValue = CaregiverSetupData & {
    * caregiver is signed in, the setup typed so far is saved to their account
    * before anything is loaded. `cancelSetupSave()` if the code was wrong.
    */
+  /**
+   * Stops looking after someone: deletes them with their backups, invites,
+   * check-ins and alert log. Use PRIMARY_PERSON_ID for the first person; the
+   * next person then moves up.
+   */
+  removePerson: (id: string) => Promise<{ ok: true } | { ok: false; problem: "offline" | "failed" }>;
+  /** False when nobody is set up (e.g. the last person was removed) */
+  hasPeople: boolean;
   prepareSetupSave: () => void;
   cancelSetupSave: () => void;
 
@@ -349,6 +357,43 @@ export function CaregiverSetupProvider({ children }: { children: ReactNode }) {
     setSavedTakerIds(new Set());
   }, []);
 
+  const removePerson = useCallback(async (id: string) => {
+    const takerId = id === PRIMARY_PERSON_ID ? latest.current.data.takerId : id;
+
+    // A save still waiting (or running) would put the person straight back
+    clearTimeout(timers.current.get(takerId));
+    timers.current.delete(takerId);
+    await queues.current.get(takerId);
+
+    const { error } = await supabase.from("takers").delete().eq("id", takerId);
+    if (error) {
+      console.warn("Couldn't remove the person", error);
+      return { ok: false as const, problem: error.code ? ("failed" as const) : ("offline" as const) };
+    }
+
+    // Gone locally right away; then reload, so the next person becomes the first
+    if (id === PRIMARY_PERSON_ID) {
+      setData((prev) => ({
+        ...createInitial(),
+        yourFirstName: prev.yourFirstName,
+        yourPhone: prev.yourPhone,
+        yourEmail: prev.yourEmail,
+        yourPhotoUri: prev.yourPhotoUri,
+        yourPhotoPath: prev.yourPhotoPath,
+      }));
+    } else {
+      setPeople((prev) => prev.filter((p) => p.id !== id));
+    }
+    setSavedTakerIds((prev) => {
+      const next = new Set(prev);
+      next.delete(takerId);
+      return next;
+    });
+    setSelectedId(PRIMARY_PERSON_ID);
+    setLoadAttempt((n) => n + 1);
+    return { ok: true as const };
+  }, []);
+
   const queueInvite = useCallback((takerId: string, message: string) => {
     setInvites((prev) => ({
       ...prev,
@@ -534,8 +579,11 @@ export function CaregiverSetupProvider({ children }: { children: ReactNode }) {
       invites,
       queueInvite,
       savedTakerIds,
+      removePerson,
+      hasPeople: !!data.firstName.trim() || people.length > 0,
     }),
     [
+      removePerson,
       invites,
       queueInvite,
       savedTakerIds,
