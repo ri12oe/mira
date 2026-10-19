@@ -104,6 +104,42 @@ export function TimeWindowPicker({
   );
 }
 
+/** One time of day with hour, minute and AM/PM wheels. */
+export function SingleTimePicker({
+  value,
+  onChange,
+}: {
+  /** Minutes after midnight */
+  value: number;
+  onChange: (value: number) => void;
+}) {
+  const parts = toParts(value);
+  return (
+    <View style={styles.wheel}>
+      <View style={[styles.wheelHighlight, { pointerEvents: "none" }]} />
+      <WheelColumn
+        label="Hour"
+        items={HOURS}
+        selectedIndex={HOURS.indexOf(parts.hour)}
+        onChange={(i) => onChange(fromParts(HOURS[i], parts.minute, parts.period))}
+      />
+      <WheelColumn
+        label="Minute"
+        items={MINUTES}
+        selectedIndex={Math.max(0, MINUTES.indexOf(parts.minute))}
+        onChange={(i) => onChange(fromParts(parts.hour, MINUTES[i], parts.period))}
+        format={(m) => String(m).padStart(2, "0")}
+      />
+      <WheelColumn
+        label="AM or PM"
+        items={[...PERIODS]}
+        selectedIndex={PERIODS.indexOf(parts.period)}
+        onChange={(i) => onChange(fromParts(parts.hour, parts.minute, PERIODS[i]))}
+      />
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   fromUntil: {
     flexDirection: "row",
