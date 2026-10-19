@@ -6,7 +6,7 @@
 // in Vault (for pg_cron) and in the MIRA_CRON_SECRET Edge Function secret.
 
 import { pushToCaregiver } from "../_shared/expo-push.ts";
-import { type Send, textFor } from "../_shared/messages.ts";
+import { selfPushFor, type Send, textFor } from "../_shared/messages.ts";
 import { admin, json } from "../_shared/supabase.ts";
 import { isLive, makeCall, maskPhone, sendSms, type SmsResult } from "../_shared/twilio.ts";
 
@@ -31,9 +31,26 @@ async function deliver(s: Send): Promise<SmsResult> {
           purpose: s.send_purpose,
         });
       }
-      // A prompt for someone who checks in with the Mira app: that app (the
-      // "I'm checking in" flow) doesn't exist yet, so it's only recorded
-      console.log(`[waiting for the Mira app] ${s.send_purpose}`);
+      // Someone using Mira for themselves: the ask and the reminder go to
+      // their own phones (the account is theirs). Real, like all pushes.
+      if (s.taker_is_self && (s.send_purpose === "check_in_prompt" || s.send_purpose === "reminder")) {
+        const { data: owner } = await admin
+          .from("sends")
+          .select("caregiver_id, taker_id, check_in_id")
+          .eq("id", s.send_id)
+          .single();
+        if (!owner) return { ok: false, error: "Send not found" };
+        const { title, body } = selfPushFor(s);
+        return pushToCaregiver(owner.caregiver_id, title, body, {
+          type: "check_in",
+          takerId: owner.taker_id,
+          checkInId: owner.check_in_id,
+          purpose: s.send_purpose,
+        });
+      }
+      // A prompt for someone a caregiver set up on the Mira app: they don't
+      // have the app (only the caregiver does), so it's only recorded
+      console.log(`[no app for this person] ${s.send_purpose}`);
       return { ok: true, sid: `test-push-${crypto.randomUUID()}` };
     }
   }

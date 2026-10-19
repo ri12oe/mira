@@ -1,6 +1,7 @@
 // send-invite: texts a taker the "Reply YES to start" invite.
 //
-// Called by the app (signed in) with { takerId, inviteId, message }.
+// Called by the app (signed in) with { takerId, inviteId, message }, or with
+// { backupId, inviteId, message } to invite one of a self user's backups.
 // The app makes inviteId, so calling again with the same one never texts twice:
 // a send that already went out is reported as sent; a failed one is retried.
 
@@ -25,25 +26,33 @@ Deno.serve(async (req) => {
   const caregiverId = await callerId(req);
   if (!caregiverId) return json({ error: "not_signed_in" }, 401);
 
-  const { takerId, inviteId, message } = await req.json().catch(() => ({}));
+  const { takerId, backupId, inviteId, message } = await req.json().catch(() => ({}));
   const text = typeof message === "string" ? message.trim() : "";
-  if (!UUID.test(takerId ?? "") || !UUID.test(inviteId ?? "") || !text || text.length > MAX_MESSAGE) {
+  const forBackup = backupId !== undefined;
+  const targetOk = forBackup ? UUID.test(backupId ?? "") : UUID.test(takerId ?? "");
+  if (!targetOk || !UUID.test(inviteId ?? "") || !text || text.length > MAX_MESSAGE) {
     return json({ error: "bad_request" }, 400);
   }
 
   // Checks ownership + limits and records the invite and its send, all at once
-  const { data: send, error } = await admin
-    .rpc("prepare_invite", {
-      p_caregiver_id: caregiverId,
-      p_taker_id: takerId,
-      p_invite_id: inviteId,
-      p_message: text,
-    })
-    .single();
+  const { data: send, error } = await (forBackup
+    ? admin.rpc("prepare_backup_invite", {
+        p_caregiver_id: caregiverId,
+        p_backup_id: backupId,
+        p_invite_id: inviteId,
+        p_message: text,
+      })
+    : admin.rpc("prepare_invite", {
+        p_caregiver_id: caregiverId,
+        p_taker_id: takerId,
+        p_invite_id: inviteId,
+        p_message: text,
+      })
+  ).single();
   if (error) {
     const status = ERRORS[error.message];
     if (status) return json({ error: error.message }, status);
-    console.error("prepare_invite failed:", error.message);
+    console.error(`${forBackup ? "prepare_backup_invite" : "prepare_invite"} failed:`, error.message);
     return json({ error: "server_error" }, 500);
   }
 

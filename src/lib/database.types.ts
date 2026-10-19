@@ -427,6 +427,18 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      accept_backup_invite_for: {
+        Args: { p_backup_id: string; p_caregiver_id: string }
+        Returns: boolean
+      }
+      accept_backup_invites: {
+        Args: { p_phone: string }
+        Returns: {
+          backup_name: string
+          owner_id: string
+          owner_name: string
+        }[]
+      }
       accept_invite: {
         Args: { p_phone: string }
         Returns: {
@@ -489,6 +501,19 @@ export type Database = {
       }
       is_valid_time_zone: { Args: { tz: string }; Returns: boolean }
       mark_checked_in: { Args: { p_taker_id: string }; Returns: string }
+      prepare_backup_invite: {
+        Args: {
+          p_backup_id: string
+          p_caregiver_id: string
+          p_invite_id: string
+          p_message: string
+        }
+        Returns: {
+          send_id: string
+          send_status: Database["public"]["Enums"]["send_status"]
+          to_phone: string
+        }[]
+      }
       prepare_invite: {
         Args: {
           p_caregiver_id: string

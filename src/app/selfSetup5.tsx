@@ -3,9 +3,12 @@ import { AppText } from "@/components/app-test";
 import { Rise } from "@/components/rise";
 import { FigtreeFont, FontFamily } from "@/constants/fonts";
 import { CheckInMethod, useCaregiverSetup } from "@/context/caregiver-setup";
+import { backupInviteMessage, sendBackupInvite } from "@/lib/invites";
 import { joinNames, periodOf } from "@/utils/day-period";
 import { formatTime } from "@/utils/format-time";
+import { randomUUID } from "expo-crypto";
 import { router } from "expo-router";
+import { useEffect, useRef, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import AfternoonIcon from "@/components/icons/AfternoonIcon";
@@ -36,12 +39,59 @@ const METHOD_PHRASE: Record<CheckInMethod, string> = {
   app: "in the app",
 };
 
+/**
+ * - sending: recording the invites
+ * - sent: Mira texted them (live mode)
+ * - freeMode: recorded, but Mira can't text yet, so they invite them from My people
+ * - failed: at least one couldn't be recorded (they can send it from My people)
+ */
+type InviteState = "sending" | "sent" | "freeMode" | "failed";
+
+const PILL: Record<InviteState, string> = {
+  sending: "Sending…",
+  sent: "Invite sent",
+  freeMode: "Invite ready",
+  failed: "Not sent yet",
+};
+
 export default function SelfSetup5() {
   const { yourFirstName, windowStart, method, backups } = useCaregiverSetup();
   const name = yourFirstName.trim();
   const { bg, Icon } = PERIOD_ICON[periodOf(windowStart)];
   const names = backups.map((b) => b.name);
   const told = joinNames(names) || "Your backup";
+  const [inviteState, setInviteState] = useState<InviteState>("sending");
+
+  // Setup is saved by now (the code screen waited for it), so the backups
+  // exist on the server. Invite each one once; the ref stops React's
+  // dev-mode double run from inviting twice.
+  const invited = useRef(false);
+  useEffect(() => {
+    if (invited.current) return;
+    invited.current = true;
+    (async () => {
+      const results = await Promise.all(
+        backups
+          .filter((b) => !b.confirmed)
+          .map((b) =>
+            sendBackupInvite(b.id, randomUUID(), backupInviteMessage(b.name, yourFirstName)),
+          ),
+      );
+      if (results.some((r) => r.outcome !== "sent" && r.outcome !== "joined")) {
+        setInviteState("failed");
+      } else {
+        setInviteState(results.some((r) => r.freeMode) ? "freeMode" : "sent");
+      }
+    })();
+  }, [backups, yourFirstName]);
+
+  const many = names.length > 1;
+  const note =
+    inviteState === "freeMode"
+      ? `Mira can't send texts yet, so invite ${many ? "them" : told} yourself: in My people, tap Send invite. Once they say yes, tap "said yes".`
+      : inviteState === "failed"
+        ? "We couldn't send the invite yet. You can send it from My people."
+        : `${told} ${many ? "get" : "gets"} a text asking them to say yes. We'll let you know when they do.`;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -88,15 +138,14 @@ export default function SelfSetup5() {
                 <AppText style={styles.rowValue}>{told}</AppText>
               </View>
               <View style={styles.pill}>
-                <AppText style={styles.pillText}>Invite sent</AppText>
+                <AppText style={styles.pillText}>{PILL[inviteState]}</AppText>
               </View>
             </View>
           </View>
         </Rise>
         <Rise delay={1300}>
-          <AppText style={styles.note}>
-            {told} {names.length > 1 ? "get" : "gets"} a text asking them to
-            say yes. We&apos;ll let you know when they do.
+          <AppText style={styles.note} accessibilityLiveRegion="polite">
+            {note}
           </AppText>
           <View style={styles.buttons}>
             <Pressable

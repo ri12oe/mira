@@ -98,3 +98,65 @@ export function listenForJoin(takerId: string, onJoined: () => void) {
     supabase.removeChannel(channel);
   };
 }
+
+// ---------------------------------------------------------------- backups of someone using Mira for themselves
+// A self user's backup is only alerted once they've said yes to an invite.
+
+/**
+ * Like InviteOutcome, plus:
+ * - notSaved: the backup isn't in the database yet (just added; saving takes a moment)
+ */
+export type BackupInviteOutcome = InviteOutcome | "notSaved";
+
+/** The backup invite's words */
+export function backupInviteMessage(backupName: string, yourName: string) {
+  return `Hi ${backupName.trim() || "there"}, it's ${yourName.trim() || "your friend"}. I set up Mira so someone knows I'm okay each day, and I'd like you to be one of the people it tells.`;
+}
+
+/**
+ * Records (and, when texting is on, sends) an invite to one backup. Safe to
+ * call again with the same inviteId. `freeMode`: send it from your own phone.
+ */
+export async function sendBackupInvite(
+  backupId: string,
+  inviteId: string,
+  message: string,
+): Promise<{ outcome: BackupInviteOutcome; freeMode: boolean }> {
+  const { data, error } = await supabase.functions.invoke("send-invite", {
+    body: { backupId, inviteId, message },
+  });
+  if (!error) return { outcome: "sent", freeMode: data?.testMode === true };
+  if (error instanceof FunctionsHttpError) {
+    const status = (error.context as Response).status;
+    if (status === 404) return { outcome: "notSaved", freeMode: false };
+    if (status === 409) return { outcome: "joined", freeMode: false };
+    if (status === 429) return { outcome: "tooMany", freeMode: false };
+    return { outcome: "failed", freeMode: false };
+  }
+  return { outcome: "offline", freeMode: false };
+}
+
+/**
+ * Free mode: "Sam said yes". `noInvite`: there's no invite waiting for them
+ * (send one first), or they're already confirmed.
+ */
+export async function confirmBackup(
+  backupId: string,
+): Promise<"joined" | "noInvite" | "offline" | "failed"> {
+  const { error } = await supabase.functions.invoke("confirm-invite", { body: { backupId } });
+  if (!error) return "joined";
+  if (error instanceof FunctionsHttpError) {
+    return (error.context as Response).status === 404 ? "noInvite" : "failed";
+  }
+  return "offline";
+}
+
+/** Which of this person's backups have said yes, by backup id (null if offline) */
+export async function backupConfirmations(takerId: string) {
+  const { data, error } = await supabase
+    .from("backups")
+    .select("id, confirmed_at")
+    .eq("taker_id", takerId);
+  if (error || !data) return null;
+  return Object.fromEntries(data.map((b) => [b.id, b.confirmed_at !== null]));
+}

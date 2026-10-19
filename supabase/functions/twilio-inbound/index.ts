@@ -1,11 +1,13 @@
 // twilio-inbound: Twilio calls this when someone texts Mira's number.
 //
-//   YES → joins, if there's a pending invite for this number
+//   YES → joins, if there's a pending invite for this number (as a taker,
+//         or as a self user's backup)
 //   OK (or YES, "I'm fine", …) → records today's check-in
 //
 // Privacy: the message text is read to find these words, then thrown away.
 // It is never stored or logged.
 
+import { pushToCaregiver } from "../_shared/expo-push.ts";
 import { admin } from "../_shared/supabase.ts";
 import { functionUrl, isFromTwilio, maskPhone, twiml } from "../_shared/twilio.ts";
 
@@ -44,6 +46,33 @@ Deno.serve(async (req) => {
     if (data && data.length > 0) {
       console.log(`${maskPhone(from)} joined (${data.length} invite(s) accepted)`);
       return twiml("You're all set! Mira will check in with you each day. Reply STOP anytime to stop.");
+    }
+
+    // …or to be someone's backup
+    const { data: backups, error: backupError } = await admin.rpc("accept_backup_invites", { p_phone: from });
+    if (backupError) {
+      console.error(`accept_backup_invites failed for ${maskPhone(from)}:`, backupError.message);
+      return new Response("Server error", { status: 500 });
+    }
+    const accepted = (backups ?? []) as { owner_id: string; backup_name: string; owner_name: string }[];
+    if (accepted.length > 0) {
+      console.log(`${maskPhone(from)} is now a backup (${accepted.length} invite(s) accepted)`);
+      // Tell each person their backup said yes. A failed push isn't fatal:
+      // the backup shows as Connected in the app either way.
+      await Promise.all(
+        accepted.map(async (a) => {
+          const result = await pushToCaregiver(
+            a.owner_id,
+            `${a.backup_name} said yes`,
+            `${a.backup_name} will be told if you miss a check-in.`,
+            { type: "backup_joined" },
+          );
+          if (!result.ok) console.warn(`Couldn't tell the owner that a backup joined: ${result.error}`);
+        }),
+      );
+      const owners = [...new Set(accepted.map((a) => a.owner_name?.trim()).filter(Boolean))];
+      const whose = owners.length > 0 ? `${owners.join(" and ")}'s` : "a";
+      return twiml(`Thank you! You're now ${whose} backup. Mira will only text you if a check-in is missed. Reply STOP anytime to stop.`);
     }
   }
 

@@ -5,14 +5,21 @@ import { SyncBanner } from "@/components/sync-banner";
 import { SwipeToDelete } from "@/components/swipe-to-delete";
 import { FigtreeFont, FontFamily } from "@/constants/fonts";
 import { Backup, useCaregiverSetup } from "@/context/caregiver-setup";
-import { inviteText, openMessages } from "@/lib/invites";
-import { loadConfirmedBackups, saveConfirmedBackups } from "@/lib/self-backups";
+import {
+  backupConfirmations,
+  backupInviteMessage,
+  confirmBackup,
+  manualInviteText,
+  openMessages,
+  sendBackupInvite,
+} from "@/lib/invites";
 import { avatarColors } from "@/utils/avatar-colors";
 import { toE164 } from "@/utils/phone";
 import * as Linking from "expo-linking";
 import { randomUUID } from "expo-crypto";
-import { useState } from "react";
-import { Pressable, StyleSheet, View } from "react-native";
+import { useFocusEffect } from "expo-router";
+import { useCallback, useState } from "react";
+import { ActivityIndicator, Pressable, StyleSheet, View } from "react-native";
 // Gesture Handler's ScrollView coordinates with the swipe gesture inside it
 import { ScrollView } from "react-native-gesture-handler";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -34,11 +41,34 @@ const LILAC = "#E7E4FB";
 const PROBLEM = "#B3261E";
 
 export default function SelfPeople() {
-  const { yourFirstName, backups, update } = useCaregiverSetup();
-  const [confirmed, setConfirmed] = useState(loadConfirmedBackups);
+  const { yourFirstName, backups, update, takerId, applyBackupConfirmations } =
+    useCaregiverSetup();
   const [sheetOpen, setSheetOpen] = useState(false);
   const [editingBackup, setEditingBackup] = useState<Backup | null>(null);
   const [problem, setProblem] = useState<string | null>(null);
+  /** Good news, e.g. "Invite sent to Sam." */
+  const [notice, setNotice] = useState<string | null>(null);
+  /** The backup whose invite / "said yes" is being sent right now */
+  const [busyId, setBusyId] = useState<string | null>(null);
+
+  // Each time this screen shows, check who has said yes since (a YES text
+  // to Mira, in live mode, can arrive at any time)
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      backupConfirmations(takerId).then((confirmed) => {
+        if (active && confirmed) applyBackupConfirmations(confirmed);
+      });
+      return () => {
+        active = false;
+      };
+    }, [takerId, applyBackupConfirmations]),
+  );
+
+  const say = (problemText: string | null, noticeText: string | null = null) => {
+    setProblem(problemText);
+    setNotice(noticeText);
+  };
 
   const openSheet = (backup: Backup | null) => {
     setEditingBackup(backup);
@@ -48,8 +78,17 @@ export default function SelfPeople() {
   const saveBackup = (data: Omit<Backup, "id">) => {
     update({
       backups: editingBackup
-        ? backups.map((b) => (b.id === editingBackup.id ? { ...b, ...data } : b))
-        : [...backups, { id: randomUUID(), ...data }],
+        ? backups.map((b) =>
+            b.id !== editingBackup.id
+              ? b
+              : // A new number hasn't said yes to anything (the server agrees)
+                {
+                  ...b,
+                  ...data,
+                  confirmed: b.confirmed && toE164(b.phone) === toE164(data.phone),
+                },
+          )
+        : [...backups, { id: randomUUID(), ...data, confirmed: false }],
     });
     setSheetOpen(false);
   };
@@ -62,37 +101,86 @@ export default function SelfPeople() {
 
   const removeBackup = (id: string) => {
     update({ backups: backups.filter((b) => b.id !== id) });
-    if (confirmed.includes(id)) {
-      const next = confirmed.filter((c) => c !== id);
-      setConfirmed(next);
-      saveConfirmedBackups(next);
+  };
+
+  /**
+   * Records the invite on the server. Live mode: Mira texts it. Free mode:
+   * Messages opens with it filled in, and the yes comes back to this phone.
+   */
+  const sendInvite = async (backup: Backup) => {
+    if (busyId) return;
+    setBusyId(backup.id);
+    say(null);
+    const message = backupInviteMessage(backup.name, yourFirstName);
+    const { outcome, freeMode } = await sendBackupInvite(backup.id, randomUUID(), message);
+    setBusyId(null);
+    switch (outcome) {
+      case "sent":
+        if (!freeMode) {
+          say(null, `Invite sent to ${backup.name}. We'll show it here when they say yes.`);
+          return;
+        }
+        openMessages(toE164(backup.phone) ?? backup.phone, manualInviteText(message))
+          .then(() =>
+            say(null, `When ${backup.name} replies yes to you, tap "${backup.name} said yes".`),
+          )
+          .catch(() =>
+            say(`We couldn't open Messages. Text ${backup.name} at ${backup.phone} and ask them to be your backup.`),
+          );
+        return;
+      case "joined":
+        applyBackupConfirmations({ [backup.id]: true });
+        say(null, `${backup.name} has already said yes.`);
+        return;
+      case "tooMany":
+        say("You've sent a lot of invites today. Please try again tomorrow.");
+        return;
+      case "notSaved":
+        say(`We're still saving ${backup.name}. Please try again in a moment.`);
+        return;
+      case "offline":
+        say("We couldn't reach Mira. Check that you're online, then try again.");
+        return;
+      default:
+        say(`We couldn't send the invite to ${backup.name}. Please try again in a few minutes.`);
     }
   };
 
-  const markConfirmed = (id: string) => {
-    const next = [...confirmed, id];
-    setConfirmed(next);
-    saveConfirmedBackups(next);
+  /** Free mode: they replied yes to this phone's text */
+  const markConfirmed = async (backup: Backup) => {
+    if (busyId) return;
+    setBusyId(backup.id);
+    say(null);
+    const result = await confirmBackup(backup.id);
+    setBusyId(null);
+    if (result === "joined") {
+      applyBackupConfirmations({ [backup.id]: true });
+      say(null, `${backup.name} will be told if you miss a check-in.`);
+    } else if (result === "noInvite") {
+      // Maybe they were confirmed elsewhere; otherwise an invite is needed first
+      const confirmed = await backupConfirmations(takerId);
+      if (confirmed) applyBackupConfirmations(confirmed);
+      if (!confirmed?.[backup.id]) {
+        say(`Send ${backup.name} the invite first, then tap this once they say yes.`);
+      }
+    } else if (result === "offline") {
+      say("We couldn't reach Mira. Check that you're online, then try again.");
+    } else {
+      say("Something went wrong. Please try again.");
+    }
   };
 
-  const reach = (backup: Backup, action: "call" | "text" | "invite") => {
+  const reach = (backup: Backup, action: "call" | "text") => {
     const number = backup.phone.trim().replace(/[^\d+]/g, "");
     if (!/\d/.test(number)) {
       setProblem(`We don't have a phone number for ${backup.name}.`);
       return;
     }
-    setProblem(null);
+    say(null);
     const opening =
       action === "call"
         ? Linking.openURL(`tel:${number}`)
-        : action === "text"
-          ? Linking.openURL(`sms:${number}`)
-          : openMessages(
-              toE164(backup.phone) ?? number,
-              inviteText(
-                `Hi ${backup.name}, it's ${yourFirstName.trim() || "your friend"}. I set up Mira so someone knows I'm okay each day, and I'd like you to be one of the people it tells.`,
-              ),
-            );
+        : Linking.openURL(`sms:${number}`);
     opening.catch(() =>
       setProblem(`We couldn't open that. You can reach ${backup.name} at ${backup.phone}.`),
     );
@@ -114,7 +202,8 @@ export default function SelfPeople() {
         </View>
 
         {backups.map((backup, index) => {
-          const isConnected = confirmed.includes(backup.id);
+          const isConnected = !!backup.confirmed;
+          const busy = busyId === backup.id;
           const colors = avatarColors(index);
           return (
             <View
@@ -181,22 +270,28 @@ export default function SelfPeople() {
                 </View>
               ) : (
                 <View style={styles.links}>
-                  <Pressable
-                    onPress={() => reach(backup, "invite")}
-                    hitSlop={10}
-                    accessibilityRole="button"
-                    accessibilityLabel={`Send the invite to ${backup.name} again`}
-                  >
-                    <AppText style={styles.linkText}>Send again</AppText>
-                  </Pressable>
-                  <Pressable
-                    onPress={() => markConfirmed(backup.id)}
-                    hitSlop={10}
-                    accessibilityRole="button"
-                    accessibilityLabel={`${backup.name} said yes`}
-                  >
-                    <AppText style={styles.linkText}>{backup.name} said yes</AppText>
-                  </Pressable>
+                  {busy ? (
+                    <ActivityIndicator color={PRIMARY} accessibilityLabel="Sending" />
+                  ) : (
+                    <>
+                      <Pressable
+                        onPress={() => sendInvite(backup)}
+                        hitSlop={10}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Send the invite to ${backup.name}`}
+                      >
+                        <AppText style={styles.linkText}>Send invite</AppText>
+                      </Pressable>
+                      <Pressable
+                        onPress={() => markConfirmed(backup)}
+                        hitSlop={10}
+                        accessibilityRole="button"
+                        accessibilityLabel={`${backup.name} said yes`}
+                      >
+                        <AppText style={styles.linkText}>{backup.name} said yes</AppText>
+                      </Pressable>
+                    </>
+                  )}
                 </View>
               )}
                   </View>
@@ -209,6 +304,11 @@ export default function SelfPeople() {
         {problem && (
           <AppText style={styles.problem} accessibilityRole="alert">
             {problem}
+          </AppText>
+        )}
+        {notice && (
+          <AppText style={styles.notice} accessibilityLiveRegion="polite">
+            {notice}
           </AppText>
         )}
 
@@ -369,6 +469,12 @@ const styles = StyleSheet.create({
   },
   problem: {
     color: PROBLEM,
+    fontFamily: FigtreeFont.semiBold,
+    fontSize: 15,
+    lineHeight: 21,
+  },
+  notice: {
+    color: GREEN,
     fontFamily: FigtreeFont.semiBold,
     fontSize: 15,
     lineHeight: 21,

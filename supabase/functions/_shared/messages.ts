@@ -20,6 +20,8 @@ export type Send = {
   checked_in_at: string | null;
   /** "Check in now": the caregiver's own words (null: the usual words) */
   prompt_message: string | null;
+  /** For someone using Mira for themselves (no caregiver; they check in with the app) */
+  taker_is_self: boolean;
 };
 
 /** 540 → "9:00 AM" */
@@ -53,7 +55,10 @@ export function textFor(s: Send) {
         ? `Mira: ${name} hasn't answered your Check in now yet. Please check on ${name}.`
         : `Mira: ${name} hasn't checked in today${window}. Please check on ${name}.`;
     case "backup_alert":
-      return `Mira: ${name} hasn't checked in today, and ${caregiver} has been alerted. As ${name}'s backup contact, please check on ${name} too.`;
+      // A self user has no caregiver: the backups are the first to know
+      return s.taker_is_self
+        ? `Mira: ${name} hasn't checked in today${window}. As ${name}'s backup contact, please check on ${name}.`
+        : `Mira: ${name} hasn't checked in today, and ${caregiver} has been alerted. As ${name}'s backup contact, please check on ${name} too.`;
     case "all_clear": {
       const at = s.checked_in_at
         ? new Date(s.checked_in_at).toLocaleTimeString("en-US", {
@@ -87,6 +92,24 @@ export function callScriptFor(s: Send) {
       // Alerts: the same words as the text, spoken
       return textFor(s).replace(/^Mira: /, "This is Mira. ");
   }
+}
+
+/**
+ * The push a self user gets on their own phone: the daily ask and the
+ * reminder. Tapping it opens the check-in (data.type = "check_in").
+ */
+export function selfPushFor(s: Send): { title: string; body: string } {
+  const name = s.taker_name?.trim();
+  if (s.send_purpose === "reminder") {
+    return {
+      title: "A gentle reminder",
+      body: `${name ? `${name}, tap` : "Tap"} to let your people know you're okay.`,
+    };
+  }
+  return {
+    title: "Time to check in",
+    body: `${name ? `Hi ${name}! Tap` : "Tap"} to let your people know you're okay today.`,
+  };
 }
 
 /** Prompts and reminders wait for "1"; alerts just speak */

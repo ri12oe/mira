@@ -60,6 +60,17 @@ function ActiveNotificationsBridge() {
       const id = response.notification.request.identifier;
       if (id === lastHandled) return;
       lastHandled = id;
+      // "Sam said yes" (to someone using Mira for themselves): show their people
+      const type = response.notification.request.content.data?.type;
+      if (type === "backup_joined") {
+        router.navigate("/selfPeople");
+        return;
+      }
+      // "Time to check in" / the reminder: Home has the check-in button
+      if (type === "check_in") {
+        router.navigate("/selfHome");
+        return;
+      }
       const takerId = response.notification.request.content.data?.takerId;
       const { primaryTakerId, people, setSelectedId } = latest.current;
       if (typeof takerId === "string") {

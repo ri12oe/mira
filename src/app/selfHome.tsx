@@ -6,15 +6,15 @@ import { Dot } from "@/components/dot";
 import { SelfCheckInCard } from "@/components/self-check-in-card";
 import { FigtreeFont, FontFamily } from "@/constants/fonts";
 import { Backup, useCaregiverSetup } from "@/context/caregiver-setup";
-import { openMessages } from "@/lib/invites";
+import { backupConfirmations, openMessages } from "@/lib/invites";
 import { loadSelfCheckIns, recordSelfCheckIn } from "@/lib/self-check-ins";
 import { avatarColors } from "@/utils/avatar-colors";
 import { joinNames } from "@/utils/day-period";
 import { localDateKey, localMinutes } from "@/utils/local-date";
 import { nextCheckInLabel } from "@/utils/today-state";
 import * as Linking from "expo-linking";
-import { router } from "expo-router";
-import { useEffect, useState } from "react";
+import { router, useFocusEffect } from "expo-router";
+import { useCallback, useEffect, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Circle, Path } from "react-native-svg";
@@ -34,6 +34,8 @@ const RISE = "#8A3A12";
 const HELP = "#B3261E";
 const HELP_BG = "#FDE4E1";
 const HELP_BORDER = "#E8998F";
+const AMBER_BG = "#FFF3D1";
+const AMBER_TEXT = "#7A4F06";
 
 function HelpIcon() {
   return (
@@ -46,8 +48,31 @@ function HelpIcon() {
 }
 
 export default function SelfHome() {
-  const { yourFirstName, windowStart, windowEnd, days, paused, backups, timeZone } =
-    useCaregiverSetup();
+  const {
+    yourFirstName,
+    windowStart,
+    windowEnd,
+    days,
+    paused,
+    backups,
+    timeZone,
+    takerId,
+    applyBackupConfirmations,
+  } = useCaregiverSetup();
+
+  // Who has said yes can change while the app is closed (a YES text, in
+  // live mode), so check each time Home shows
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      backupConfirmations(takerId).then((confirmed) => {
+        if (active && confirmed) applyBackupConfirmations(confirmed);
+      });
+      return () => {
+        active = false;
+      };
+    }, [takerId, applyBackupConfirmations]),
+  );
 
   // Re-check the clock every 30 seconds so "late" and a new day show up on their own
   const [now, setNow] = useState(() => new Date());
@@ -84,7 +109,8 @@ export default function SelfHome() {
 
   const [helpOpen, setHelpOpen] = useState(false);
   const [callProblem, setCallProblem] = useState<string | null>(null);
-  const names = backups.map((b) => b.name);
+  // Only backups who said yes are told about a missed check-in
+  const names = backups.filter((b) => b.confirmed).map((b) => b.name);
 
   const reach = (backup: Backup, how: "call" | "text") => {
     const dial = backup.phone.trim().replace(/[^\d+]/g, "");
@@ -146,6 +172,26 @@ export default function SelfHome() {
           nextLabel={nextLabel}
           onCheckIn={checkInNow}
         />
+
+        {/* Check-ins still run, but a miss would reach nobody yet */}
+        {!paused && names.length === 0 && (
+          <Pressable
+            style={({ pressed }) => [styles.warning, pressed && styles.pressed]}
+            onPress={() => router.navigate("/selfPeople")}
+            accessibilityRole="button"
+            accessibilityLabel="Nobody will be alerted until a backup says yes. Open My people."
+          >
+            <AppText style={styles.warningTitle}>
+              Nobody will be alerted until a backup says yes
+            </AppText>
+            <AppText style={styles.warningBody}>
+              {backups.length === 0
+                ? "Add someone in My people, so they're told if you miss a check-in."
+                : "Send your invite from My people, then tap “said yes” once they agree."}
+            </AppText>
+            <AppText style={styles.warningLink}>Open My people</AppText>
+          </Pressable>
+        )}
 
         {backups.length > 0 && (
           <View style={styles.people}>
@@ -324,6 +370,31 @@ const styles = StyleSheet.create({
     fontSize: 30,
     lineHeight: 34,
     letterSpacing: -0.6,
+  },
+  warning: {
+    marginTop: 16,
+    padding: 16,
+    gap: 6,
+    borderRadius: 18,
+    backgroundColor: AMBER_BG,
+  },
+  warningTitle: {
+    color: AMBER_TEXT,
+    fontFamily: FigtreeFont.extraBold,
+    fontSize: 17,
+    lineHeight: 23,
+  },
+  warningBody: {
+    color: AMBER_TEXT,
+    fontFamily: FigtreeFont.medium,
+    fontSize: 15,
+    lineHeight: 21,
+  },
+  warningLink: {
+    marginTop: 4,
+    color: PRIMARY,
+    fontFamily: FigtreeFont.extraBold,
+    fontSize: 15,
   },
   people: {
     marginTop: 24,

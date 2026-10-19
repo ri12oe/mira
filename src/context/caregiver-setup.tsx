@@ -35,6 +35,11 @@ export type Backup = {
   phone: string;
   relationship: string;
   alertAfter: number; // minutes after the person before them was alerted
+  /**
+   * Said yes to their invite (self accounts: only they get alerted). Read
+   * from the server, which alone sets it; never saved by the app.
+   */
+  confirmed?: boolean;
 };
 
 /** Someone added later from the home screen, in addition to the person set up in steps 1–3 */
@@ -139,6 +144,8 @@ type CaregiverSetupContextValue = CaregiverSetupData & {
   queueInvite: (takerId: string, message: string) => void;
   /** Takers the database has confirmed saving (an invite needs the row first) */
   savedTakerIds: ReadonlySet<string>;
+  /** Merge fresh "said yes" states into the first person's backups, by backup id */
+  applyBackupConfirmations: (confirmed: Record<string, boolean>) => void;
 };
 
 export type QueuedInvite = {
@@ -190,6 +197,7 @@ function backupFromRow(row: Tables<"backups">): Backup {
     phone: formatPhone(row.phone),
     relationship: row.relationship ?? "",
     alertAfter: row.alert_after_minutes,
+    confirmed: row.confirmed_at !== null,
   };
 }
 
@@ -417,6 +425,21 @@ export function CaregiverSetupProvider({ children }: { children: ReactNode }) {
     return { ok: true as const };
   }, []);
 
+  const applyBackupConfirmations = useCallback((confirmed: Record<string, boolean>) => {
+    setData((prev) => {
+      const changed = prev.backups.some(
+        (b) => b.id in confirmed && !!b.confirmed !== confirmed[b.id],
+      );
+      if (!changed) return prev;
+      return {
+        ...prev,
+        backups: prev.backups.map((b) =>
+          b.id in confirmed ? { ...b, confirmed: confirmed[b.id] } : b,
+        ),
+      };
+    });
+  }, []);
+
   const queueInvite = useCallback((takerId: string, message: string) => {
     setInvites((prev) => ({
       ...prev,
@@ -620,10 +643,12 @@ export function CaregiverSetupProvider({ children }: { children: ReactNode }) {
       invites,
       queueInvite,
       savedTakerIds,
+      applyBackupConfirmations,
       removePerson,
       hasPeople: !!data.firstName.trim() || people.length > 0,
     }),
     [
+      applyBackupConfirmations,
       removePerson,
       invites,
       queueInvite,
