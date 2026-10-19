@@ -23,6 +23,7 @@ import {
   InviteEditorSheet,
 } from "@/components/invite-editor-sheet";
 import { InviteMessage } from "@/components/invite-message";
+import { defaultInviteMessage } from "@/lib/invites";
 import { SegmentedSlider } from "@/components/segmented-slider";
 import { StepProgress } from "@/components/step-progress";
 import { TimeWindowPicker } from "@/components/time-window-picker";
@@ -126,7 +127,7 @@ export function AddPersonSheets({ visible, onClose, onAdded }: Props) {
       (b) => b.name === existingBackup.name && b.phone === existingBackup.phone,
     );
   const newRecipientName = newName.trim() || "They";
-  const defaultInvite = `Hi ${newName.trim() || "there"}, it's ${yourFirstName.trim() || "your caregiver"}. I set up Mira so I know you're okay each day.`;
+  const defaultInvite = defaultInviteMessage(newName, yourFirstName);
   const matchingWindowId = customWindow
     ? undefined
     : WINDOWS.find((w) => w.start === newStart && w.end === newEnd)?.id;

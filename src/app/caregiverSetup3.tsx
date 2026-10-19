@@ -20,6 +20,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StepProgress } from "@/components/step-progress";
+import { defaultInviteMessage } from "@/lib/invites";
 import { toE164 } from "@/utils/phone";
 import Svg, { Path } from "react-native-svg";
 const INK = "#15163A";
@@ -46,7 +47,7 @@ export default function CaregiverSetup3() {
   const [sheet, setSheet] = useState<null | "backup" | "editInvite">(null);
   const [editingBackup, setEditingBackup] = useState<Backup | null>(null);
 
-  const defaultInvite = `Hi ${displayName}, it's ${yourFirstName}. I set up Mira so I know you're okay each day.`;
+  const defaultInvite = defaultInviteMessage(firstName, yourFirstName);
   const [savedInvite, setSavedInvite] = useState<string | null>(null); // null = use the default
   const [badPhone, setBadPhone] = useState<null | "yours" | "theirs">(null);
 

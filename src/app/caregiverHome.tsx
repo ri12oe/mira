@@ -10,7 +10,7 @@ import { ThisWeek } from "@/components/this-week";
 import { TodayCard } from "@/components/today-card";
 import { useTakerActivity } from "@/hooks/use-taker-activity";
 import { markCheckedIn } from "@/lib/check-ins";
-import { confirmJoined } from "@/lib/invites";
+import { confirmJoined, defaultInviteMessage } from "@/lib/invites";
 import { weekKeys } from "@/utils/local-date";
 import { nextCheckInLabel, todayState } from "@/utils/today-state";
 import { BackupSheet } from "@/components/backup-sheet";
@@ -166,7 +166,7 @@ export default function CaregiverHome() {
       (b) => b.name === existingBackup.name && b.phone === existingBackup.phone,
     );
   const newRecipientName = newName.trim() || "They";
-  const defaultInvite = `Hi ${newName.trim() || "there"}, it's ${yourFirstName.trim() || "your caregiver"}. I set up Mira so I know you're okay each day.`;
+  const defaultInvite = defaultInviteMessage(newName, yourFirstName);
   const matchingWindowId = customWindow
     ? undefined
     : WINDOWS.find((w) => w.start === newStart && w.end === newEnd)?.id;
@@ -201,6 +201,13 @@ export default function CaregiverHome() {
     setMarking(false);
     if (result === "recorded") reload();
     else setMarkMessage({ id: takerId, text: MARK_MESSAGES[result] });
+  };
+
+  // "Send the invite again": a fresh invite, on the same invite screen as setup
+  const resendInvite = () => {
+    queueInvite(takerId, defaultInviteMessage(displayName, yourFirstName));
+    if (selectedPerson) router.push({ pathname: "/connected2", params: { personId: takerId } });
+    else router.push("/connected");
   };
 
   // Free mode: "Lin replied YES" (the invite went from your phone)
@@ -384,6 +391,7 @@ export default function CaregiverHome() {
               markMessage={markMessage?.id === takerId ? markMessage.text : null}
               onCall={callPerson}
               onConfirmJoined={confirmYes}
+          onResendInvite={resendInvite}
               confirming={confirming}
               confirmMessage={confirmMessage?.id === takerId ? confirmMessage.text : null}
               onOpenSettings={() => router.push("/caregiverSetting")}

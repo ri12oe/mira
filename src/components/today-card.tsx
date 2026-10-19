@@ -60,6 +60,8 @@ type Props = {
   markMessage: string | null;
   onCall: () => void;
   onConfirmJoined: () => void;
+  /** Opens the invite screen again for this person */
+  onResendInvite: () => void;
   confirming: boolean;
   confirmMessage: string | null;
   onOpenSettings: () => void;
@@ -170,6 +172,14 @@ export function TodayCard(props: Props) {
           >
             {props.confirming && <ActivityIndicator color={INK} />}
             <AppText style={styles.secondaryButtonText}>{name} replied YES</AppText>
+          </Pressable>
+          <Pressable
+            style={({ pressed }) => [styles.linkButton, pressed && styles.pressed]}
+            onPress={props.onResendInvite}
+            accessibilityRole="button"
+            accessibilityHint="Opens the invite so you can send it again"
+          >
+            <AppText style={styles.linkButtonText}>Send the invite again</AppText>
           </Pressable>
         </View>
       );
@@ -473,6 +483,17 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     alignSelf: "stretch",
+  },
+  linkButton: {
+    minHeight: 48,
+    justifyContent: "center",
+    alignItems: "center",
+    alignSelf: "stretch",
+  },
+  linkButtonText: {
+    color: ORANGE,
+    fontSize: 17,
+    fontFamily: FigtreeFont.bold,
   },
   alertSecondary: {
     borderColor: "#F0C2BA",

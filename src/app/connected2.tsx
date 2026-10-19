@@ -16,7 +16,7 @@ import CalendarIcon from "../components/icons/CalendarIcon";
 import MessageIcon from "../components/icons/MessageIcon";
 import PhoneIcon from "../components/icons/PhoneIcon";
 import PhoneSquareIcon from "../components/icons/PhoneSquareIcon";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 
 const INK = "#15163A";
 const SUBTITLE = "#54566E";
@@ -58,7 +58,9 @@ const METHOD_SUMMARY: Record<
 export default function ConnectedScreen2() {
   const { yourFirstName, people, invites } = useCaregiverSetup();
   // The person who was just added from the home screen is the newest one
-  const person = people[people.length - 1];
+  // The person asked for ("Send the invite again"), or else the newest one
+  const { personId } = useLocalSearchParams<{ personId?: string }>();
+  const person = people.find((p) => p.id === personId) ?? people[people.length - 1];
   const firstName = person?.firstName ?? "they";
   const { method = "text", backups = [], windowStart = 0, windowEnd = 0 } =
     person ?? {};

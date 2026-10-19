@@ -20,6 +20,11 @@ export function inviteText(message: string) {
   return `Mira: ${message.trim()} Reply YES to start, or STOP to opt out.`;
 }
 
+/** The invite's usual words (the caregiver can edit them during setup) */
+export function defaultInviteMessage(name: string, caregiverName: string) {
+  return `Hi ${name.trim() || "there"}, it's ${caregiverName.trim() || "your caregiver"}. I set up Mira so I know you're okay each day.`;
+}
+
 /** Free mode: the text the caregiver sends from their own phone (they get the YES) */
 export function manualInviteText(message: string) {
   return `${message.trim()} Reply YES to start.`;

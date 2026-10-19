@@ -15,6 +15,7 @@ import {
 } from "@/context/caregiver-setup";
 import { usePeopleToday } from "@/hooks/use-people-today";
 import type { TodaySummary } from "@/lib/check-ins";
+import { defaultInviteMessage } from "@/lib/invites";
 import { formatTimeShort, formatTimeRange } from "@/utils/format-time-short";
 import { dayIndex, localDateKey, localMinutes } from "@/utils/local-date";
 import { router } from "expo-router";
@@ -95,6 +96,8 @@ export default function CaregiverPeople() {
     update,
     updatePerson,
     removePerson,
+    queueInvite,
+    yourFirstName,
     firstName: primaryFirstName,
     selectedId,
     setSelectedId,
@@ -134,6 +137,15 @@ export default function CaregiverPeople() {
   // Nobody left (the last person was removed): no selected person
   const selected: (typeof entries)[number] | undefined =
     entries.find((e) => e.id === selectedId) ?? entries[0];
+
+  // Someone who hasn't said YES yet can be sent the invite again
+  const notJoined = !!selected && summaries[selected.takerId]?.joined === false;
+  const resendInvite = () => {
+    if (!selected) return;
+    queueInvite(selected.takerId, defaultInviteMessage(selected.name, yourFirstName));
+    if (selected.id === PRIMARY_ID) router.push("/connected");
+    else router.push({ pathname: "/connected2", params: { personId: selected.takerId } });
+  };
 
   const confirmRemove = async () => {
     if (!selected || removing) return;
@@ -266,6 +278,16 @@ export default function CaregiverPeople() {
             onEditBackup={openBackupSheet}
             onAddBackup={() => openBackupSheet(null)}
           />
+          {notJoined && (
+            <Pressable
+              style={({ pressed }) => [styles.resendButton, pressed && styles.pressed]}
+              onPress={resendInvite}
+              accessibilityRole="button"
+              accessibilityLabel={`Send the invite to ${selected.name} again`}
+            >
+              <AppText style={styles.resendButtonText}>Send the invite again</AppText>
+            </Pressable>
+          )}
           <Pressable
             style={({ pressed }) => [styles.removeButton, pressed && styles.pressed]}
             onPress={() => {
@@ -318,6 +340,20 @@ export default function CaregiverPeople() {
 }
 
 const styles = StyleSheet.create({
+  resendButton: {
+    marginTop: 8,
+    minHeight: 52,
+    borderRadius: 18,
+    backgroundColor: SUN,
+    justifyContent: "center",
+    alignItems: "center",
+    alignSelf: "stretch",
+  },
+  resendButtonText: {
+    color: RED,
+    fontFamily: FigtreeFont.bold,
+    fontSize: 17,
+  },
   removeButton: {
     marginTop: 8,
     minHeight: 52,
