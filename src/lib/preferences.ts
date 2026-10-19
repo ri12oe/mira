@@ -7,6 +7,8 @@ import { authStorage } from "@/lib/session-storage";
  */
 
 export const ALERTS_CARD_DISMISSED = "mira.alertsCardDismissed";
+/** "Reminder sound" in the self Settings: "0" = off, anything else = on */
+export const REMINDER_SOUND = "mira.reminderSound";
 
 export function readPreference(key: string): string | null {
   try {

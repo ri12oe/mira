@@ -22,24 +22,28 @@ export const METHOD_LABELS: Record<CheckInMethod, string> = {
 const OPTIONS: {
   id: CheckInMethod;
   subtitle: string;
+  selfSubtitle: string;
   iconBg: string;
   icon: ReactNode;
 }[] = [
   {
     id: "text",
     subtitle: "Replies OK to a daily text",
+    selfSubtitle: "I reply OK to a daily text",
     iconBg: "#E7E4FB",
     icon: <MessageIcon size={22} />,
   },
   {
     id: "call",
     subtitle: "Presses 1 on a short call",
+    selfSubtitle: "I press 1 on a short call",
     iconBg: "#FFE8DB",
     icon: <PhoneIcon size={22} />,
   },
   {
     id: "app",
     subtitle: "Taps one button in the app",
+    selfSubtitle: "I tap one button in the app",
     iconBg: "#DDF3EE",
     icon: <PhoneSquareIcon size={22} />,
   },
@@ -52,6 +56,8 @@ type Props = {
   method: CheckInMethod;
   onChange: (method: CheckInMethod) => void;
   onClose: () => void;
+  /** Worded for someone choosing for themselves ("I tap…"), without the heads-up note */
+  self?: boolean;
 };
 
 /** Bottom sheet for changing how the person checks in. */
@@ -61,6 +67,7 @@ export function CheckInMethodSheet({
   method,
   onChange,
   onClose,
+  self = false,
 }: Props) {
   // The choice is only a draft until the user taps Save
   const [draft, setDraft] = useState<CheckInMethod>(method);
@@ -78,7 +85,7 @@ export function CheckInMethodSheet({
   return (
     <BottomSheet
       visible={visible}
-      title={name ? `How ${name} checks in` : "How they check in"}
+      title={self ? "How I check in" : name ? `How ${name} checks in` : "How they check in"}
       onClose={onClose}
     >
       <View style={styles.choices} accessibilityRole="radiogroup">
@@ -90,7 +97,7 @@ export function CheckInMethodSheet({
               onPress={() => setDraft(option.id)}
               accessibilityRole="radio"
               accessibilityState={{ checked: selected }}
-              accessibilityLabel={`${METHOD_LABELS[option.id]}. ${option.subtitle}`}
+              accessibilityLabel={`${METHOD_LABELS[option.id]}. ${self ? option.selfSubtitle : option.subtitle}`}
               style={({ pressed }) => [
                 styles.choice,
                 selected && styles.choiceSelected,
@@ -107,7 +114,7 @@ export function CheckInMethodSheet({
                   {METHOD_LABELS[option.id]}
                 </AppText>
                 <AppText style={styles.choiceSubtitle}>
-                  {option.subtitle}
+                  {self ? option.selfSubtitle : option.subtitle}
                 </AppText>
               </View>
               <Svg width={22} height={22} viewBox="0 0 22 22" fill="none">
@@ -127,6 +134,7 @@ export function CheckInMethodSheet({
           );
         })}
       </View>
+      {!self && (
       <View style={styles.note}>
         <Svg width={20} height={20} viewBox="0 0 20 20" fill="none">
           <Path
@@ -155,6 +163,7 @@ export function CheckInMethodSheet({
           We&apos;ll send {name} a short message so the change isn&apos;t a surprise.
         </AppText>
       </View>
+      )}
 
       <Pressable
         style={({ pressed }) => [styles.saveButton, pressed && styles.pressed]}

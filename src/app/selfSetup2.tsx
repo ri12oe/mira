@@ -5,7 +5,7 @@ import { SingleTimePicker } from "@/components/time-window-picker";
 import { FigtreeFont, FontFamily } from "@/constants/fonts";
 import { useCaregiverSetup } from "@/context/caregiver-setup";
 import { formatTime } from "@/utils/format-time";
-import { PeriodId, periodOf } from "@/utils/day-period";
+import { CHECK_IN_MINUTES, PeriodId, periodOf, windowEndFor } from "@/utils/day-period";
 import { router } from "expo-router";
 import { useState } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
@@ -28,9 +28,6 @@ const LILAC = "#E7E4FB";
 const SELECTED_BG = "#F1EFFD";
 const PURPLE = "#2D2A8C";
 const AMBER_BG = "#FFF3D1";
-
-// How long the person has to check in after the time they pick
-const CHECK_IN_MINUTES = 120;
 
 const PERIODS: {
   id: PeriodId;
@@ -56,10 +53,7 @@ export default function SelfSetup2() {
 
   // The window runs from the chosen time, kept inside the same day
   const setTime = (value: number) =>
-    update({
-      windowStart: value,
-      windowEnd: Math.min(value + CHECK_IN_MINUTES, 24 * 60 - 1),
-    });
+    update({ windowStart: value, windowEnd: windowEndFor(value) });
   const windowMinutes = Math.min(CHECK_IN_MINUTES, 24 * 60 - 1 - start);
   const windowText =
     windowMinutes === CHECK_IN_MINUTES ? "2 hours" : `${windowMinutes} minutes`;
