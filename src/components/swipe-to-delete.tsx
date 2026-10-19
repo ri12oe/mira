@@ -1,14 +1,12 @@
-import { ReactNode, useRef } from "react";
-import {
-    Animated,
-    PanResponder,
-    Pressable,
-    StyleSheet,
-    View,
-} from "react-native";
+import { ReactNode } from "react";
+import { Pressable, StyleSheet, View } from "react-native";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import Animated, { useAnimatedStyle, useSharedValue, withSpring } from "react-native-reanimated";
 import Svg, { Path } from "react-native-svg";
 
 const ACTION_WIDTH = 80;
+/** Settles without bouncing past the edge */
+const SPRING = { damping: 26, stiffness: 260, overshootClamping: true };
 
 type Props = {
   children: ReactNode;
@@ -17,33 +15,25 @@ type Props = {
 };
 
 export function SwipeToDelete({ children, onDelete, label }: Props) {
-  const x = useRef(new Animated.Value(0)).current;
-  const resting = useRef(0); // 0 = closed, -ACTION_WIDTH = open
+  // Shared values change during a swipe without re-rendering; .get()/.set()
+  // keep them friendly to the React Compiler (no refs needed).
+  const x = useSharedValue(0);
+  const resting = useSharedValue(0); // 0 = closed, -ACTION_WIDTH = open
+  const rowStyle = useAnimatedStyle(() => ({ transform: [{ translateX: x.get() }] }));
 
   const clamp = (v: number) => Math.min(Math.max(v, -ACTION_WIDTH), 0);
 
-  const settle = (to: number) => {
-    resting.current = to;
-    Animated.spring(x, {
-      toValue: to,
-      useNativeDriver: true,
-      bounciness: 0,
-    }).start();
-  };
-
-  const pan = useRef(
-    PanResponder.create({
-      // Only claim mostly-horizontal drags so taps and vertical scrolls still work.
-      onMoveShouldSetPanResponder: (_, g) =>
-        Math.abs(g.dx) > 8 && Math.abs(g.dx) > Math.abs(g.dy),
-      onPanResponderMove: (_, g) => x.setValue(clamp(resting.current + g.dx)),
-      onPanResponderRelease: (_, g) =>
-        settle(
-          clamp(resting.current + g.dx) < -ACTION_WIDTH / 2 ? -ACTION_WIDTH : 0,
-        ),
-      onPanResponderTerminate: () => settle(resting.current),
-    }),
-  ).current;
+  // Only mostly-horizontal swipes, so taps and vertical scrolls still work
+  const swipe = Gesture.Pan()
+    .runOnJS(true)
+    .activeOffsetX([-8, 8])
+    .failOffsetY([-10, 10])
+    .onUpdate((e) => x.set(clamp(resting.get() + e.translationX)))
+    .onEnd((e, success) => {
+      const to = success && clamp(resting.get() + e.translationX) < -ACTION_WIDTH / 2 ? -ACTION_WIDTH : 0;
+      resting.set(success ? to : resting.get());
+      x.set(withSpring(resting.get(), SPRING));
+    });
 
   return (
     <View style={styles.container}>
@@ -63,16 +53,17 @@ export function SwipeToDelete({ children, onDelete, label }: Props) {
           />
         </Svg>
       </Pressable>
-      <Animated.View
-        style={[styles.row, { transform: [{ translateX: x }] }]}
-        accessibilityActions={[{ name: "delete", label: `Delete ${label}` }]}
-        onAccessibilityAction={(e) => {
-          if (e.nativeEvent.actionName === "delete") onDelete();
-        }}
-        {...pan.panHandlers}
-      >
-        {children}
-      </Animated.View>
+      <GestureDetector gesture={swipe}>
+        <Animated.View
+          style={[styles.row, rowStyle]}
+          accessibilityActions={[{ name: "delete", label: `Delete ${label}` }]}
+          onAccessibilityAction={(e) => {
+            if (e.nativeEvent.actionName === "delete") onDelete();
+          }}
+        >
+          {children}
+        </Animated.View>
+      </GestureDetector>
     </View>
   );
 }

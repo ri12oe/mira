@@ -21,7 +21,9 @@ import { formatClock } from "@/utils/local-date";
 import { toE164 } from "@/utils/phone";
 import { router, useLocalSearchParams } from "expo-router";
 import { ReactNode, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
+import { Pressable, StyleSheet, TextInput, View } from "react-native";
+// Gesture Handler's ScrollView coordinates with the drag/swipe gestures inside it
+import { ScrollView } from "react-native-gesture-handler";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
 

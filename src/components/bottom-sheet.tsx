@@ -9,11 +9,12 @@ import {
   PanResponder,
   Platform,
   Pressable,
-  ScrollView,
   StyleSheet,
   useWindowDimensions,
   View,
 } from "react-native";
+// Gesture Handler's ScrollView coordinates with the drag/swipe gestures inside it
+import { GestureHandlerRootView, ScrollView } from "react-native-gesture-handler";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
 
@@ -98,6 +99,8 @@ export function BottomSheet({ visible, title, subtitle, onClose, children, keybo
     // animationType="none": we animate the overlay and the sheet ourselves.
     // ("slide" moved the dark overlay up together with the sheet.)
     <Modal visible={shown} transparent animationType="none" onRequestClose={onClose}>
+      {/* A Modal is its own window on Android, so gestures need their own root here */}
+      <GestureHandlerRootView style={styles.gestureRoot}>
       {/* 1. Dark overlay: tapping it closes the sheet */}
       <Animated.View style={[styles.scrim, { opacity: scrimOpacity }]}>
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityLabel="Close" />
@@ -152,11 +155,15 @@ export function BottomSheet({ visible, title, subtitle, onClose, children, keybo
           </ScrollView>
         </Animated.View>
       </KeyboardAvoidingView>
+      </GestureHandlerRootView>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
+  gestureRoot: {
+    flex: 1,
+  },
   scrim: {
     ...StyleSheet.absoluteFill,
     backgroundColor: "rgba(21, 22, 58, 0.45)",

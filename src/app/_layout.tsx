@@ -16,6 +16,8 @@ import {
 } from "@expo-google-fonts/figtree";
 import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
+import { StyleSheet } from "react-native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import * as SplashScreen from "expo-splash-screen";
 import { useEffect } from "react";
 
@@ -45,13 +47,22 @@ export default function RootLayout() {
   });
 
   return (
-    <AuthProvider>
-      <CaregiverSetupProvider>
-        <RootStack fontsReady={loaded || !!error} />
-      </CaregiverSetupProvider>
-    </AuthProvider>
+    // Needed by react-native-gesture-handler (drag handles, sliders, swipe to delete)
+    <GestureHandlerRootView style={styles.root}>
+      <AuthProvider>
+        <CaregiverSetupProvider>
+          <RootStack fontsReady={loaded || !!error} />
+        </CaregiverSetupProvider>
+      </AuthProvider>
+    </GestureHandlerRootView>
   );
 }
+
+const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+  },
+});
 
 function RootStack({ fontsReady }: { fontsReady: boolean }) {
   const { session, isLoading } = useAuth();

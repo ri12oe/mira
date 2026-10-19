@@ -4,7 +4,6 @@ import { useScreenScale } from "@/hooks/use-screen-scale";
 import { router } from "expo-router";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import Svg, { Path } from "react-native-svg";
 import ArrowLeftIcon from "../components/icons/ArrowLeftIcon";
 import HeartIcon from "../components/icons/HeartIcon";
 import ArrowRightIcon from "../components/icons/ArrowRightIcon";
@@ -12,7 +11,6 @@ import CheckCircleIcon from "../components/icons/CheckCircleIcon";
 import LockIcon from "../components/icons/LockIcon";
 const INK = "#15163A";
 const SUBTITLE = "#54566E";
-const PRIMARY = "#4338CA";
 const BACKGROUND = "#F5F4FA";
 const BORDERCOLOR = "#E6E4EF";
 const MINT = "#DDF3EE";
@@ -61,7 +59,7 @@ export default function WhoUsesMira() {
               </View>
               <View style={styles.optionButtonLabel}>
                 <AppText style={styles.optionButtonLabelHeader}>
-                  I'm a caregiver
+                  I&apos;m a caregiver
                 </AppText>
                 <AppText style={styles.optionButtonLabelBody}>
                   Set up Mira for someone I look after
@@ -82,7 +80,7 @@ export default function WhoUsesMira() {
               </View>
               <View style={styles.optionButtonLabel}>
                 <AppText style={styles.optionButtonLabelHeader}>
-                  I'm checking in
+                  I&apos;m checking in
                 </AppText>
                 <AppText style={styles.optionButtonLabelBody}>
                   Use Mira for myself

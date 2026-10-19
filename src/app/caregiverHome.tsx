@@ -56,11 +56,12 @@ import { useState } from "react";
 import {
   Alert,
   Pressable,
-  ScrollView,
   StyleSheet,
   TextInput,
   View,
 } from "react-native";
+// Gesture Handler's ScrollView coordinates with the drag/swipe gestures inside it
+import { ScrollView } from "react-native-gesture-handler";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
 const INK = "#15163A";

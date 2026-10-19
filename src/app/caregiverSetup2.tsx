@@ -27,7 +27,6 @@ const GREEN = "#075E4F";
 const SUN = "#FFE8DB";
 const SURFACE = "#DCD9E8";
 const LILAC = "#E7E4FB";
-const MUTED = "#8B8DA3";
 
 export default function CaregiverSetup2() {
   const goBack = () => {
@@ -166,11 +165,11 @@ export default function CaregiverSetup2() {
         </View>
         <View style={styles.buttons}>
           <Pressable
-            disabled={days.length === 0}
+            disabled={days.length === 0 || !isValid}
             style={({ pressed }) => [
               styles.nextButton,
               pressed && styles.pressed,
-              days.length === 0 && styles.disabled,
+              (days.length === 0 || !isValid) && styles.disabled,
             ]}
             accessibilityLabel="Next"
             accessibilityRole="button"

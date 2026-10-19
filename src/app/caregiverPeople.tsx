@@ -20,7 +20,9 @@ import { formatTimeShort, formatTimeRange } from "@/utils/format-time-short";
 import { dayIndex, localDateKey, localMinutes } from "@/utils/local-date";
 import { router } from "expo-router";
 import { useState } from "react";
-import { Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { Pressable, StyleSheet, View } from "react-native";
+// Gesture Handler's ScrollView coordinates with the drag/swipe gestures inside it
+import { ScrollView } from "react-native-gesture-handler";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
 

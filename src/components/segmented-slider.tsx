@@ -1,12 +1,16 @@
 import { AppText } from "@/components/app-test";
 import { FigtreeFont } from "@/constants/fonts";
-import { ReactNode, useEffect, useRef, useState } from "react";
-import { Animated, PanResponder, StyleSheet, View } from "react-native";
+import { ReactNode, useEffect, useState } from "react";
+import { StyleSheet, View } from "react-native";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import Animated, { useAnimatedStyle, useSharedValue, withSpring } from "react-native-reanimated";
 
 const PADDING = 4;
 const HEIGHT = 45;
 const SELECTED_COLOR = "#4338CA";
 const IDLE_COLOR = "#54566E";
+/** A gentle settle with almost no bounce (Reduce motion is respected by Reanimated) */
+const SPRING = { damping: 20, stiffness: 220 };
 
 type Option<T> = {
   label: string;
@@ -39,52 +43,44 @@ export function SegmentedSlider<T extends string | number>({
     options.findIndex((o) => o.value === value),
   );
 
-  const x = useRef(new Animated.Value(0)).current;
-  const startTouchX = useRef(0);
+  // Where the white thumb is. A shared value can change during a drag without
+  // re-rendering, and .get()/.set() keep it friendly to the React Compiler.
+  const x = useSharedValue(0);
+  const thumbStyle = useAnimatedStyle(() => ({ transform: [{ translateX: x.get() }] }));
 
-  // PanResponder is created once, so it reads current values through this ref.
-  const live = useRef({ segWidth, options, onChange, selectedIndex });
-  live.current = { segWidth, options, onChange, selectedIndex };
-
-  const snapTo = (index: number) => {
-    Animated.spring(x, {
-      toValue: index * live.current.segWidth,
-      useNativeDriver: true,
-      bounciness: 4,
-    }).start();
-  };
-
+  // Follow the selected option (and the track's width once it's measured)
   useEffect(() => {
-    snapTo(selectedIndex);
-  }, [selectedIndex, segWidth]);
+    x.set(withSpring(selectedIndex * segWidth, SPRING));
+  }, [x, selectedIndex, segWidth]);
 
   // Thumb offset that centers it under the finger, clamped to the track.
   const thumbX = (touchX: number) => {
-    const { segWidth, options } = live.current;
     const raw = touchX - PADDING - segWidth / 2;
     return Math.min(Math.max(raw, 0), segWidth * (options.length - 1));
   };
+  const choose = (touchX: number) => {
+    if (segWidth === 0) return;
+    const index = Math.round(thumbX(touchX) / segWidth);
+    x.set(withSpring(index * segWidth, SPRING));
+    onChange(options[index].value);
+  };
 
-  const pan = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onPanResponderGrant: (e) => {
-        startTouchX.current = e.nativeEvent.locationX;
-        x.setValue(thumbX(startTouchX.current));
-      },
-      onPanResponderMove: (_, g) => {
-        x.setValue(thumbX(startTouchX.current + g.dx));
-      },
-      onPanResponderRelease: (_, g) => {
-        const { segWidth, options, onChange } = live.current;
-        if (segWidth === 0) return;
-        const index = Math.round(thumbX(startTouchX.current + g.dx) / segWidth);
-        snapTo(index);
-        onChange(options[index].value);
-      },
-      onPanResponderTerminate: () => snapTo(live.current.selectedIndex),
-    }),
-  ).current;
+  // Built on every render, so they always use the latest options and onChange.
+  // Sideways drags move the thumb; up/down movement is left to the page scroll.
+  const drag = Gesture.Pan()
+    .runOnJS(true)
+    .activeOffsetX([-6, 6])
+    .failOffsetY([-12, 12])
+    .onUpdate((e) => x.set(thumbX(e.x)))
+    .onEnd((e, success) => {
+      if (success) choose(e.x);
+      else x.set(withSpring(selectedIndex * segWidth, SPRING));
+    });
+  const tap = Gesture.Tap()
+    .runOnJS(true)
+    .onEnd((e, success) => {
+      if (success) choose(e.x);
+    });
 
   const step = (delta: number) => {
     const next = Math.min(
@@ -95,39 +91,37 @@ export function SegmentedSlider<T extends string | number>({
   };
 
   return (
-    <View
-      style={[styles.track, backgroundColor ? { backgroundColor } : null]}
-      onLayout={(e) => setWidth(e.nativeEvent.layout.width)}
-      accessibilityRole="adjustable"
-      accessibilityValue={{ text: options[selectedIndex].label }}
-      accessibilityActions={[{ name: "increment" }, { name: "decrement" }]}
-      onAccessibilityAction={(e) =>
-        step(e.nativeEvent.actionName === "increment" ? 1 : -1)
-      }
-      {...pan.panHandlers}
-    >
-      <Animated.View
-        pointerEvents="none"
-        style={[
-          styles.thumb,
-          { width: segWidth, height, transform: [{ translateX: x }] },
-        ]}
-      />
-      {options.map((option, i) => (
-        <View
-          key={String(option.value)}
-          style={[styles.segment, { height }]}
+    <GestureDetector gesture={Gesture.Race(drag, tap)}>
+      <View
+        style={[styles.track, backgroundColor ? { backgroundColor } : null]}
+        onLayout={(e) => setWidth(e.nativeEvent.layout.width)}
+        accessibilityRole="adjustable"
+        accessibilityValue={{ text: options[selectedIndex].label }}
+        accessibilityActions={[{ name: "increment" }, { name: "decrement" }]}
+        onAccessibilityAction={(e) =>
+          step(e.nativeEvent.actionName === "increment" ? 1 : -1)
+        }
+      >
+        <Animated.View
           pointerEvents="none"
-        >
-          {option.icon?.(i === selectedIndex ? SELECTED_COLOR : IDLE_COLOR)}
-          <AppText
-            style={[styles.label, i === selectedIndex && styles.labelSelected]}
+          style={[styles.thumb, { width: segWidth, height }, thumbStyle]}
+        />
+        {options.map((option, i) => (
+          <View
+            key={String(option.value)}
+            style={[styles.segment, { height }]}
+            pointerEvents="none"
           >
-            {option.label}
-          </AppText>
-        </View>
-      ))}
-    </View>
+            {option.icon?.(i === selectedIndex ? SELECTED_COLOR : IDLE_COLOR)}
+            <AppText
+              style={[styles.label, i === selectedIndex && styles.labelSelected]}
+            >
+              {option.label}
+            </AppText>
+          </View>
+        ))}
+      </View>
+    </GestureDetector>
   );
 }
 
