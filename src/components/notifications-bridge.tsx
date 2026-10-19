@@ -5,6 +5,7 @@ import { useEffect, useRef } from "react";
 import { useAuth } from "@/context/auth";
 import { PRIMARY_PERSON_ID, useCaregiverSetup } from "@/context/caregiver-setup";
 import { loadNotifications } from "@/lib/notifications-module";
+import { REMINDER_SOUND, readPreference } from "@/lib/preferences";
 import { alertsPermission, alertsUnavailableReason, registerThisPhone } from "@/lib/push";
 
 /** The last alert we already opened, so it isn't handled twice */
@@ -46,14 +47,19 @@ function ActiveNotificationsBridge() {
     const Notifications = loadNotifications();
     if (!Notifications || !userId) return;
 
-    // While the app is open, still show alerts as a banner with a sound
+    // While the app is open, still show alerts as a banner with a sound.
+    // A self user's daily reminder follows their "Reminder sound" setting.
+    // (When the app is closed, the phone plays the sound itself.)
     Notifications.setNotificationHandler({
-      handleNotification: async () => ({
-        shouldShowBanner: true,
-        shouldShowList: true,
-        shouldPlaySound: true,
-        shouldSetBadge: false,
-      }),
+      handleNotification: async (notification) => {
+        const isReminder = notification.request.content.data?.type === "check_in";
+        return {
+          shouldShowBanner: true,
+          shouldShowList: true,
+          shouldPlaySound: !(isReminder && readPreference(REMINDER_SOUND) === "0"),
+          shouldSetBadge: false,
+        };
+      },
     });
 
     const open = (response: NotificationResponse) => {

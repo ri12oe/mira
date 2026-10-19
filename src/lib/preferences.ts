@@ -7,6 +7,8 @@ import { authStorage } from "@/lib/session-storage";
  */
 
 export const ALERTS_CARD_DISMISSED = "mira.alertsCardDismissed";
+/** Self Home: they tapped "Not now" on the "Turn on reminders" card */
+export const REMINDERS_CARD_DISMISSED = "mira.remindersCardDismissed";
 /** "Reminder sound" in the self Settings: "0" = off, anything else = on */
 export const REMINDER_SOUND = "mira.reminderSound";
 

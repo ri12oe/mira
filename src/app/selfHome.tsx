@@ -1,4 +1,7 @@
+import { AlertsCard } from "@/components/alerts-prompt";
 import { AppText } from "@/components/app-test";
+import { useAlerts } from "@/hooks/use-alerts";
+import { REMINDERS_CARD_DISMISSED, readPreference, writePreference } from "@/lib/preferences";
 import { BottomSheet } from "@/components/bottom-sheet";
 import { SelfTabBar } from "@/components/caregiver-tab-bar";
 import { SyncBanner } from "@/components/sync-banner";
@@ -81,6 +84,16 @@ export default function SelfHome() {
       };
     }, [takerId, applyBackupConfirmations]),
   );
+
+  // The daily reminder is a push to this phone: a card until it's on (or "Not now")
+  const reminders = useAlerts();
+  const [remindersCardDismissed, setRemindersCardDismissed] = useState(
+    () => readPreference(REMINDERS_CARD_DISMISSED) === "1",
+  );
+  const dismissRemindersCard = () => {
+    writePreference(REMINDERS_CARD_DISMISSED, "1");
+    setRemindersCardDismissed(true);
+  };
 
   // Re-check the clock every 30 seconds so "late" and a new day show up on their own
   const [now, setNow] = useState(() => new Date());
@@ -195,6 +208,20 @@ export default function SelfHome() {
         showsVerticalScrollIndicator={false}
       >
         <SyncBanner />
+        {(reminders.status === "off" || reminders.status === "denied") &&
+          !remindersCardDismissed && (
+            <View style={styles.remindersCard}>
+              <AlertsCard
+                self
+                status={reminders.status}
+                busy={reminders.busy}
+                problem={reminders.problem}
+                onTurnOn={reminders.turnOn}
+                onDismiss={dismissRemindersCard}
+                name={yourFirstName}
+              />
+            </View>
+          )}
         <View style={styles.header}>
           <View style={styles.headerText}>
             <AppText style={styles.date}>{dateLabel}</AppText>
@@ -425,6 +452,9 @@ const styles = StyleSheet.create({
     fontSize: 30,
     lineHeight: 34,
     letterSpacing: -0.6,
+  },
+  remindersCard: {
+    marginTop: 8,
   },
   checkInProblem: {
     marginTop: 12,

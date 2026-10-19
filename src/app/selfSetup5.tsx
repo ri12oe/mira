@@ -1,5 +1,7 @@
 import { AllSetHero } from "@/components/all-set-hero";
+import { AlertsCard } from "@/components/alerts-prompt";
 import { AppText } from "@/components/app-test";
+import { useAlerts } from "@/hooks/use-alerts";
 import { Rise } from "@/components/rise";
 import { FigtreeFont, FontFamily } from "@/constants/fonts";
 import { CheckInMethod, useCaregiverSetup } from "@/context/caregiver-setup";
@@ -61,6 +63,9 @@ export default function SelfSetup5() {
   const names = backups.map((b) => b.name);
   const told = joinNames(names) || "Your backup";
   const [inviteState, setInviteState] = useState<InviteState>("sending");
+  // The daily "Time to check in" is a push to this phone: ask here, now
+  // that they're signed in (the phone's own prompt only shows on the tap)
+  const reminders = useAlerts();
 
   // Setup is saved by now (the code screen waited for it), so the backups
   // exist on the server. Invite each one once; the ref stops React's
@@ -147,6 +152,18 @@ export default function SelfSetup5() {
           <AppText style={styles.note} accessibilityLiveRegion="polite">
             {note}
           </AppText>
+          {reminders.status !== "checking" && (
+            <View style={styles.reminders}>
+              <AlertsCard
+                self
+                status={reminders.status}
+                busy={reminders.busy}
+                problem={reminders.problem}
+                onTurnOn={reminders.turnOn}
+                name={yourFirstName}
+              />
+            </View>
+          )}
           <View style={styles.buttons}>
             <Pressable
               style={({ pressed }) => [
@@ -268,6 +285,9 @@ const styles = StyleSheet.create({
     fontFamily: FigtreeFont.medium,
     fontSize: 16,
     lineHeight: 24,
+  },
+  reminders: {
+    marginTop: 20,
   },
   buttons: {
     marginTop: 32,

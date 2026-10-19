@@ -30,10 +30,38 @@ type Props = {
   onTurnOn: () => void;
   /** Who it's about, for the wording ("if Lin misses a check-in") */
   name: string;
+  /**
+   * Someone using Mira for themselves: the same push, but it's their daily
+   * reminder to check in, so it's called "reminders"
+   */
+  self?: boolean;
 };
 
 /** The words for each situation, shared by the sheet and the Home card */
-function describe(status: AlertsStatus, name: string) {
+function describe(status: AlertsStatus, name: string, self = false) {
+  if (self) {
+    switch (status) {
+      case "on":
+        return { title: "Reminders are on", body: "Each day this phone reminds you when it's time to check in." };
+      case "denied":
+        return {
+          title: "Reminders are blocked",
+          body: "Notifications for Mira are turned off in your phone's settings. Turn them on there so Mira can remind you.",
+        };
+      case "needsBuild":
+        return {
+          title: "Reminders need the Mira app",
+          body: "Expo Go can't receive reminders. Open Mira's own test app (the development build) to turn them on.",
+        };
+      case "unsupported":
+        return { title: "No reminders on this device", body: "This device can't receive notifications." };
+      default:
+        return {
+          title: "Turn on reminders",
+          body: "So Mira can remind you each day when it's time to check in. Without them, you'll need to remember to open Mira.",
+        };
+    }
+  }
   const who = name.trim() || "someone";
   switch (status) {
     case "on":
@@ -57,7 +85,7 @@ function describe(status: AlertsStatus, name: string) {
 
 /** Home's bell: what alerts do, and the button to turn them on */
 export function AlertsSheet({ visible, onClose, ...props }: Props & { visible: boolean; onClose: () => void }) {
-  const { title, body } = describe(props.status, props.name);
+  const { title, body } = describe(props.status, props.name, props.self);
   return (
     <BottomSheet visible={visible} title={title} onClose={onClose}>
       <AppText style={styles.body}>{body}</AppText>
@@ -66,9 +94,13 @@ export function AlertsSheet({ visible, onClose, ...props }: Props & { visible: b
   );
 }
 
-/** The one-time card on Home, until alerts are on or you tap "Not now" */
-export function AlertsCard({ onDismiss, ...props }: Props & { onDismiss: () => void }) {
-  const { title, body } = describe(props.status, props.name);
+/**
+ * The one-time card on Home, until alerts are on or you tap "Not now".
+ * Without `onDismiss` there's no "Not now" (e.g. at the end of setup, where
+ * the next button already is the "not now").
+ */
+export function AlertsCard({ onDismiss, ...props }: Props & { onDismiss?: () => void }) {
+  const { title, body } = describe(props.status, props.name, props.self);
   return (
     <View style={styles.card} accessibilityRole="summary">
       <View style={styles.cardTop}>
@@ -81,19 +113,22 @@ export function AlertsCard({ onDismiss, ...props }: Props & { onDismiss: () => v
         </View>
       </View>
       <AlertsActions {...props} />
-      <Pressable
-        style={({ pressed }) => [styles.notNow, pressed && styles.pressed]}
-        onPress={onDismiss}
-        accessibilityRole="button"
-        accessibilityLabel="Not now"
-      >
-        <AppText style={styles.notNowText}>Not now</AppText>
-      </Pressable>
+      {onDismiss && (
+        <Pressable
+          style={({ pressed }) => [styles.notNow, pressed && styles.pressed]}
+          onPress={onDismiss}
+          accessibilityRole="button"
+          accessibilityLabel="Not now"
+        >
+          <AppText style={styles.notNowText}>Not now</AppText>
+        </Pressable>
+      )}
     </View>
   );
 }
 
-function AlertsActions({ status, busy, problem, onTurnOn }: Props) {
+function AlertsActions({ status, busy, problem, onTurnOn, self }: Props) {
+  const thing = self ? "reminders" : "alerts";
   return (
     <View style={styles.actions}>
       {problem && problem !== "denied" && (
@@ -110,7 +145,7 @@ function AlertsActions({ status, busy, problem, onTurnOn }: Props) {
           accessibilityState={{ busy, disabled: busy }}
         >
           {busy && <ActivityIndicator color="#fff" />}
-          <AppText style={styles.buttonText}>Turn on alerts</AppText>
+          <AppText style={styles.buttonText}>Turn on {thing}</AppText>
         </Pressable>
       )}
       {status === "denied" && (
@@ -124,7 +159,7 @@ function AlertsActions({ status, busy, problem, onTurnOn }: Props) {
       )}
       {status === "on" && (
         <View style={styles.onRow}>
-          <AppText style={styles.onText}>✓ This phone gets alerts</AppText>
+          <AppText style={styles.onText}>✓ This phone gets {thing}</AppText>
         </View>
       )}
     </View>

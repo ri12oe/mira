@@ -1,4 +1,7 @@
+import { AlertsSheet } from "@/components/alerts-prompt";
 import { AppText } from "@/components/app-test";
+import BellIcon from "@/components/icons/BellIcon";
+import { AlertsStatus, useAlerts } from "@/hooks/use-alerts";
 import { BottomSheet } from "@/components/bottom-sheet";
 import { SelfTabBar } from "@/components/caregiver-tab-bar";
 import ArrowRightIcon from "@/components/icons/ArrowRightIcon";
@@ -39,9 +42,20 @@ function Tile({ background, children }: { background: string; children: ReactNod
   return <View style={[styles.tile, { backgroundColor: background }]}>{children}</View>;
 }
 
+/** How the Reminders row reads */
+const REMINDERS_VALUE: Record<AlertsStatus, string> = {
+  checking: "…",
+  on: "On",
+  off: "Off",
+  denied: "Blocked",
+  needsBuild: "Off",
+  unsupported: "Off",
+};
+
 export default function SelfSetting() {
   const { windowStart, paused, update, reset } = useCaregiverSetup();
-  const [sheet, setSheet] = useState<null | "time">(null);
+  const [sheet, setSheet] = useState<null | "time" | "reminders">(null);
+  const reminders = useAlerts();
   const [bigger, setBigger] = useState(isBiggerText);
   const [reminderSound, setReminderSound] = useState(
     () => readPreference(REMINDER_SOUND) !== "0",
@@ -97,6 +111,20 @@ export default function SelfSetting() {
               <AppText style={styles.rowText}>How I check in</AppText>
               <AppText style={styles.rowValue}>This app</AppText>
             </View>
+            {/* The daily "Time to check in" push to this phone */}
+            <Pressable
+              style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
+              onPress={() => setSheet("reminders")}
+              accessibilityRole="button"
+              accessibilityLabel={`Reminders, ${REMINDERS_VALUE[reminders.status]}`}
+            >
+              <Tile background={LILAC}>
+                <BellIcon size={20} color={PRIMARY} />
+              </Tile>
+              <AppText style={styles.rowText}>Reminders</AppText>
+              <AppText style={styles.rowValue}>{REMINDERS_VALUE[reminders.status]}</AppText>
+              <ArrowRightIcon size={18} />
+            </Pressable>
             <View style={styles.rowLast}>
               <Tile background={AMBER_BG}>
                 <Svg width={20} height={20} viewBox="0 0 20 20" fill="none">
@@ -111,7 +139,7 @@ export default function SelfSetting() {
               <View style={styles.rowFrame}>
                 <AppText style={styles.rowText2}>Take a break</AppText>
                 <AppText style={styles.rowValue2}>
-                  Going away? We won&apos;t send alerts.
+                  Going away? We won&apos;t ask you or tell anyone.
                 </AppText>
               </View>
               <ToggleSwitch
@@ -257,6 +285,16 @@ export default function SelfSetting() {
         </Pressable>
       </BottomSheet>
 
+      <AlertsSheet
+        self
+        visible={sheet === "reminders"}
+        onClose={() => setSheet(null)}
+        status={reminders.status}
+        busy={reminders.busy}
+        problem={reminders.problem}
+        onTurnOn={reminders.turnOn}
+        name=""
+      />
     </SafeAreaView>
   );
 }

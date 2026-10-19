@@ -32,8 +32,8 @@ async function ensureAlertsChannel() {
   const Notifications = loadNotifications();
   if (!Notifications || Platform.OS !== "android") return;
   await Notifications.setNotificationChannelAsync(ALERTS_CHANNEL, {
-    name: "Check-in alerts",
-    description: "When someone you look after misses a check-in, or checks in late",
+    name: "Check-ins and alerts",
+    description: "Reminders to check in, and alerts when someone misses a check-in",
     importance: Notifications.AndroidImportance.MAX,
     // No `sound`: here it means a custom sound file. Left out, the channel uses
     // the phone's normal notification sound.
