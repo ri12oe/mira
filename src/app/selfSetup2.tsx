@@ -187,7 +187,7 @@ export default function SelfSetup2() {
             ]}
             accessibilityLabel="Next"
             accessibilityRole="button"
-            onPress={() => router.push("/caregiverSetup3")}
+            onPress={() => router.push("/selfSetup3")}
           >
             <AppText style={styles.nextButtonText}>Next</AppText>
           </Pressable>

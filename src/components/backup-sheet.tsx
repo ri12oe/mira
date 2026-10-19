@@ -28,16 +28,22 @@ type Props = {
   /** The backup being edited, or null to add a new one */
   backup: Backup | null;
   onSave: (backup: Omit<Backup, "id">) => void;
+  /** Wording for someone setting Mira up for themselves ("They are your…") */
+  self?: boolean;
+  /** Shows a Remove button when editing an existing backup */
+  onDelete?: () => void;
 };
 
 type FormProps = {
   recipientName: string;
   backup: Backup | null;
   onSave: (backup: Omit<Backup, "id">) => void;
+  self?: boolean;
+  onDelete?: () => void;
 };
 
 // Rendered only while the sheet is open, so each opening starts from `backup` (or a blank form)
-function BackupForm({ recipientName, backup, onSave }: FormProps) {
+function BackupForm({ recipientName, backup, onSave, self, onDelete }: FormProps) {
   const [name, setName] = useState(backup?.name ?? "");
   const [phone, setPhone] = useState(backup?.phone ?? "");
   const [relationship, setRelationship] = useState(backup?.relationship ?? "");
@@ -93,7 +99,7 @@ function BackupForm({ recipientName, backup, onSave }: FormProps) {
       </View>
       <View style={styles.relationship}>
         <AppText style={styles.headerText}>
-          They are {recipientName}&apos;s
+          {self ? "They are your" : `They are ${recipientName}'s`}
         </AppText>
         <View style={styles.chips}>
           {RELATIONSHIPS.map((option) => (
@@ -147,6 +153,16 @@ function BackupForm({ recipientName, backup, onSave }: FormProps) {
       >
         <AppText style={styles.saveButtonText}>Add backup</AppText>
       </Pressable>
+      {backup && onDelete ? (
+        <Pressable
+          onPress={onDelete}
+          accessibilityRole="button"
+          accessibilityLabel={`Remove ${backup.name}`}
+          style={styles.removeButton}
+        >
+          <AppText style={styles.removeButtonText}>Remove</AppText>
+        </Pressable>
+      ) : null}
     </View>
   );
 }
@@ -158,18 +174,26 @@ export function BackupSheet({
   recipientName,
   backup,
   onSave,
+  self,
+  onDelete,
 }: Props) {
   return (
     <BottomSheet
       visible={visible}
       title={backup ? "Edit backup contact" : "Add a backup contact"}
-      subtitle={`If ${recipientName} misses a check-in and you don't respond, we'll tell them.`}
+      subtitle={
+        self
+          ? "If you miss a check-in and don't respond, we'll tell them."
+          : `If ${recipientName} misses a check-in and you don't respond, we'll tell them.`
+      }
       onClose={onClose}
     >
       <BackupForm
         recipientName={recipientName}
         backup={backup}
         onSave={onSave}
+        self={self}
+        onDelete={onDelete}
       />
     </BottomSheet>
   );
@@ -241,6 +265,17 @@ const styles = StyleSheet.create({
   },
   saveButtonDisabled: {
     opacity: 0.45,
+  },
+  removeButton: {
+    height: 48,
+    alignSelf: "stretch",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  removeButtonText: {
+    color: "#8C1D18",
+    fontFamily: FigtreeFont.extraBold,
+    fontSize: 17,
   },
   saveButtonText: {
     color: "#fff",
