@@ -7,7 +7,8 @@ import { SelfCheckInCard } from "@/components/self-check-in-card";
 import { FigtreeFont, FontFamily } from "@/constants/fonts";
 import { Backup, useCaregiverSetup } from "@/context/caregiver-setup";
 import { backupConfirmations, openMessages } from "@/lib/invites";
-import { loadSelfCheckIns, recordSelfCheckIn } from "@/lib/self-check-ins";
+import { checkInMyself } from "@/lib/check-ins";
+import { useTakerActivity } from "@/hooks/use-taker-activity";
 import { avatarColors } from "@/utils/avatar-colors";
 import { joinNames } from "@/utils/day-period";
 import { localDateKey, localMinutes } from "@/utils/local-date";
@@ -47,6 +48,13 @@ function HelpIcon() {
   );
 }
 
+/**
+ * The last "I'm okay" saved from this phone. Kept outside the screen, so
+ * leaving Home before the server's copy has loaded doesn't bring the button
+ * back for a moment. (Only ever set once the server has said it counted.)
+ */
+let lastTap: { takerId: string; day: string; minutes: number } | null = null;
+
 export default function SelfHome() {
   const {
     yourFirstName,
@@ -82,22 +90,57 @@ export default function SelfHome() {
   }, []);
 
   const todayKey = localDateKey(now, timeZone);
-  const [record, setRecord] = useState(() =>
-    loadSelfCheckIns(localDateKey(new Date(), timeZone)),
-  );
-  // A check-in only counts for the day it was made
-  const checkedInMinutes = record.days[todayKey]?.minutes ?? null;
-  const late = checkedInMinutes === null && localMinutes(now, timeZone) >= windowEnd;
 
-  const checkInNow = () => {
+  // Today's check-in from the server (this week; refreshes live)
+  const { activity, failed, reload } = useTakerActivity(takerId, timeZone, { kind: "week" });
+  // Only the very first load (nothing remembered yet); if it fails, show the
+  // button anyway: a tap still goes to the server, which knows best
+  const loading = !activity && !failed;
+  const today = activity?.checkIns.find((c) => c.local_date === todayKey);
+  const savedMinutes = today?.responded_at
+    ? localMinutes(new Date(today.responded_at), timeZone)
+    : null;
+
+  // The tap shows straight away; it's undone if the server couldn't save it
+  const [tapped, setTapped] = useState<{ day: string; minutes: number } | null>(() =>
+    lastTap?.takerId === takerId ? lastTap : null,
+  );
+  const [saving, setSaving] = useState(false);
+  const [checkInProblem, setCheckInProblem] = useState<string | null>(null);
+  // A check-in only counts for the day it was made
+  const checkedInMinutes =
+    savedMinutes ?? (tapped?.day === todayKey ? tapped.minutes : null);
+  const late =
+    checkedInMinutes === null &&
+    !paused &&
+    (today?.status === "missed" || localMinutes(now, timeZone) >= windowEnd);
+
+  const checkInNow = async () => {
+    if (saving) return;
     const at = new Date();
-    setRecord((current) =>
-      recordSelfCheckIn(
-        current,
-        localDateKey(at, timeZone),
-        localMinutes(at, timeZone),
-        windowEnd,
-      ),
+    const tap = { day: localDateKey(at, timeZone), minutes: localMinutes(at, timeZone) };
+    setTapped(tap);
+    setSaving(true);
+    setCheckInProblem(null);
+    const result = await checkInMyself();
+    setSaving(false);
+    if (result === "recorded" || result === "already") {
+      lastTap = { takerId, ...tap };
+      reload();
+      return;
+    }
+    // Not counted: put the button back and say why, in plain words
+    setTapped(null);
+    setCheckInProblem(
+      result === "notToday"
+        ? "Today isn't one of your check-in days, so there's nothing to do. See you next time!"
+        : result === "paused"
+          ? "You're taking a break, so there's nothing to check in for. You can turn the break off in Settings."
+          : result === "nothingOpen"
+            ? "There's no check-in waiting right now."
+            : result === "offline"
+              ? "We couldn't save your check-in. Check that you're online, then tap I'm okay again."
+              : "Something went wrong saving your check-in. Please tap I'm okay again.",
     );
   };
 
@@ -171,7 +214,19 @@ export default function SelfHome() {
           told={names.length ? joinNames(names) : null}
           nextLabel={nextLabel}
           onCheckIn={checkInNow}
+          paused={paused}
+          onOpenSettings={() => router.replace("/selfSetting")}
+          loading={loading && tapped === null}
         />
+        {checkInProblem && (
+          <AppText
+            style={[styles.problem, styles.checkInProblem]}
+            accessibilityRole="alert"
+            accessibilityLiveRegion="polite"
+          >
+            {checkInProblem}
+          </AppText>
+        )}
 
         {/* Check-ins still run, but a miss would reach nobody yet */}
         {!paused && names.length === 0 && (
@@ -370,6 +425,9 @@ const styles = StyleSheet.create({
     fontSize: 30,
     lineHeight: 34,
     letterSpacing: -0.6,
+  },
+  checkInProblem: {
+    marginTop: 12,
   },
   warning: {
     marginTop: 16,

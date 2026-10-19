@@ -4,7 +4,7 @@ import { Rise } from "@/components/rise";
 import { FigtreeFont, FontFamily } from "@/constants/fonts";
 import { EASE_IN_OUT, useLoop } from "@/hooks/use-entrance";
 import { formatTime } from "@/utils/format-time";
-import { Animated, Pressable, StyleSheet, View } from "react-native";
+import { ActivityIndicator, Animated, Pressable, StyleSheet, View } from "react-native";
 import Svg, { Path } from "react-native-svg";
 
 const INK = "#15163A";
@@ -31,6 +31,12 @@ type Props = {
   /** Minutes after midnight of the usual check-in time */
   windowStart: number;
   onCheckIn: () => void;
+  /** Taking a break (Settings): no check-ins, nobody is told */
+  paused?: boolean;
+  /** Turns the break off, or opens where they can */
+  onOpenSettings?: () => void;
+  /** Today hasn't loaded yet: don't show a button that may be wrong */
+  loading?: boolean;
 };
 
 function CheckMark({ size = 30 }: { size?: number }) {
@@ -56,8 +62,13 @@ export function SelfCheckInCard({
   nextLabel,
   windowStart,
   onCheckIn,
+  paused = false,
+  onOpenSettings,
+  loading = false,
 }: Props) {
   const done = checkedInMinutes !== null;
+  // Checked in counts even on a break day; otherwise the break is what matters
+  const onBreak = paused && !done;
   const pulse = useLoop({ duration: 2400, easing: EASE_IN_OUT });
   const ringScale = pulse.interpolate({
     inputRange: [0, 0.5, 1],
@@ -66,7 +77,11 @@ export function SelfCheckInCard({
 
   const pill = done
     ? { label: "Checked in", bg: MINT, color: GREEN }
-    : late
+    : onBreak
+      ? { label: "On a break", bg: LILAC, color: PRIMARY }
+      : loading
+        ? { label: "Checking…", bg: LILAC, color: SUBTITLE }
+        : late
       ? { label: "Running late", bg: SUN, color: "#8A3A12" }
       : { label: "Not yet", bg: AMBER_BG, color: AMBER_TEXT };
 
@@ -91,7 +106,12 @@ export function SelfCheckInCard({
             {told ? `${told} knows` : "Everyone knows"} you&apos;re okay.
             {"\n"}You checked in at {formatTime(checkedInMinutes)}.
           </AppText>
-          {nextLabel && (
+          {paused ? (
+            <View style={styles.nextRow}>
+              <AppText style={styles.nextLabel}>You&apos;re taking a break</AppText>
+              <AppText style={styles.nextValue}>No check-ins until you turn it off</AppText>
+            </View>
+          ) : nextLabel && (
             <View style={styles.nextRow}>
               <AppText style={styles.nextLabel}>Next check-in</AppText>
               <AppText style={styles.nextValue}>
@@ -100,6 +120,40 @@ export function SelfCheckInCard({
             </View>
           )}
         </Rise>
+      ) : onBreak ? (
+        <View style={styles.center}>
+          <View style={styles.breakIcon}>
+            <Svg width={44} height={44} viewBox="0 0 20 20" fill="none">
+              <Path
+                d="M7.5 5.5V14.5M12.5 5.5V14.5"
+                stroke={PRIMARY}
+                strokeWidth={2.4}
+                strokeLinecap="round"
+              />
+            </Svg>
+          </View>
+          <AppText style={styles.doneTitle} accessibilityRole="header">
+            You&apos;re taking a break
+          </AppText>
+          <AppText style={styles.doneLine}>
+            We won&apos;t ask you to check in, and nobody will be told.
+          </AppText>
+          {onOpenSettings && (
+            <Pressable
+              onPress={onOpenSettings}
+              accessibilityRole="button"
+              accessibilityLabel="Turn off the break in Settings"
+              style={({ pressed }) => [styles.breakButton, pressed && styles.pressed]}
+            >
+              <AppText style={styles.breakButtonText}>Turn off in Settings</AppText>
+            </Pressable>
+          )}
+        </View>
+      ) : loading ? (
+        <View style={[styles.center, styles.loading]} accessibilityLabel="Checking today's check-in">
+          <ActivityIndicator size="large" color={PRIMARY} />
+          <AppText style={styles.tapBy}>Checking today…</AppText>
+        </View>
       ) : (
         <View style={styles.center}>
           <Animated.View style={[styles.outerRing, { transform: [{ scale: ringScale }] }]}>
@@ -159,6 +213,34 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginTop: 20,
     marginBottom: 8,
+  },
+  breakIcon: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: LILAC,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  breakButton: {
+    marginTop: 18,
+    minHeight: 52,
+    paddingHorizontal: 22,
+    borderRadius: 16,
+    backgroundColor: LILAC,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  breakButtonText: {
+    color: PRIMARY,
+    fontFamily: FigtreeFont.extraBold,
+    fontSize: 17,
+  },
+  // About the height of the button and its rings, so nothing jumps when it loads
+  loading: {
+    height: 244,
+    justifyContent: "center",
+    gap: 14,
   },
   outerRing: {
     width: 244,

@@ -22,6 +22,39 @@ export async function markCheckedIn(takerId: string): Promise<MarkResult> {
   return data === "recorded" ? "recorded" : "nothing_open";
 }
 
+/**
+ * "I'm okay", for someone using Mira for themselves (their own account):
+ * - recorded: counted (on time, late, or early, before today's window)
+ * - already: today's check-in was already done
+ * - notToday: today isn't one of their check-in days
+ * - paused: they're taking a break
+ * - nothingOpen: nothing to check in for right now
+ * - offline / failed: couldn't save it (so it does NOT count yet)
+ * The server uses its own clock, so the phone's time can't make it late or early.
+ */
+export type SelfCheckInResult =
+  | "recorded"
+  | "already"
+  | "notToday"
+  | "paused"
+  | "nothingOpen"
+  | "offline"
+  | "failed";
+
+const SELF_RESULTS: Record<string, SelfCheckInResult> = {
+  recorded: "recorded",
+  already: "already",
+  not_today: "notToday",
+  paused: "paused",
+  nothing_open: "nothingOpen",
+};
+
+export async function checkInMyself(): Promise<SelfCheckInResult> {
+  const { data, error } = await supabase.rpc("check_in_myself");
+  if (error) return error.code ? "failed" : "offline";
+  return SELF_RESULTS[data] ?? "failed";
+}
+
 export type CheckInRow = Pick<
   Tables<"check_ins">,
   | "id"

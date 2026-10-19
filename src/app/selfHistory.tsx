@@ -4,9 +4,8 @@ import { HistoryCalendar } from "@/components/history-calendar";
 import { MonthSummaryCard } from "@/components/month-summary-card";
 import { FontFamily } from "@/constants/fonts";
 import { useCaregiverSetup } from "@/context/caregiver-setup";
-import { loadSelfCheckIns, selfHistoryEntries } from "@/lib/self-check-ins";
-import { dayKey } from "@/utils/check-in-history";
-import { localDateKey } from "@/utils/local-date";
+import { useTakerActivity } from "@/hooks/use-taker-activity";
+import { dayKey, entriesByDay } from "@/utils/check-in-history";
 import { useState } from "react";
 import { ScrollView, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -15,7 +14,7 @@ const INK = "#15163A";
 const BACKGROUND = "#F5F4FA";
 
 export default function SelfHistory() {
-  const { days, timeZone } = useCaregiverSetup();
+  const { days, timeZone, takerId } = useCaregiverSetup();
 
   const [view, setView] = useState(() => {
     const now = new Date();
@@ -23,9 +22,10 @@ export default function SelfHistory() {
   });
   const { year, month } = view;
 
-  const todayKey = localDateKey(new Date(), timeZone);
-  // Read on every visit, so a check-in made on Home shows up here
-  const entries = selfHistoryEntries(loadSelfCheckIns(todayKey), days, todayKey);
+  // Check-ins from the server (this month + the last 60 days, live). Missed
+  // days are real rows too: the scheduler marks them
+  const { activity, todayKey } = useTakerActivity(takerId, timeZone, { kind: "month", year, month });
+  const entries = entriesByDay(activity?.checkIns ?? [], timeZone);
   const isCurrentMonth = todayKey.startsWith(dayKey(year, month, 1).slice(0, 8));
 
   const changeMonth = (delta: number) => {

@@ -451,6 +451,11 @@ export type Database = {
         Returns: boolean
       }
       cancel_check_in_now: { Args: { p_check_in_id: string }; Returns: boolean }
+      check_in_myself: { Args: never; Returns: string }
+      check_in_self_at: {
+        Args: { p_account_id: string; p_now: string }
+        Returns: string
+      }
       claim_due_sends: {
         Args: { p_limit?: number; p_now?: string }
         Returns: {
@@ -464,6 +469,7 @@ export type Database = {
           send_id: string
           send_purpose: Database["public"]["Enums"]["send_purpose"]
           send_to: string
+          taker_is_self: boolean
           taker_name: string
           taker_time_zone: string
           taker_window_end: number
@@ -493,6 +499,7 @@ export type Database = {
           send_id: string
           send_purpose: Database["public"]["Enums"]["send_purpose"]
           send_to: string
+          taker_is_self: boolean
           taker_name: string
           taker_time_zone: string
           taker_window_end: number

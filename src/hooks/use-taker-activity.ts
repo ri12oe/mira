@@ -5,6 +5,14 @@ import { addDays, localDateKey, weekKeys } from "@/utils/local-date";
 
 const REFRESH_MS = 60 * 1000;
 
+/**
+ * The last load for each person and range. Switching tabs unmounts the
+ * screen, so without this it would start empty each time and briefly show
+ * the wrong state (e.g. the "I'm okay" button after checking in). Shown at
+ * once on the way back, then refreshed.
+ */
+const lastLoaded = new Map<string, Activity>();
+
 /** Which days to load: this week (Home), or a month plus the last 60 days (History) */
 export type ActivityRange = { kind: "week" } | { kind: "month"; year: number; month: number };
 
@@ -45,6 +53,8 @@ export function useTakerActivity(takerId: string | undefined, timeZone: string, 
     let cancelled = false;
     fetchActivity(takerId, fromKey, toKey, todayKey)
       .then((data) => {
+        // Remembered even if the screen has gone, so it's fresh next time
+        lastLoaded.set(thisKey, data);
         if (!cancelled) setResult({ key: thisKey, data, failed: false });
       })
       .catch((error) => {
@@ -74,7 +84,7 @@ export function useTakerActivity(takerId: string | undefined, timeZone: string, 
 
   const current = result?.key === key ? result : null;
   return {
-    activity: current?.data ?? null,
+    activity: current?.data ?? lastLoaded.get(key) ?? null,
     /** Loaded, but the last refresh failed (offline?) */
     failed: current?.failed ?? false,
     now,
