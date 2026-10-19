@@ -13,6 +13,11 @@ const REFRESH_MS = 60 * 1000;
  */
 const lastLoaded = new Map<string, Activity>();
 
+/** Signing out or deleting the account: drop what was remembered */
+export function forgetLoadedActivity() {
+  lastLoaded.clear();
+}
+
 /** Which days to load: this week (Home), or a month plus the last 60 days (History) */
 export type ActivityRange = { kind: "week" } | { kind: "month"; year: number; month: number };
 

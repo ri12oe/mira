@@ -1,5 +1,7 @@
 import { AuthError, isAuthRetryableFetchError } from "@supabase/supabase-js";
 
+import { forgetLoadedActivity } from "@/hooks/use-taker-activity";
+import { forgetOnSignOut } from "@/lib/preferences";
 import { supabase } from "@/lib/supabase";
 
 /** What went wrong, in terms the screens can turn into plain words */
@@ -56,6 +58,8 @@ export async function checkCode(
 
 export async function signOut() {
   await supabase.auth.signOut();
+  forgetOnSignOut();
+  forgetLoadedActivity();
 }
 
 function describe(error: AuthError): AuthProblem {

@@ -1,6 +1,8 @@
 import { AlertsSheet } from "@/components/alerts-prompt";
 import { AppText } from "@/components/app-test";
 import BellIcon from "@/components/icons/BellIcon";
+import { ConfirmSheet } from "@/components/confirm-sheet";
+import { deleteAccount } from "@/lib/account";
 import { AlertsStatus, useAlerts } from "@/hooks/use-alerts";
 import { BottomSheet } from "@/components/bottom-sheet";
 import { SelfTabBar } from "@/components/caregiver-tab-bar";
@@ -63,6 +65,28 @@ export default function SelfSetting() {
 
   const setTime = (value: number) =>
     update({ windowStart: value, windowEnd: windowEndFor(value) });
+
+  // "Delete my account": a sheet that lists what's deleted, then a second tap
+  const [deleteSheet, setDeleteSheet] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteProblem, setDeleteProblem] = useState<string | null>(null);
+  const confirmDelete = async () => {
+    if (deleting) return;
+    setDeleting(true);
+    setDeleteProblem(null);
+    const result = await deleteAccount();
+    if (!result.ok) {
+      setDeleting(false);
+      setDeleteProblem(
+        result.problem === "offline"
+          ? "We couldn't reach Mira. Nothing was deleted. Check that you're online, then try again."
+          : "Something went wrong and nothing was deleted. Please try again.",
+      );
+      return;
+    }
+    // Signed out now: the protected screens close and Welcome shows
+    reset();
+  };
 
   // Signed-in screens are protected in _layout.tsx, so once the session is
   // gone the router goes back to Welcome by itself
@@ -266,6 +290,18 @@ export default function SelfSetting() {
             </AppText>
           </Pressable>
         </View>
+
+        <Pressable
+          style={({ pressed }) => [styles.deleteButton, pressed && styles.rowPressed]}
+          onPress={() => {
+            setDeleteProblem(null);
+            setDeleteSheet(true);
+          }}
+          accessibilityRole="button"
+          accessibilityHint="Asks you to confirm twice"
+        >
+          <AppText style={styles.deleteButtonText}>Delete my account</AppText>
+        </Pressable>
       </ScrollView>
       <SelfTabBar active="settings" />
 
@@ -284,6 +320,26 @@ export default function SelfSetting() {
           <AppText style={styles.saveButtonText}>Save</AppText>
         </Pressable>
       </BottomSheet>
+
+      <ConfirmSheet
+        visible={deleteSheet}
+        title="Delete your account?"
+        consequences={[
+          "Mira stops asking you to check in.",
+          "Your backups won't be told anything anymore, and invites waiting for them stop working.",
+          "All your check-in history is deleted.",
+          "Reminders stop on this phone.",
+        ]}
+        confirmLabel="Delete my account"
+        secondStep={{
+          question: "This can't be undone. Are you sure?",
+          confirmLabel: "Yes, delete everything",
+        }}
+        busy={deleting}
+        problem={deleteProblem}
+        onConfirm={confirmDelete}
+        onClose={() => setDeleteSheet(false)}
+      />
 
       <AlertsSheet
         self
@@ -306,6 +362,19 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
+  },
+  deleteButton: {
+    minHeight: 48,
+    paddingHorizontal: 4,
+    justifyContent: "center",
+    alignSelf: "flex-start",
+    borderRadius: 12,
+  },
+  deleteButtonText: {
+    color: RED_TEXT,
+    fontSize: 16,
+    lineHeight: 20.8,
+    fontFamily: FigtreeFont.bold,
   },
   scrollContent: {
     flexGrow: 1,

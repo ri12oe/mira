@@ -1,5 +1,7 @@
 import { FunctionsHttpError } from "@supabase/supabase-js";
 
+import { forgetLoadedActivity } from "@/hooks/use-taker-activity";
+import { forgetOnDelete } from "@/lib/preferences";
 import { supabase } from "@/lib/supabase";
 
 /**
@@ -12,7 +14,9 @@ export async function deleteAccount(): Promise<{ ok: true } | { ok: false; probl
     console.warn("Couldn't delete the account", error);
     return { ok: false, problem: error instanceof FunctionsHttpError ? "failed" : "offline" };
   }
-  // The account is gone on the server; just forget the session on this phone
+  // The account is gone on the server; forget it on this phone too
   await supabase.auth.signOut({ scope: "local" });
+  forgetOnDelete();
+  forgetLoadedActivity();
   return { ok: true };
 }
