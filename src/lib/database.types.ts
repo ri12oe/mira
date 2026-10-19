@@ -42,6 +42,7 @@ export type Database = {
       backups: {
         Row: {
           alert_after_minutes: number
+          confirmed_at: string | null
           created_at: string
           id: string
           name: string
@@ -53,6 +54,7 @@ export type Database = {
         }
         Insert: {
           alert_after_minutes?: number
+          confirmed_at?: string | null
           created_at?: string
           id?: string
           name: string
@@ -64,6 +66,7 @@ export type Database = {
         }
         Update: {
           alert_after_minutes?: number
+          confirmed_at?: string | null
           created_at?: string
           id?: string
           name?: string
@@ -175,6 +178,7 @@ export type Database = {
       invites: {
         Row: {
           accepted_at: string | null
+          backup_id: string | null
           created_at: string
           id: string
           message: string
@@ -183,6 +187,7 @@ export type Database = {
         }
         Insert: {
           accepted_at?: string | null
+          backup_id?: string | null
           created_at?: string
           id?: string
           message: string
@@ -191,6 +196,7 @@ export type Database = {
         }
         Update: {
           accepted_at?: string | null
+          backup_id?: string | null
           created_at?: string
           id?: string
           message?: string
@@ -198,6 +204,13 @@ export type Database = {
           taker_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "invites_backup_id_fkey"
+            columns: ["backup_id"]
+            isOneToOne: false
+            referencedRelation: "backups"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "invites_taker_id_fkey"
             columns: ["taker_id"]
@@ -350,6 +363,7 @@ export type Database = {
           extra_minutes: number
           first_name: string
           id: string
+          is_self: boolean
           joined_at: string | null
           method: Database["public"]["Enums"]["check_in_method"]
           paused: boolean
@@ -368,6 +382,7 @@ export type Database = {
           extra_minutes?: number
           first_name: string
           id?: string
+          is_self?: boolean
           joined_at?: string | null
           method?: Database["public"]["Enums"]["check_in_method"]
           paused?: boolean
@@ -386,6 +401,7 @@ export type Database = {
           extra_minutes?: number
           first_name?: string
           id?: string
+          is_self?: boolean
           joined_at?: string | null
           method?: Database["public"]["Enums"]["check_in_method"]
           paused?: boolean

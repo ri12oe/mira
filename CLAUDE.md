@@ -85,6 +85,25 @@ Do these one at a time, and confirm with me before moving to the next:
 9. **Check in now** + the Waiting screen.
 10. **Push notifications** for the caregiver (needs a development build, not Expo Go; check the current Expo docs).
 
+## Self flow ("I'm checking in") — backend build order
+
+The self screens exist (`selfSetup*`, `selfHome`, `selfHistory`, `selfPeople`, `selfSetting`, `selfHelp`) but keep everything on the phone, so a missed check-in alerts nobody. Decisions (Oct 2026):
+- A self user has a normal account and is **their own taker** (`takers.is_self`, at most one per account). Their phone is their verified sign-in number; they're active straight away (no invite).
+- Escalation for a self user has **no caregiver step**: missed → their backups in order, each after their own delay. Backups must **say YES to an invite** before they're alerted.
+- Check-ins run even if no backup has said yes yet; Home warns "Nobody will be alerted until a backup says yes".
+- Self users check in with the **Mira app only** (push prompt + tap), which is real even in free mode.
+- Start fresh on the server (don't import the on-phone `mira.selfCheckIns`). One account type per person for now.
+
+Steps, one at a time:
+1. **Schema**: `takers.is_self`, `backups.confirmed_at` (only the server sets it), `invites.backup_id`; tests.
+2. **Sign-in**: self setup ends with the phone code; "I already have an account" routes self users to `selfHome`.
+3. **Save setup** through the context / `save_taker`.
+4. **Backup invites** (free mode: caregiver-style manual confirm); replace `mira.selfConfirmedBackups`.
+5. **Scheduler**: push prompt/reminder to their own phone; missed → confirmed backups; all-clear.
+6. **Check in**: `check_in_myself()`; History from the server; remove `mira.selfCheckIns`.
+7. **Push**: permission during setup; tapping a reminder opens the check-in.
+8. **Privacy / delete account** checks.
+
 ## Code conventions in this repo
 
 - **Files**: screens in `src/app/` are camelCase (`caregiverSetup2.tsx`) and must have a default export. Components are kebab-case in `src/components/` (`bottom-sheet.tsx`), icons in `src/components/icons/`, hooks in `src/hooks/`, helpers in `src/utils/`. Put backend client code in `src/lib/` (or `src/services/`), never in `src/app/`.
