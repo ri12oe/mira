@@ -66,7 +66,7 @@ const styles = StyleSheet.create({
 
 function RootStack({ fontsReady }: { fontsReady: boolean }) {
   const { session, isLoading } = useAuth();
-  const { syncStatus, isSelf } = useCaregiverSetup();
+  const { syncStatus, isSelf, isInvited } = useCaregiverSetup();
   const ready = fontsReady && !isLoading;
   const signedIn = !!session;
   // The splash covers the screens until the data is in, so Home never shows
@@ -86,7 +86,7 @@ function RootStack({ fontsReady }: { fontsReady: boolean }) {
       <Stack screenOptions={{ headerShown: false }}>
         {/* Signed in, looking after someone. Listed first: a signed-in launch
             lands on caregiverHome (and moves to selfHome once a self account loads) */}
-        <Stack.Protected guard={signedIn && !isSelf}>
+        <Stack.Protected guard={signedIn && !isSelf && !isInvited}>
           <Stack.Screen name="caregiverHome" />
           <Stack.Screen name="caregiverHistory" />
           <Stack.Screen name="caregiverPeople" />
@@ -103,6 +103,10 @@ function RootStack({ fontsReady }: { fontsReady: boolean }) {
           <Stack.Screen name="selfHistory" />
           <Stack.Screen name="selfPeople" />
           <Stack.Screen name="selfSetting" />
+        </Stack.Protected>
+        {/* Signed in, someone a caregiver set up ("Someone invited me") */}
+        <Stack.Protected guard={signedIn && isInvited}>
+          <Stack.Screen name="invitedHome" />
         </Stack.Protected>
         {/* Signed out only: Welcome and the phone screen */}
         <Stack.Protected guard={!signedIn}>

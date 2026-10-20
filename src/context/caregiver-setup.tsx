@@ -12,6 +12,7 @@ import {
 
 import { useAuth } from "@/context/auth";
 import type { Json, Tables } from "@/lib/database.types";
+import { joinAsInvited } from "@/lib/invited";
 import { PHOTO_LINK_SECONDS, photoLink } from "@/lib/photos";
 import { supabase } from "@/lib/supabase";
 import { formatPhone, toE164 } from "@/utils/phone";
@@ -87,6 +88,11 @@ export type CaregiverSetupData = {
    * prepareSetupSave({ isSelf: true }), then read from the database.
    */
   isSelf: boolean;
+  /**
+   * Someone a caregiver set up, using the Mira app to check in (e.g. Lin):
+   * the account looks after nobody and its number was invited. Read on load.
+   */
+  isInvited: boolean;
 };
 
 /**
@@ -183,6 +189,7 @@ function createInitial(): CaregiverSetupData {
     takerId: randomUUID(),
     timeZone: deviceTimeZone(),
     isSelf: false,
+    isInvited: false,
   };
 }
 
@@ -495,6 +502,10 @@ export function CaregiverSetupProvider({ children }: { children: ReactNode }) {
         }
 
         const { caregiver, takers } = await loadEverything(userId);
+        // Looks after nobody: maybe it's someone who was invited (Lin). Being
+        // signed in with that number is her YES, so this also accepts any
+        // new invite, e.g. a second caregiver's
+        const isInvited = takers.length === 0 ? await joinAsInvited() : false;
         if (cancelled) return;
 
         // "Me" first (a self account has only that one person)
@@ -504,6 +515,7 @@ export function CaregiverSetupProvider({ children }: { children: ReactNode }) {
         const base = createInitial();
         const next: CaregiverSetupData = {
           ...base,
+          isInvited,
           yourFirstName: caregiver.first_name,
           yourPhone: caregiver.phone ? formatPhone(caregiver.phone) : "",
           yourEmail: caregiver.email ?? "",

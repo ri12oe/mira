@@ -9,6 +9,7 @@ import {
   checkCode,
   RESEND_AFTER_MS,
   sendCode,
+  signOut as signOutOfMira,
 } from "@/lib/auth";
 import { formatPhone } from "@/utils/phone";
 import { router, useLocalSearchParams } from "expo-router";
@@ -53,7 +54,7 @@ const LINES: Partial<Record<AuthProblem, string>> = {
 
 type Params = {
   phone: string; // E.164
-  context?: "signIn" | "setup" | "self";
+  context?: "signIn" | "setup" | "self" | "invited";
   sentAt?: string; // set when the previous screen already sent the code
 };
 
@@ -62,6 +63,8 @@ type Params = {
  * - signIn: after "Welcome back" (the code is already sent)
  * - setup: at the end of Setup step 3 (this screen sends the code)
  * - self: at the end of the "I'm checking in" setup (this screen sends the code)
+ * - invited: after "Someone invited me" (the code is already sent); signing
+ *   in with the invited number is her YES
  */
 export default function VerifyCode() {
   const params = useLocalSearchParams<Params>();
@@ -69,6 +72,9 @@ export default function VerifyCode() {
   const selfSetup = params.context === "self";
   /** Either setup: this creates the account and saves what was typed */
   const inSetup = params.context === "setup" || selfSetup;
+  const invitedFlow = params.context === "invited";
+  /** Setup and "Someone invited me" may create the account; sign-in never does */
+  const createsAccount = inSetup || invitedFlow;
   const { session } = useAuth();
   const {
     syncStatus,
@@ -77,6 +83,9 @@ export default function VerifyCode() {
     cancelSetupSave,
     setupRefused,
     isSelf,
+    isInvited,
+    hasPeople,
+    reset,
   } = useCaregiverSetup();
   const reduceMotion = useReduceMotion();
 
@@ -100,7 +109,7 @@ export default function VerifyCode() {
     setProblem(null);
     setCode("");
     // Setup creates the caregiver's account; sign-in never does
-    const result = await sendCode(phone, { createAccount: inSetup });
+    const result = await sendCode(phone, { createAccount: createsAccount });
     setSending(false);
     if (result) setProblem(result);
     else setSentAt(Date.now());
@@ -128,15 +137,40 @@ export default function VerifyCode() {
   // Move on once signed in AND the setup is saved/loaded. (Sign-in still goes
   // to Home if loading failed: Home shows a "Try again" banner.)
   const savedSetup = inSetup && !openedExisting;
+  // "Someone invited me" has to know for sure whether she's invited, so it
+  // waits for a real load (no going on to Home after a failed one)
   const dataDone =
-    syncStatus === "ready" || (!savedSetup && syncStatus === "failed");
+    syncStatus === "ready" ||
+    (!savedSetup && !invitedFlow && syncStatus === "failed");
+  const loaded = verified && !!session && syncStatus === "ready";
+  /**
+   * "Someone invited me", but the account isn't an invited one:
+   * - notInvited: nobody has invited this number
+   * - otherAccount: the number already has a caregiver's or a self account
+   */
+  const invitedProblem =
+    invitedFlow && loaded && !isInvited
+      ? isSelf || hasPeople
+        ? ("otherAccount" as const)
+        : ("notInvited" as const)
+      : null;
+  const invitedLoadFailed = verified && invitedFlow && syncStatus === "failed";
   useEffect(() => {
     if (!verified || !session || !dataDone) return;
-    // Where to go depends on the account (a self account has its own Home)
-    if (isSelf) router.replace(savedSetup ? "/selfSetup5" : "/selfHome");
+    // Where to go depends on the account (self and invited ones have their own Home)
+    if (isInvited) router.replace("/invitedHome");
+    else if (invitedFlow) return; // not invited: the problem shows here instead
+    else if (isSelf) router.replace(savedSetup ? "/selfSetup5" : "/selfHome");
     else router.replace(savedSetup ? "/connected" : "/caregiverHome");
-  }, [verified, session, dataDone, savedSetup, isSelf]);
+  }, [verified, session, dataDone, savedSetup, isSelf, isInvited, invitedFlow]);
   const setupSaveFailed = verified && savedSetup && syncStatus === "failed";
+
+  // Not invited: sign out of the account the code just made, and try again
+  const tryAnotherNumber = async () => {
+    await signOutOfMira();
+    reset();
+    router.replace("/invited");
+  };
   const openExisting = () => {
     setOpenedExisting(true);
     retry(); // loads the account as it is, without the setup
@@ -180,7 +214,8 @@ export default function VerifyCode() {
   const secondsLeft = sentAt
     ? Math.max(0, Math.ceil((sentAt + RESEND_AFTER_MS - now) / 1000))
     : 0;
-  const busy = (checking || verified) && !setupSaveFailed;
+  const busy =
+    (checking || verified) && !setupSaveFailed && !invitedProblem && !invitedLoadFailed;
   const canResend =
     !sending && !busy && (secondsLeft === 0 || problem === "expired");
   const wrong = problem === "wrongCode";
@@ -190,7 +225,10 @@ export default function VerifyCode() {
 
   const goBack = () => {
     if (router.canGoBack()) router.back();
-    else router.replace(selfSetup ? "/selfSetup4" : inSetup ? "/caregiverSetup3" : "/signIn");
+    else
+      router.replace(
+        selfSetup ? "/selfSetup4" : inSetup ? "/caregiverSetup3" : invitedFlow ? "/invited" : "/signIn",
+      );
   };
   const changeNumber = () => {
     if (selfSetup) router.navigate("/selfSetup1");
@@ -302,7 +340,34 @@ export default function VerifyCode() {
                 ? "Checking your code…"
                 : savedSetup
                   ? "Saving your setup…"
-                  : "Loading your account…"}
+                  : invitedFlow
+                    ? "Finding your invite…"
+                    : "Loading your account…"}
+            </AppText>
+          </View>
+        )}
+
+        {(invitedProblem || invitedLoadFailed) && (
+          <View
+            style={styles.problemRow}
+            accessibilityRole="alert"
+            accessibilityLiveRegion="polite"
+          >
+            <Svg width={22} height={22} viewBox="0 0 24 24" fill="none">
+              <Circle cx={12} cy={12} r={10} stroke={RED} strokeWidth={2.2} />
+              <Path
+                d="M12 7.5v5.5M12 16.5v.5"
+                stroke={RED}
+                strokeWidth={2.2}
+                strokeLinecap="round"
+              />
+            </Svg>
+            <AppText style={styles.problemText}>
+              {invitedProblem === "notInvited"
+                ? "We don't have an invite for this number. Check the number with the person who set up Mira for you, then try again."
+                : invitedProblem === "otherAccount"
+                  ? "This number already has a Mira account, so it can't be an invited one too. You can open that account."
+                  : "Your number is confirmed, but we couldn't reach Mira to find your invite. Check that you're online, then try again."}
             </AppText>
           </View>
         )}
@@ -430,7 +495,27 @@ export default function VerifyCode() {
               </AppText>
             </View>
           )}
-          {setupSaveFailed ? (
+          {invitedProblem || invitedLoadFailed ? (
+            <Pressable
+              style={({ pressed }) => [styles.button, pressed && styles.pressed]}
+              onPress={
+                invitedProblem === "notInvited"
+                  ? tryAnotherNumber
+                  : invitedProblem === "otherAccount"
+                    ? () => router.replace(isSelf ? "/selfHome" : "/caregiverHome")
+                    : retry
+              }
+              accessibilityRole="button"
+            >
+              <AppText style={styles.buttonText}>
+                {invitedProblem === "notInvited"
+                  ? "Use a different number"
+                  : invitedProblem === "otherAccount"
+                    ? "Open my account"
+                    : "Try again"}
+              </AppText>
+            </Pressable>
+          ) : setupSaveFailed ? (
             <Pressable
               style={({ pressed }) => [styles.button, pressed && styles.pressed]}
               onPress={setupRefused ? openExisting : retry}
