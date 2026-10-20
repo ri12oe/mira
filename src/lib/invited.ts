@@ -41,6 +41,8 @@ export type InvitedDayRow = {
   firstName: string;
   caregiverName: string;
   caregiverPhone: string | null;
+  /** How that caregiver asks her: "app" means pushes to her phone */
+  method: "text" | "call" | "app";
   windowStart: number;
   windowEnd: number;
   days: number[];
@@ -59,6 +61,7 @@ export async function fetchMyInvitedDay(): Promise<InvitedDayRow[]> {
     firstName: r.first_name,
     caregiverName: r.caregiver_name,
     caregiverPhone: r.caregiver_phone,
+    method: r.method,
     windowStart: r.window_start,
     windowEnd: r.window_end,
     days: r.days,

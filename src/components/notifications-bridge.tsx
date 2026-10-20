@@ -14,7 +14,8 @@ let lastHandled: string | null = null;
 /**
  * Connects push notifications to the app (renders nothing):
  * - once signed in, refreshes this phone's push address if alerts are on
- * - tapping an alert opens Home on the person it's about
+ * - tapping an alert opens Home on the person it's about; tapping a
+ *   reminder opens the check-in
  *
  * Only where alerts can work (Mira's own build on a real phone). On web and in
  * Expo Go, expo-notifications isn't even loaded (see notifications-module.ts).
@@ -26,13 +27,16 @@ export function NotificationsBridge() {
 
 function ActiveNotificationsBridge() {
   const { session } = useAuth();
-  const { takerId: primaryTakerId, people, setSelectedId } = useCaregiverSetup();
+  const { takerId: primaryTakerId, people, setSelectedId, isInvited, syncStatus } = useCaregiverSetup();
   const userId = session?.user.id;
+  // Wait until the account has loaded: until then it isn't known yet which
+  // Home it has (a caregiver's, a self user's, or an invited person's)
+  const settled = syncStatus === "ready" || syncStatus === "failed";
 
   // The listener below is set up once; it reads the current people from here
-  const latest = useRef({ primaryTakerId, people, setSelectedId });
+  const latest = useRef({ primaryTakerId, people, setSelectedId, isInvited });
   useEffect(() => {
-    latest.current = { primaryTakerId, people, setSelectedId };
+    latest.current = { primaryTakerId, people, setSelectedId, isInvited };
   });
 
   // Push addresses can change (reinstall, new phone); keep ours current
@@ -45,7 +49,7 @@ function ActiveNotificationsBridge() {
 
   useEffect(() => {
     const Notifications = loadNotifications();
-    if (!Notifications || !userId) return;
+    if (!Notifications || !userId || !settled) return;
 
     // While the app is open, still show alerts as a banner with a sound.
     // A self user's daily reminder follows their "Reminder sound" setting.
@@ -73,8 +77,9 @@ function ActiveNotificationsBridge() {
         return;
       }
       // "Time to check in" / the reminder: Home has the check-in button
+      // (someone using Mira for themselves, or someone who was invited)
       if (type === "check_in") {
-        router.navigate("/selfHome");
+        router.navigate(latest.current.isInvited ? "/invitedHome" : "/selfHome");
         return;
       }
       const takerId = response.notification.request.content.data?.takerId;
@@ -91,7 +96,7 @@ function ActiveNotificationsBridge() {
     if (opening) open(opening);
     const subscription = Notifications.addNotificationResponseReceivedListener(open);
     return () => subscription.remove();
-  }, [userId]);
+  }, [userId, settled]);
 
   return null;
 }

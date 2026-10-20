@@ -10,26 +10,44 @@ const EXPO_PUSH_URL = "https://exp.host/--/api/v2/push/send";
 type Ticket = { status: "ok"; id: string } | { status: "error"; message: string; details?: { error?: string } };
 
 /**
- * Sends one notification to every phone where this caregiver turned on alerts.
+ * Sends one notification to every phone where this caregiver turned on alerts
+ * (or, for a self user or an invited person, reminders).
  * Counts as delivered if at least one phone accepted it. Phones that no longer
  * have the app (DeviceNotRegistered) are removed.
  */
-export async function pushToCaregiver(
+export function pushToCaregiver(
   caregiverId: string,
   title: string,
   body: string,
   data: Record<string, unknown>,
-  /**
-   * reminder: a self user's own daily reminder, which follows each phone's
-   * "Reminder sound" setting. Everything else (alerts about someone) always
-   * makes a sound.
-   */
-  options: { reminder?: boolean } = {},
+  options: PushOptions = {},
 ): Promise<SmsResult> {
+  return pushToAccounts([caregiverId], title, body, data, options);
+}
+
+type PushOptions = {
+  /**
+   * reminder: someone's own daily ask or reminder to check in (a self user,
+   * or an invited person like Lin), which follows each phone's "Reminder
+   * sound" setting. Everything else (alerts about someone) always makes a
+   * sound.
+   */
+  reminder?: boolean;
+};
+
+/** The same, to every phone of several accounts (e.g. Lin's own sign-ins) */
+export async function pushToAccounts(
+  accountIds: string[],
+  title: string,
+  body: string,
+  data: Record<string, unknown>,
+  options: PushOptions = {},
+): Promise<SmsResult> {
+  if (accountIds.length === 0) return { ok: false, error: "No account to send to" };
   const { data: rows, error } = await admin
     .from("push_tokens")
     .select("token, reminder_sound")
-    .eq("caregiver_id", caregiverId);
+    .in("caregiver_id", accountIds);
   if (error) return { ok: false, error: `Couldn't read phones: ${error.message}` };
   if (!rows || rows.length === 0) return { ok: false, error: "No phone has alerts turned on" };
 

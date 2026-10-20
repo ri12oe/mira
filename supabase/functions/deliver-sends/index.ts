@@ -5,8 +5,8 @@
 // Only the scheduler may call it: it must send the shared secret that's kept
 // in Vault (for pg_cron) and in the MIRA_CRON_SECRET Edge Function secret.
 
-import { pushToCaregiver } from "../_shared/expo-push.ts";
-import { selfPushFor, type Send, textFor } from "../_shared/messages.ts";
+import { pushToAccounts, pushToCaregiver } from "../_shared/expo-push.ts";
+import { invitedPushFor, selfPushFor, type Send, textFor } from "../_shared/messages.ts";
 import { admin, json } from "../_shared/supabase.ts";
 import { isLive, makeCall, maskPhone, sendSms, type SmsResult } from "../_shared/twilio.ts";
 
@@ -54,12 +54,37 @@ async function deliver(s: Send): Promise<SmsResult> {
           { reminder: true },
         );
       }
-      // A prompt for someone a caregiver set up on the Mira app: they don't
-      // have the app (only the caregiver does), so it's only recorded
-      console.log(`[no app for this person] ${s.send_purpose}`);
-      return { ok: true, sid: `test-push-${crypto.randomUUID()}` };
+      // Someone a caregiver set up on the Mira app (Lin): her own phones, the
+      // ones where she signed in from "Someone invited me"
+      if (s.send_purpose === "check_in_prompt" || s.send_purpose === "reminder") {
+        return pushToInvited(s);
+      }
+      return { ok: false, error: `Nothing to push for ${s.send_purpose}` };
     }
   }
+}
+
+type InvitedTargets = { accounts: string[]; caregivers: string[]; name: string | null; duplicate: boolean };
+
+async function pushToInvited(s: Send): Promise<SmsResult> {
+  const { data, error } = await admin.rpc("invited_push_targets", { p_send_id: s.send_id });
+  if (error) return { ok: false, error: `Couldn't find her phones: ${error.message}` };
+  const her = data as InvitedTargets;
+  // Two caregivers asking at once: her phone buzzes once (one tap answers both)
+  if (her.duplicate) return { ok: true, sid: `same-as-other-push-${crypto.randomUUID()}` };
+  // Not signed in to Mira anywhere yet: logged as failed, never as sent
+  if (her.accounts.length === 0) {
+    return { ok: false, error: `${s.taker_name?.trim() || "They"} hasn't signed in to Mira on a phone yet` };
+  }
+  const { data: owner } = await admin.from("sends").select("taker_id, check_in_id").eq("id", s.send_id).single();
+  const { title, body } = invitedPushFor(s, her);
+  return pushToAccounts(
+    her.accounts,
+    title,
+    body,
+    { type: "check_in", takerId: owner?.taker_id, checkInId: owner?.check_in_id, purpose: s.send_purpose },
+    { reminder: true },
+  );
 }
 
 Deno.serve(async (req) => {

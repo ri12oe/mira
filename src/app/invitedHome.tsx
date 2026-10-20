@@ -1,3 +1,4 @@
+import { AlertsCard } from "@/components/alerts-prompt";
 import { AppText } from "@/components/app-test";
 import { BottomSheet } from "@/components/bottom-sheet";
 import { Dot } from "@/components/dot";
@@ -6,10 +7,12 @@ import PhoneIcon from "@/components/icons/PhoneIcon";
 import { Rise } from "@/components/rise";
 import { FigtreeFont, FontFamily } from "@/constants/fonts";
 import { useCaregiverSetup } from "@/context/caregiver-setup";
+import { useAlerts } from "@/hooks/use-alerts";
 import { EASE_OUT, EASE_POP, useEntrance, useLoop } from "@/hooks/use-entrance";
 import { signOut as signOutOfMira } from "@/lib/auth";
 import { checkInAsInvited, fetchMyInvitedDay, InvitedDayRow } from "@/lib/invited";
 import { openMessages } from "@/lib/invites";
+import { REMINDERS_CARD_DISMISSED, readPreference, writePreference } from "@/lib/preferences";
 import { forgetThisPhone } from "@/lib/push";
 import { joinNames, periodOf } from "@/utils/day-period";
 import { dayIndex, localDateKey, localMinutes } from "@/utils/local-date";
@@ -145,6 +148,17 @@ export default function InvitedHome() {
   const [problem, setProblem] = useState<string | null>(null);
   const [helpOpen, setHelpOpen] = useState(false);
 
+  // The daily ask is a push to this phone (if a caregiver chose "Mira app"):
+  // a card until reminders are on, or "Not now"
+  const reminders = useAlerts();
+  const [remindersCardDismissed, setRemindersCardDismissed] = useState(
+    () => readPreference(REMINDERS_CARD_DISMISSED) === "1",
+  );
+  const dismissRemindersCard = () => {
+    writePreference(REMINDERS_CARD_DISMISSED, "1");
+    setRemindersCardDismissed(true);
+  };
+
   const load = useCallback(async () => {
     try {
       const data = await fetchMyInvitedDay();
@@ -176,6 +190,11 @@ export default function InvitedHome() {
   const caregiverNames = [...new Set((rows ?? []).map((r) => r.caregiverName.trim()).filter(Boolean))];
   const told = joinNames(caregiverNames) || "your family";
   const active = (rows ?? []).filter((r) => !r.paused);
+  // Texts and calls reach her anyway; only "Mira app" needs this phone
+  const showRemindersCard =
+    active.some((r) => r.method === "app") &&
+    (reminders.status === "off" || reminders.status === "denied") &&
+    !remindersCardDismissed;
   const todayKey = localDateKey(now, timeZone);
   const isToday = (r: InvitedDayRow) => r.days.includes(dayIndex(todayKey));
   const done =
@@ -277,6 +296,17 @@ export default function InvitedHome() {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        {showRemindersCard && (
+          <AlertsCard
+            self
+            status={reminders.status}
+            busy={reminders.busy}
+            problem={reminders.problem}
+            onTurnOn={reminders.turnOn}
+            onDismiss={dismissRemindersCard}
+            name={name}
+          />
+        )}
         {/* Dot, the date and the greeting */}
         <Rise style={styles.top}>
           <Dot size={76} pose={done ? "cheer" : "wave"} label={null} />

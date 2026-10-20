@@ -112,6 +112,43 @@ export function selfPushFor(s: Send): { title: string; body: string } {
   };
 }
 
+/** "Jordan", "Jordan and Maya", "Jordan, Maya and Sam" */
+function joinNames(names: string[]) {
+  if (names.length <= 1) return names[0] ?? "";
+  return `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
+}
+
+/**
+ * The push someone a caregiver set up on the Mira app (Lin) gets on her own
+ * phone: the daily ask, the reminder, or a "Check in now". It names everyone
+ * one tap tells, like her Home does. Tapping it opens her check-in.
+ */
+export function invitedPushFor(
+  s: Send,
+  her: { name: string | null; caregivers: string[] },
+): { title: string; body: string } {
+  const name = her.name?.trim();
+  const told = joinNames(her.caregivers) || s.caregiver_name?.trim() || "your family";
+  if (s.check_in_kind === "on_demand") {
+    // One caregiver asking right now, in their own words if they wrote some
+    const asker = s.caregiver_name?.trim() || "Your family";
+    return {
+      title: `${asker} is checking on you`,
+      body: s.prompt_message?.trim() || `${name ? `${name}, tap` : "Tap"} to let ${asker} know you're okay.`,
+    };
+  }
+  if (s.send_purpose === "reminder") {
+    return {
+      title: "A gentle reminder",
+      body: `${name ? `${name}, tap` : "Tap"} to let ${told} know you're okay.`,
+    };
+  }
+  return {
+    title: "Time to check in",
+    body: `${name ? `Hi ${name}! Tap` : "Tap"} to let ${told} know you're okay today.`,
+  };
+}
+
 /** Prompts and reminders wait for "1"; alerts just speak */
 export function expectsAnswer(s: Send) {
   return s.send_purpose === "check_in_prompt" || s.send_purpose === "reminder";

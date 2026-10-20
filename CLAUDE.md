@@ -122,6 +122,8 @@ Steps, one at a time:
 4. **Push**: prompts/reminders for "Mira app" takers go to the invited person's phone(s); turn on reminders; tapping opens the check-in.
 5. **Settings-lite, privacy and delete**: sign out, delete account (their own account only; the caregiver's setup stays), privacy tests.
 
+Steps 1–4 are done (Oct 2026). Push (step 4): `invited_push_targets(send)` finds her own sign-ins; two caregivers asking at once buzz her phone once; not signed in anywhere is logged as **failed**, not sent.
+
 ## Code conventions in this repo
 
 - **Files**: screens in `src/app/` are camelCase (`caregiverSetup2.tsx`) and must have a default export. Components are kebab-case in `src/components/` (`bottom-sheet.tsx`), icons in `src/components/icons/`, hooks in `src/hooks/`, helpers in `src/utils/`. Put backend client code in `src/lib/` (or `src/services/`), never in `src/app/`.
