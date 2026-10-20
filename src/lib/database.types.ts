@@ -534,7 +534,7 @@ export type Database = {
       }
       invited_phone_of: { Args: { p_account_id: string }; Returns: string }
       is_valid_time_zone: { Args: { tz: string }; Returns: boolean }
-      join_as_invited: { Args: never; Returns: number }
+      join_as_invited: { Args: never; Returns: Json }
       mark_checked_in: { Args: { p_taker_id: string }; Returns: string }
       my_invited_day: {
         Args: never

@@ -89,10 +89,13 @@ export type CaregiverSetupData = {
    */
   isSelf: boolean;
   /**
-   * Someone a caregiver set up, using the Mira app to check in (e.g. Lin):
-   * the account looks after nobody and its number was invited. Read on load.
+   * Someone who was invited, using the Mira app: the account looks after
+   * nobody and its number was invited, to check in (Lin) and/or as a self
+   * user's backup (Sam). Read on load.
    */
   isInvited: boolean;
+  /** Invited as a backup: the first names of the people they're a backup for */
+  invitedBackupFor: string[];
 };
 
 /**
@@ -190,6 +193,7 @@ function createInitial(): CaregiverSetupData {
     timeZone: deviceTimeZone(),
     isSelf: false,
     isInvited: false,
+    invitedBackupFor: [],
   };
 }
 
@@ -504,8 +508,8 @@ export function CaregiverSetupProvider({ children }: { children: ReactNode }) {
         const { caregiver, takers } = await loadEverything(userId);
         // Looks after nobody: maybe it's someone who was invited (Lin). Being
         // signed in with that number is her YES, so this also accepts any
-        // new invite, e.g. a second caregiver's
-        const isInvited = takers.length === 0 ? await joinAsInvited() : false;
+        // new invite, e.g. a second caregiver's. (A self user's backup, too.)
+        const invitedAs = takers.length === 0 ? await joinAsInvited() : null;
         if (cancelled) return;
 
         // "Me" first (a self account has only that one person)
@@ -515,7 +519,8 @@ export function CaregiverSetupProvider({ children }: { children: ReactNode }) {
         const base = createInitial();
         const next: CaregiverSetupData = {
           ...base,
-          isInvited,
+          isInvited: invitedAs !== null,
+          invitedBackupFor: invitedAs?.backupFor ?? [],
           yourFirstName: caregiver.first_name,
           yourPhone: caregiver.phone ? formatPhone(caregiver.phone) : "",
           yourEmail: caregiver.email ?? "",

@@ -112,6 +112,7 @@ Someone a caregiver set up (e.g. Lin) can use the Mira app to check in, instead 
 - They sign in with **the phone number they were invited on** + the SMS code. **Signing in counts as their YES**: the code proves they own the number, the same proof as a YES text. A number nobody invited gets a plain "We don't have an invite for this number".
 - It's a third account type: an account with **no takers of its own** whose verified phone matches one or more takers' phone. One tap checks in **for every caregiver** who set them up with that number ("Tap once to let Jordan and Maya know").
 - They see only what they need: their own day, their window, and the first names (and, for "Call Jordan" / "I need help", the phone numbers) of the caregivers who set them up. Never the caregivers' other people, backups or history. Everything goes through `security definer` functions keyed on the caller's verified phone; no table access.
+- **Backups too** (decision B): a self user's backup who taps "Someone invited me" and signs in with the invited number is **confirmed** the same way (their YES), and sees "You're Ana's backup ✓". `join_as_invited()` returns `{ checks_in_for, backup_for }`. A caregiver's backups have no invite, so they get "We don't have an invite".
 - Asking them: if their caregiver chose **Mira app** for them, the prompt and reminder are pushes to *their* phone (today they're only logged). If the caregiver chose text or call, that stays the way they're asked; a tap in the app still counts.
 
 Steps, one at a time:

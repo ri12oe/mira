@@ -2,7 +2,7 @@
 -- counts as her YES; she sees only her own day; one "I'm okay" counts for
 -- both. Replays the week of 2 November 2026. Rolled back at the end.
 -- Run: npx supabase db query --linked -f supabase/tests/invited-check.sql
--- Prints ALL CHECKS PASSED, or an error naming the failed check (I1-I12).
+-- Prints ALL CHECKS PASSED, or an error naming the failed check (I1-I16).
 --
 -- Jordan (J) looks after Lin (text, 9:00-11:00) and Mo; Lin's backup is Sam.
 -- Maya (M) also looks after Lin (app, 10:00-12:00). Lin's account is L.
@@ -50,7 +50,7 @@ begin
   perform public.prepare_invite(j, lin_j, gen_random_uuid(), 'Hi Lin');
   reset role;
   set local role authenticated;
-  select public.join_as_invited() into n;
+  select (public.join_as_invited() ->> 'checks_in_for')::int into n;
   reset role;
   assert n = 1, 'I2 Lin should be connected with 1 caregiver, got ' || n;
   select status::text into st from public.takers where id = lin_j;
@@ -65,7 +65,7 @@ begin
   perform public.prepare_invite(m, lin_m, gen_random_uuid(), 'Hi Mom');
   reset role;
   set local role authenticated;
-  select public.join_as_invited() into n;
+  select (public.join_as_invited() ->> 'checks_in_for')::int into n;
   reset role;
   assert n = 2, 'I3 Lin should now be connected with 2 caregivers, got ' || n;
 
@@ -178,6 +178,63 @@ begin
     raise exception 'I12 FAIL: signed out read a day';
   exception when insufficient_privilege then null; end;
   reset role;
+
+  -- Backups. Ana uses Mira for herself; Sam (account S) is her backup with an
+  -- invite waiting. Bo is Jordan's backup (caregivers' backups get no invite).
+  declare
+    ana uuid := '00000000-0000-0000-0000-0000000000b1';
+    s uuid := '00000000-0000-0000-0000-0000000000b2';
+    bo_acct uuid := '00000000-0000-0000-0000-0000000000b3';
+    me uuid := gen_random_uuid(); sam uuid := gen_random_uuid();
+    res_j jsonb;
+  begin
+    insert into auth.users (id, phone, aud, role) values
+      (ana, '13175550301', 'authenticated', 'authenticated'),
+      (s, '13175550171', 'authenticated', 'authenticated'),     -- Sam's number
+      (bo_acct, '13175550181', 'authenticated', 'authenticated'); -- Bo's number
+    insert into public.takers (id, caregiver_id, first_name, phone, time_zone, is_self)
+      values (me, ana, 'Ana', '+13175550301', indy, true);
+    insert into public.backups (id, taker_id, name, phone, position) values (sam, me, 'Sam', '+13175550171', 1);
+    insert into public.backups (taker_id, name, phone, position) values (lin_j, 'Bo', '+13175550181', 2);
+    set local role service_role;
+    perform public.prepare_backup_invite(ana, sam, gen_random_uuid(), 'Will you be my backup?');
+    reset role;
+
+    -- I13: Sam signs in with his number: that's his YES; he's Ana's backup
+    perform set_config('request.jwt.claims', json_build_object('sub', s, 'role', 'authenticated')::text, true);
+    set local role authenticated;
+    select public.join_as_invited() into res_j;
+    reset role;
+    assert res_j = '{"checks_in_for": 0, "backup_for": ["Ana"]}'::jsonb, 'I13 Sam should be Ana''s backup, got ' || res_j;
+    select count(*) into n from public.backups where id = sam and confirmed_at is not null;
+    assert n = 1, 'I13 Sam should now be confirmed';
+    select count(*) into n from public.invites where backup_id = sam and status = 'accepted';
+    assert n = 1, 'I13 Sam''s invite should be accepted';
+
+    -- I14: signing in again still says so (he's confirmed now, no invite needed)
+    set local role authenticated;
+    select public.join_as_invited() into res_j;
+    reset role;
+    assert res_j ->> 'backup_for' = '["Ana"]', 'I14 Sam is still Ana''s backup, got ' || res_j;
+
+    -- I15: a caregiver's backup has no invite, so nothing to join
+    perform set_config('request.jwt.claims', json_build_object('sub', bo_acct, 'role', 'authenticated')::text, true);
+    set local role authenticated;
+    begin
+      perform public.join_as_invited();
+      raise exception 'I15 FAIL: a caregiver''s backup joined';
+    exception when raise_exception then
+      if sqlerrm <> 'not_invited' then raise exception 'I15 wrong error: %', sqlerrm; end if;
+    end;
+    reset role;
+
+    -- I16: Lin (checks in for Jordan and Maya) still gets the same answer
+    perform set_config('request.jwt.claims', json_build_object('sub', l, 'role', 'authenticated')::text, true);
+    set local role authenticated;
+    select public.join_as_invited() into res_j;
+    reset role;
+    assert res_j = '{"checks_in_for": 2, "backup_for": []}'::jsonb, 'I16 Lin should check in for 2, got ' || res_j;
+  end;
 end $$;
 
 select 'ALL CHECKS PASSED' as result;

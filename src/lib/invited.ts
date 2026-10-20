@@ -1,3 +1,4 @@
+import type { SelfCheckInResult } from "@/lib/check-ins";
 import { supabase } from "@/lib/supabase";
 
 /**
@@ -8,16 +9,29 @@ import { supabase } from "@/lib/supabase";
  */
 
 /**
- * Signing in with the number she was invited on counts as her YES. Returns
- * true if she's now connected with at least one caregiver, false if nobody
- * has invited this number (or the account looks after people itself).
- * Throws if Mira couldn't be reached, so loading can show "Try again".
+ * What an invited number is (one or both):
+ * - checksIn: she checks in for one or more caregivers (Lin)
+ * - backupFor: first names of the people he's a backup for (Sam, for Ana)
  */
-export async function joinAsInvited(): Promise<boolean> {
+export type InvitedAs = { checksIn: boolean; backupFor: string[] };
+
+/**
+ * Signing in with the number they were invited on counts as their YES (as
+ * the person who checks in, or as a backup). Returns null if nobody has
+ * invited this number (or the account looks after people itself). Throws if
+ * Mira couldn't be reached, so loading can show "Try again".
+ */
+export async function joinAsInvited(): Promise<InvitedAs | null> {
   const { data, error } = await supabase.rpc("join_as_invited");
-  if (!error) return (data ?? 0) > 0;
-  if (error.message === "not_invited" || error.message === "account_type_mismatch") return false;
-  throw error;
+  if (error) {
+    if (error.message === "not_invited" || error.message === "account_type_mismatch") return null;
+    throw error;
+  }
+  const result = (data ?? {}) as { checks_in_for?: number; backup_for?: string[] };
+  return {
+    checksIn: (result.checks_in_for ?? 0) > 0,
+    backupFor: Array.isArray(result.backup_for) ? result.backup_for : [],
+  };
 }
 
 /** Her day: one row per caregiver who set her up (see my_invited_day) */
@@ -53,4 +67,22 @@ export async function fetchMyInvitedDay(): Promise<InvitedDayRow[]> {
     status: r.check_in_status,
     respondedAt: r.responded_at,
   }));
+}
+
+/**
+ * "I'm okay": one tap counts for every caregiver who set her up (the server
+ * uses its own clock). Same results as checkInMyself: recorded, already,
+ * notToday, paused, nothingOpen, or offline / failed (NOT counted yet).
+ */
+export async function checkInAsInvited(): Promise<SelfCheckInResult> {
+  const { data, error } = await supabase.rpc("check_in_as_invited");
+  if (error) return error.code ? "failed" : "offline";
+  const results: Record<string, SelfCheckInResult> = {
+    recorded: "recorded",
+    already: "already",
+    not_today: "notToday",
+    paused: "paused",
+    nothing_open: "nothingOpen",
+  };
+  return results[data] ?? "failed";
 }
