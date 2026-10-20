@@ -99,8 +99,10 @@ export default function SelfSetting() {
       );
       return;
     }
-    // Signed out now: the protected screens close and Welcome shows
+    // Protected screens disappear, but old setup screens can remain in history.
     reset();
+    router.dismissAll();
+    router.replace("/");
   };
 
   // Signed-in screens are protected in _layout.tsx, so once the session is

@@ -11,7 +11,8 @@ Mira is a mobile app that helps a caregiver set up daily support for someone the
 - Taker selection shared across Home, History, People, and Settings; adding a taker selects them automatically
 - Per-taker check-in method, time window, extra alert time, and pause settings (kept for the current app session)
 - Caregiver profile populated from setup, with editable name, phone, email, and per-taker relationship. Tap a row to edit, then tap Save changes to keep the details for the current app session.
-- Profile photos selected directly from the system photo picker and updated immediately (also kept for the current app session). Account deletion is not implemented.
+- Profile photos selected directly from the system photo picker and updated immediately (also kept for the current app session).
+- Account deletion clears the local setup and navigation history, then returns to Welcome. If deletion fails, the account screen stays open with an error.
 
 ## Tech stack
 

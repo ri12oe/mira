@@ -10,6 +10,7 @@ import { deleteAccount } from "@/lib/account";
 import { PhotoProblem, removeProfilePhoto, saveProfilePhoto } from "@/lib/photos";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
+import { router } from "expo-router";
 import { useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -87,8 +88,10 @@ export default function CaregiverProfile() {
       );
       return;
     }
-    // Signed out now: the protected screens close and Welcome shows
+    // Protected screens disappear, but old setup screens can remain in history.
     reset();
+    router.dismissAll();
+    router.replace("/");
   };
 
   const edit = (nextField: ProfileField) => {

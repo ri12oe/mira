@@ -143,8 +143,10 @@ export default function InvitedSetting() {
       );
       return;
     }
-    // Signed out now: the protected screens close and Welcome shows
+    // Protected screens disappear, but old setup screens can remain in history.
     reset();
+    router.dismissAll();
+    router.replace("/");
   };
 
   // Only her own sign-in goes; say plainly what stays
