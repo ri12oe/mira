@@ -4,7 +4,7 @@
 
 Mira is a daily check-in app for older and disabled adults. A **caregiver** sets it up for the person they look after (the **taker**, e.g. "Lin"). Every day Mira asks the taker to check in (by text reply, a short phone call where they press 1, or a tap in the app). If they don't, Mira alerts the caregiver, then their backup contacts in order.
 
-The front end for the **Welcome**, **Caregiver** and **"I'm checking in"** (self) sections is built, and so is the backend for all three (see the build orders below). The **invited person** flow ("Someone invited me") is built too (see the end of the build orders).
+The app is **built end to end** for all three account types: **caregivers**, people **checking in for themselves**, and **invited people** ("Someone invited me"), with a Supabase backend (see the build orders below, all done). Delivery runs in **free test mode** (see Backend stack). The current focus is **getting ready for real users**: see "What's next" at the end.
 
 ## How to work with me
 
@@ -12,7 +12,8 @@ The front end for the **Welcome**, **Caregiver** and **"I'm checking in"** (self
 - Work in **small steps I can test**: one feature at a time, each ending with "how to try it" (what to run, what to tap, what I should see).
 - **Ask before adding a dependency or creating a cloud resource** (a Supabase project, a Twilio number, anything that costs money).
 - Never put secrets in the app or in git. Tell me where each secret goes.
-- Before saying a task is done: run `npx tsc --noEmit` and `npx expo lint`, and tell me the result. The repo already has 1 type error (`src/hooks/use-theme.ts`, missing `@/constants/theme`) and 43 lint problems that existed before the backend work; don't add new ones.
+- Before saying a task is done: run `npx tsc --noEmit` and `npx expo lint`, and tell me the result. Both are at **0 errors and 0 problems** (Oct 2026); keep it that way. If `tsc` complains that a route like `"/selfHome"` isn't assignable, the typed-routes file is stale: run `npx expo start` once to regenerate it.
+- For backend changes, run the matching SQL check in `supabase/tests/` (`npx supabase db query --linked -f supabase/tests/<name>.sql`) and add or update a check for anything new.
 - Suggest a commit message at the end of each step. Don't push unless I ask.
 
 ## Backend stack (decision — change this section if I pick something else)
@@ -26,35 +27,30 @@ The front end for the **Welcome**, **Caregiver** and **"I'm checking in"** (self
 
 ## The app today (what exists)
 
-Expo SDK 57, Expo Router, React 19 with the React Compiler, TypeScript, Reanimated, react-native-svg. Routes are in `src/app/`; everything else is outside it.
+Expo SDK 57, Expo Router, React 19 with the React Compiler, TypeScript, Reanimated, react-native-svg. Routes are in `src/app/`; everything else is outside it. The README has the full feature list and setup steps.
 
-**All data currently lives in memory** in `src/context/caregiver-setup.tsx` (`CaregiverSetupProvider` / `useCaregiverSetup()`), wrapped around the `<Stack>` in `src/app/_layout.tsx`. It's lost when the app restarts. The backend work is mostly: keep the screens, and make this context load from and save to Supabase.
+**Data**: everything is saved in Supabase. `src/context/caregiver-setup.tsx` (`CaregiverSetupProvider` / `useCaregiverSetup()`, wrapped around the `<Stack>` in `src/app/_layout.tsx`) loads the caregiver and their takers on start and saves through `save_taker` and the `caregivers` table; the screens use its API (`update`, `addPerson`, `updatePerson`, …). Auth state is in `src/context/auth.tsx`; other backend calls live in `src/lib/` (check-ins, invites, push, account, photos, invited) and the hooks in `src/hooks/` (`use-alerts`, `use-invite`, `use-check-in-now`, `use-people-today`, `use-taker-activity`).
 
-Key types (in that file):
+Key types (in `caregiver-setup.tsx`):
 - `CaregiverSetupData`: the caregiver (`yourFirstName`, `yourPhone`, `yourEmail`, `yourPhotoUri`) plus the **first** taker (`firstName`, `phone`, `method`, `windowStart`, `windowEnd`, `extraMinutes`, `backups`, `paused`, `caregiverRelationship`).
 - `Person`: extra takers added later from the home screen (`people[]`), with the same per-taker settings plus `days`.
 - `Backup`: `{ id, name, phone, relationship, alertAfter }`, kept in alert order.
 - `CheckInMethod = "text" | "call" | "app"`.
-- Times are **minutes after midnight** (540 = 9:00 AM). Days are `0 = Monday … 6 = Sunday`.
-- `displayName` falls back to `"they"`, which produces broken copy like "they checks in" and "If they doesn' check in" on Setup step 2. Fix the copy when touching those screens.
+- Times are **minutes after midnight** (540 = 9:00 AM). Days are `0 = Monday … 6 = Sunday`. Each taker has an IANA `time_zone`.
+- `displayName` falls back to `"they"`; check the grammar of any sentence that uses it ("They check in", not "they checks in").
 
-Screens and what each will need from the backend:
+Screens:
 
-| Route | Screen | Backend need |
-|---|---|---|
-| `index` | Welcome | "Get started" → onboarding; "I already have an account" → **sign in** (today it wrongly goes to `whoUsesMira`) |
-| `whoUsesMira` | Who is using Mira | Caregiver path only for now |
-| `caregiverSetup1` | Step 1: who you care for, phone, check-in method | Saved as a draft taker |
-| `caregiverSetup2` | Step 2: window, days, extra time | Saved on the taker |
-| `caregiverSetup3` | Step 3: alert order, backups, invite text | **Send the invite SMS**; editable message, but "Reply YES to start." is always appended |
-| `connected`, `connected2` | Connected (first taker / a taker added later) | Should only show once the taker **actually replied YES**; until then show a "waiting for reply" state |
-| `caregiverHome`, `caregiverHomeNotCheckIn` | Home (checked in / missed) | Today's status, next check-in, this week |
-| `checkInNow`, `waiting` | Check on Lin now / Waiting for Lin | **On-demand check-in**: send now, wait 15 min, alert only the caregiver |
-| `caregiverHistory` | History | Real check-in history (today `src/utils/check-in-history.ts` **generates fake data**) |
-| `caregiverPeople` | People | Takers and backups, add/edit/remove |
-| `caregiverSetting` | Settings | Per-taker method, window, extra time, pause |
-| `caregiverProfile` | Profile | Caregiver name, phone, email, photo (photo → Supabase Storage); account deletion not built yet |
-| `helpAndSupport` | Help | Static for now |
+| Who | Routes |
+|---|---|
+| Everyone | `index` (Welcome), `whoUsesMira`, `signIn`, `verifyCode` |
+| Caregiver setup | `caregiverSetup1`–`3`, then `connected` (first person) / `connected2` (someone added later) |
+| Caregiver app | `caregiverHome`, `caregiverHistory`, `caregiverPeople`, `caregiverSetting`, `caregiverProfile`, `helpAndSupport`, `checkInNow`, `waiting` |
+| Self setup | `selfSetupindex` (intro, with Dot), `selfSetup1`–`3`, `selfSetup4` (practice run), `selfSetup5` (you're all set) |
+| Self app | `selfHome`, `selfHistory`, `selfPeople`, `selfSetting`, `selfHelp` |
+| Invited person | `invited`, `invitedHome`, `invitedSetting` |
+
+Backend: `supabase/migrations/` (schema, Row Level Security on every table, `security definer` functions with a fixed `search_path`, the scheduler), `supabase/functions/` (`send-invite`, `confirm-invite`, `deliver-sends`, `twilio-inbound`, `twilio-voice`, `twilio-status`, `delete-account`; shared code in `_shared/`), `supabase/tests/` (SQL checks).
 
 ## How Mira should behave (the rules the backend must follow)
 
@@ -70,9 +66,9 @@ Screens and what each will need from the backend:
 5. **Privacy**: Mira only shares *whether* a check-in happened and when. Never message contents or location. (This promise is shown on the Who is using Mira screen.)
 6. **Reliability matters more than features**: an alert that silently fails is the worst bug. Every send/alert should be logged with its status, and the scheduler must be safe to run twice (no double alerts).
 
-## Suggested build order
+## Caregiver backend — build order (all done, Oct 2026)
 
-Do these one at a time, and confirm with me before moving to the next:
+Kept as a record of how it was built:
 
 1. **Setup**: Supabase project, CLI, `supabase/` folder, `.env` with the two public keys, a `src/lib/supabase.ts` client. Show me it connects.
 2. **Sign in** for caregivers with phone + SMS code (Welcome "I already have an account", and the end of onboarding). Session persists across restarts.
@@ -123,6 +119,17 @@ Steps, one at a time:
 5. **Settings-lite, privacy and delete**: sign out, delete account (their own account only; the caregiver's setup stays), privacy tests.
 
 All 5 are done (Oct 2026). Push (step 4): `invited_push_targets(send)` finds her own sign-ins; two caregivers asking at once buzz her phone once; not signed in anywhere is logged as **failed**, not sent. Delete (step 5): only her own sign-in and phones go; caregivers who chose "Mira app" for her get a push (`invited_leaving`) to switch her to text or call. Settings is `invitedSetting` (her check-ins read-only).
+
+## What's next (getting ready for real users)
+
+Do these in order, one at a time, and confirm with me before moving on:
+
+1. **Cleanup** (done Oct 2026): README and this file updated; Mira icon, Android icons, splash (`#F5F4FA`) and favicon; app name "Mira"; iOS `bundleIdentifier` `com.rios0.mira` (same as the Android package; it can't change once the app is published); Expo template images and `scripts/reset-project.js` removed; `userInterfaceStyle: "light"` because there's no dark mode yet.
+2. **Landing page** (a separate small website): what Mira is, how it works, and **Privacy policy, Terms, and an SMS consent page** (what texts Mira sends, how often, "Reply STOP to opt out", "Msg & data rates may apply"). Twilio's A2P 10DLC registration and both app stores require these to be public.
+3. **Go live in two stages**: first **voice calls only** (`SMS_MODE=live` with calls; no carrier registration needed), then register for texting using the landing page.
+4. **Safety net**: GitHub Actions running `tsc`, lint and the SQL checks (against a local `supabase start`) on every push; monitoring so we hear about it if `pg_cron` stops or sends keep failing (a heartbeat check and error reporting such as Sentry).
+5. **Real-world testing** with 2–3 families, including an older adult using it alone. Hold off on new features until then.
+6. Later: split the biggest screens (`caregiverHome.tsx` is 1,100+ lines) and share components between the caregiver and self screens, which nearly mirror each other.
 
 ## Code conventions in this repo
 
