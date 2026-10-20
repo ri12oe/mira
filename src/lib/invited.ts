@@ -53,10 +53,25 @@ export type InvitedDayRow = {
   respondedAt: string | null;
 };
 
+/**
+ * Her day as last loaded. Kept outside the screens so coming back to Home or
+ * Settings (or reopening the app) shows the right state at once, not a wrong
+ * one first. Forgotten on sign-out.
+ */
+let lastLoaded: InvitedDayRow[] | null = null;
+
+export function rememberedInvitedDay() {
+  return lastLoaded;
+}
+
+export function forgetInvitedDay() {
+  lastLoaded = null;
+}
+
 export async function fetchMyInvitedDay(): Promise<InvitedDayRow[]> {
   const { data, error } = await supabase.rpc("my_invited_day");
   if (error) throw error;
-  return (data ?? []).map((r) => ({
+  lastLoaded = (data ?? []).map((r) => ({
     takerId: r.taker_id,
     firstName: r.first_name,
     caregiverName: r.caregiver_name,
@@ -70,6 +85,7 @@ export async function fetchMyInvitedDay(): Promise<InvitedDayRow[]> {
     status: r.check_in_status,
     respondedAt: r.responded_at,
   }));
+  return lastLoaded;
 }
 
 /**

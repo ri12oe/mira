@@ -532,6 +532,14 @@ export type Database = {
           window_start: number
         }[]
       }
+      invited_leaving: {
+        Args: { p_account_id: string }
+        Returns: {
+          caregiver_id: string
+          first_name: string
+          taker_id: string
+        }[]
+      }
       invited_phone_of: { Args: { p_account_id: string }; Returns: string }
       invited_push_targets: { Args: { p_send_id: string }; Returns: Json }
       is_valid_time_zone: { Args: { tz: string }; Returns: boolean }

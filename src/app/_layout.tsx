@@ -107,6 +107,7 @@ function RootStack({ fontsReady }: { fontsReady: boolean }) {
         {/* Signed in, someone a caregiver set up ("Someone invited me") */}
         <Stack.Protected guard={signedIn && isInvited}>
           <Stack.Screen name="invitedHome" />
+          <Stack.Screen name="invitedSetting" />
         </Stack.Protected>
         {/* Signed out only: Welcome and the phone screen */}
         <Stack.Protected guard={!signedIn}>

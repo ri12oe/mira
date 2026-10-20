@@ -1,6 +1,7 @@
 import { AuthError, isAuthRetryableFetchError } from "@supabase/supabase-js";
 
 import { forgetLoadedActivity } from "@/hooks/use-taker-activity";
+import { forgetInvitedDay } from "@/lib/invited";
 import { forgetOnSignOut } from "@/lib/preferences";
 import { supabase } from "@/lib/supabase";
 
@@ -60,6 +61,7 @@ export async function signOut() {
   await supabase.auth.signOut();
   forgetOnSignOut();
   forgetLoadedActivity();
+  forgetInvitedDay();
 }
 
 function describe(error: AuthError): AuthProblem {

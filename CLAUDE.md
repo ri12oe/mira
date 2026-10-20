@@ -4,7 +4,7 @@
 
 Mira is a daily check-in app for older and disabled adults. A **caregiver** sets it up for the person they look after (the **taker**, e.g. "Lin"). Every day Mira asks the taker to check in (by text reply, a short phone call where they press 1, or a tap in the app). If they don't, Mira alerts the caregiver, then their backup contacts in order.
 
-The front end for the **Welcome**, **Caregiver** and **"I'm checking in"** (self) sections is built, and so is the backend for all three (see the build orders below). The current job is the **invited person** flow ("Someone invited me"), planned at the end of this file's build orders.
+The front end for the **Welcome**, **Caregiver** and **"I'm checking in"** (self) sections is built, and so is the backend for all three (see the build orders below). The **invited person** flow ("Someone invited me") is built too (see the end of the build orders).
 
 ## How to work with me
 
@@ -122,7 +122,7 @@ Steps, one at a time:
 4. **Push**: prompts/reminders for "Mira app" takers go to the invited person's phone(s); turn on reminders; tapping opens the check-in.
 5. **Settings-lite, privacy and delete**: sign out, delete account (their own account only; the caregiver's setup stays), privacy tests.
 
-Steps 1–4 are done (Oct 2026). Push (step 4): `invited_push_targets(send)` finds her own sign-ins; two caregivers asking at once buzz her phone once; not signed in anywhere is logged as **failed**, not sent.
+All 5 are done (Oct 2026). Push (step 4): `invited_push_targets(send)` finds her own sign-ins; two caregivers asking at once buzz her phone once; not signed in anywhere is logged as **failed**, not sent. Delete (step 5): only her own sign-in and phones go; caregivers who chose "Mira app" for her get a push (`invited_leaving`) to switch her to text or call. Settings is `invitedSetting` (her check-ins read-only).
 
 ## Code conventions in this repo
 

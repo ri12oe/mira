@@ -9,16 +9,19 @@ import { FigtreeFont, FontFamily } from "@/constants/fonts";
 import { useCaregiverSetup } from "@/context/caregiver-setup";
 import { useAlerts } from "@/hooks/use-alerts";
 import { EASE_OUT, EASE_POP, useEntrance, useLoop } from "@/hooks/use-entrance";
-import { signOut as signOutOfMira } from "@/lib/auth";
-import { checkInAsInvited, fetchMyInvitedDay, InvitedDayRow } from "@/lib/invited";
+import {
+  checkInAsInvited,
+  fetchMyInvitedDay,
+  InvitedDayRow,
+  rememberedInvitedDay,
+} from "@/lib/invited";
 import { openMessages } from "@/lib/invites";
 import { REMINDERS_CARD_DISMISSED, readPreference, writePreference } from "@/lib/preferences";
-import { forgetThisPhone } from "@/lib/push";
 import { joinNames, periodOf } from "@/utils/day-period";
 import { dayIndex, localDateKey, localMinutes } from "@/utils/local-date";
 import { nextCheckInLabel } from "@/utils/today-state";
 import * as Linking from "expo-linking";
-import { useFocusEffect } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import { ReactNode, useCallback, useState } from "react";
 import { ActivityIndicator, Animated, Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -47,12 +50,6 @@ const REFRESH_MS = 60 * 1000;
 const OUTER = 310;
 const INNER = 264;
 const BUTTON = 216;
-
-/**
- * Today, as last loaded. Kept outside the screen so coming back to it (or
- * reopening the app) shows the right state at once, not a wrong one first.
- */
-let lastRows: InvitedDayRow[] | null = null;
 
 function CheckMark({ size, color = "#fff" }: { size: number; color?: string }) {
   return (
@@ -137,8 +134,8 @@ function QuietCircle({ children, color = LILAC }: { children: ReactNode; color?:
  * backup who joined from "Someone invited me" (nothing to check in).
  */
 export default function InvitedHome() {
-  const { reset, invitedBackupFor } = useCaregiverSetup();
-  const [rows, setRows] = useState<InvitedDayRow[] | null>(() => lastRows);
+  const { invitedBackupFor } = useCaregiverSetup();
+  const [rows, setRows] = useState<InvitedDayRow[] | null>(rememberedInvitedDay);
   const [failed, setFailed] = useState(false);
   const [now, setNow] = useState(() => new Date());
   /** "pressed": the tap shows at once, before the server answers */
@@ -161,9 +158,7 @@ export default function InvitedHome() {
 
   const load = useCallback(async () => {
     try {
-      const data = await fetchMyInvitedDay();
-      lastRows = data;
-      setRows(data);
+      setRows(await fetchMyInvitedDay());
       setFailed(false);
     } catch {
       setFailed(true);
@@ -258,13 +253,6 @@ export default function InvitedHome() {
     ).catch(() => setProblem(`We couldn't open Messages. You can text ${row.caregiverPhone}.`));
   };
 
-  const signOut = async () => {
-    await forgetThisPhone();
-    await signOutOfMira();
-    lastRows = null;
-    reset();
-  };
-
   // ---- a self user's backup (nothing to check in)
   if (rows && !checksIn && backupFor) {
     return (
@@ -287,7 +275,7 @@ export default function InvitedHome() {
               check-in, and tells you when they&apos;re okay again.
             </AppText>
           </View>
-          <SignOutLink onPress={signOut} />
+          <SettingsLink />
         </ScrollView>
       </SafeAreaView>
     );
@@ -420,7 +408,7 @@ export default function InvitedHome() {
           </Rise>
         )}
         <Rise delay={450}>
-          <SignOutLink onPress={signOut} />
+          <SettingsLink />
         </Rise>
       </ScrollView>
 
@@ -479,11 +467,29 @@ export default function InvitedHome() {
   );
 }
 
-/** Quiet, at the very bottom (a Settings screen comes in a later step) */
-function SignOutLink({ onPress }: { onPress: () => void }) {
+/** Quiet, at the very bottom: reminders, sign out, delete */
+function SettingsLink() {
   return (
-    <Pressable style={styles.signOut} onPress={onPress} accessibilityRole="button">
-      <AppText style={styles.signOutText}>Sign out</AppText>
+    <Pressable
+      style={({ pressed }) => [styles.settings, pressed && styles.pressed]}
+      onPress={() => router.push("/invitedSetting")}
+      accessibilityRole="button"
+      accessibilityLabel="Settings"
+    >
+      <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
+        <Path
+          d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"
+          stroke={SUBTITLE}
+          strokeWidth={2}
+        />
+        <Path
+          d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.32 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"
+          stroke={SUBTITLE}
+          strokeWidth={2}
+          strokeLinejoin="round"
+        />
+      </Svg>
+      <AppText style={styles.settingsText}>Settings</AppText>
     </Pressable>
   );
 }
@@ -684,17 +690,22 @@ const styles = StyleSheet.create({
     fontFamily: FigtreeFont.extraBold,
     fontSize: 18,
   },
-  signOut: {
+  settings: {
     alignSelf: "center",
-    minHeight: 44,
-    paddingHorizontal: 16,
-    justifyContent: "center",
+    minHeight: 48,
+    paddingHorizontal: 20,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: BORDER,
+    backgroundColor: "#fff",
   },
-  signOutText: {
-    color: SUBTITLE,
-    fontFamily: FigtreeFont.semiBold,
-    fontSize: 15,
-    textDecorationLine: "underline",
+  settingsText: {
+    color: INK,
+    fontFamily: FigtreeFont.bold,
+    fontSize: 17,
   },
   helpList: {
     gap: 10,
