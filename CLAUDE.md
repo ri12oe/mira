@@ -4,7 +4,7 @@
 
 Mira is a daily check-in app for older and disabled adults. A **caregiver** sets it up for the person they look after (the **taker**, e.g. "Lin"). Every day Mira asks the taker to check in (by text reply, a short phone call where they press 1, or a tap in the app). If they don't, Mira alerts the caregiver, then their backup contacts in order.
 
-The app is **built end to end** for all three account types: **caregivers**, people **checking in for themselves**, and **invited people** ("Someone invited me"), with a Supabase backend (see the build orders below, all done). Delivery runs in **free test mode** (see Backend stack). The current focus is **getting ready for real users**: see "What's next" at the end.
+The app is **built end to end** for all three account types: **caregivers**, people **checking in for themselves**, and **invited people** ("Someone invited me"), with a Supabase backend (see the build orders below, all done). Delivery runs in **free test mode** (see Backend stack). Mira is a **class project and won't be released to the public** (decision, Nov 2026). The current focus is a **demo of how it works**: see "What's next" at the end.
 
 ## How to work with me
 
@@ -120,16 +120,18 @@ Steps, one at a time:
 
 All 5 are done (Oct 2026). Push (step 4): `invited_push_targets(send)` finds her own sign-ins; two caregivers asking at once buzz her phone once; not signed in anywhere is logged as **failed**, not sent. Delete (step 5): only her own sign-in and phones go; caregivers who chose "Mira app" for her get a push (`invited_leaving`) to switch her to text or call. Settings is `invitedSetting` (her check-ins read-only).
 
-## What's next (getting ready for real users)
+## What's next (a demo of how Mira works)
+
+Mira won't be released, so there's no app store, carrier registration (A2P 10DLC), real texting, legal pages or real-family testing. Delivery stays in **free test mode**. The goal is a demo that shows the whole flow reliably, including a missed check-in escalating, in a few minutes.
 
 Do these in order, one at a time, and confirm with me before moving on:
 
-1. **Cleanup** (done Oct 2026): README and this file updated; Mira icon, Android icons, splash (`#F5F4FA`) and favicon; app name "Mira"; iOS `bundleIdentifier` `com.rios0.mira` (same as the Android package; it can't change once the app is published); Expo template images and `scripts/reset-project.js` removed; `userInterfaceStyle: "light"` because there's no dark mode yet.
-2. **Landing page** (a separate small website): what Mira is, how it works, and **Privacy policy, Terms, and an SMS consent page** (what texts Mira sends, how often, "Reply STOP to opt out", "Msg & data rates may apply"). Twilio's A2P 10DLC registration and both app stores require these to be public.
-3. **Go live in two stages**: first **voice calls only** (`SMS_MODE=live` with calls; no carrier registration needed), then register for texting using the landing page.
-4. **Safety net**: GitHub Actions running `tsc`, lint and the SQL checks (against a local `supabase start`) on every push; monitoring so we hear about it if `pg_cron` stops or sends keep failing (a heartbeat check and error reporting such as Sentry).
-5. **Real-world testing** with 2–3 families, including an older adult using it alone. Hold off on new features until then.
-6. Later: split the biggest screens (`caregiverHome.tsx` is 1,100+ lines) and share components between the caregiver and self screens, which nearly mirror each other.
+1. **Cleanup** (done Oct 2026): README and this file updated; Mira icon, Android icons, splash (`#F5F4FA`) and favicon; app name "Mira"; iOS `bundleIdentifier` `com.rios0.mira`; Expo template images and `scripts/reset-project.js` removed; `userInterfaceStyle: "light"` because there's no dark mode yet. Stray `mira-cleanup.patch` removed (Nov 2026).
+2. **Demo data**: a `supabase/seed-demo.sql` script that resets a demo caregiver (Jordan) with takers (e.g. Lin on text, Mo on the Mira app), a backup (Sam) and a few weeks of history, so one command gives a clean demo.
+3. **Demo sign-in**: Supabase test phone numbers with fixed codes (dashboard → Auth → Phone), so sign-in never waits on a real text. Note which numbers are for which role in the README (no real codes in git).
+4. **Demo controls**: a sheet only demo accounts see, with "Skip to window end" (reminder), "Skip to +30 min" (caregiver alert), "Pretend Lin texted OK", and so on. It calls a protected `demo_advance()` that runs `scheduler_tick(p_now)` at a fake time for demo takers only; add a SQL check that it can't touch anyone else.
+5. **Demo script and backup video**: two phones side by side (caregiver + invited person) showing the live update through Realtime; a 2–3 minute screen recording in case the Wi-Fi fails; optionally a one-page "How Mira works" diagram (app → Supabase → `pg_cron` → `deliver-sends` → push/Twilio).
+6. **Learning extras** (optional): GitHub Actions running `tsc`, lint and the SQL checks against a local `supabase start`; tests for `src/utils/`; a reply to HELP texts; split the biggest screens (`caregiverHome.tsx` is 1,100+ lines) and share components between the caregiver and self screens, which nearly mirror each other.
 
 ## Code conventions in this repo
 
