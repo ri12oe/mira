@@ -80,7 +80,7 @@ function RootStack({ fontsReady }: { fontsReady: boolean }) {
   if (!ready) return null;
 
   // Where a screen you can't open sends you: your own Home (Welcome when
-  // signed out). Needed since the caregiver tabs are a group, (caregiver):
+  // signed out). Needed since the tabs are groups, (caregiver) and (self):
   // the automatic redirect would build "/(caregiver)", which isn't a page.
   const home = !signedIn
     ? "/"
@@ -108,10 +108,8 @@ function RootStack({ fontsReady }: { fontsReady: boolean }) {
         </Stack.Protected>
         {/* Signed in, using Mira for themselves */}
         <Stack.Protected guard={signedIn && isSelf} redirectTo={home}>
-          <Stack.Screen name="selfHome" />
-          <Stack.Screen name="selfHistory" />
-          <Stack.Screen name="selfPeople" />
-          <Stack.Screen name="selfSetting" />
+          {/* Home, History, My people and Settings: the native tab bar in (self)/_layout */}
+          <Stack.Screen name="(self)" />
         </Stack.Protected>
         {/* Signed in, someone a caregiver set up ("Someone invited me") */}
         <Stack.Protected guard={signedIn && isInvited} redirectTo={home}>

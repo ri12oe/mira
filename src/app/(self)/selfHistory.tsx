@@ -1,5 +1,4 @@
 import { AppText } from "@/components/app-test";
-import { SelfTabBar } from "@/components/caregiver-tab-bar";
 import { HistoryCalendar } from "@/components/history-calendar";
 import { MonthSummaryCard } from "@/components/month-summary-card";
 import { FontFamily } from "@/constants/fonts";
@@ -34,7 +33,7 @@ export default function SelfHistory() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={["top", "left", "right"]}>
       <ScrollView
         style={styles.content}
         contentContainerStyle={styles.scrollContent}
@@ -59,7 +58,6 @@ export default function SelfHistory() {
           emptyText="No check-ins yet."
         />
       </ScrollView>
-      <SelfTabBar active="history" />
     </SafeAreaView>
   );
 }
@@ -77,7 +75,7 @@ const styles = StyleSheet.create({
     gap: 16,
     paddingHorizontal: 24,
     paddingTop: 24,
-    paddingBottom: 108,
+    paddingBottom: 32,
     marginTop: 56,
   },
   title: {

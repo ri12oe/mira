@@ -45,9 +45,9 @@ Screens:
 |---|---|
 | Everyone | `index` (Welcome), `whoUsesMira`, `signIn`, `verifyCode` |
 | Caregiver setup | `caregiverSetup1`–`3`, then `connected` (first person) / `connected2` (someone added later) |
-| Caregiver app | `caregiverHome`, `caregiverHistory`, `caregiverPeople`, `caregiverSetting`, `caregiverProfile`, `helpAndSupport`, `checkInNow`, `waiting` |
+| Caregiver app | tabs in `(caregiver)/`: `caregiverHome`, `caregiverHistory`, `caregiverPeople`, `caregiverSetting`; over the tabs: `caregiverProfile`, `helpAndSupport`, `checkInNow`, `waiting` |
 | Self setup | `selfSetupindex` (intro, with Dot), `selfSetup1`–`3`, `selfSetup4` (practice run), `selfSetup5` (you're all set) |
-| Self app | `selfHome`, `selfHistory`, `selfPeople`, `selfSetting`, `selfHelp` |
+| Self app | tabs in `(self)/`: `selfHome`, `selfHistory`, `selfPeople`, `selfSetting`; over the tabs: `selfHelp` |
 | Invited person | `invited`, `invitedHome`, `invitedSetting` |
 
 Backend: `supabase/migrations/` (schema, Row Level Security on every table, `security definer` functions with a fixed `search_path`, the scheduler), `supabase/functions/` (`send-invite`, `confirm-invite`, `deliver-sends`, `twilio-inbound`, `twilio-voice`, `twilio-status`, `delete-account`; shared code in `_shared/`), `supabase/tests/` (SQL checks).
@@ -143,6 +143,8 @@ Do these in order, one at a time, and confirm with me before moving on:
 - **Lint rules that bite (React Compiler)**: don't read `ref.current` during render (so no `useRef(new Animated.Value(0)).current`; use `useState(() => new Animated.Value(0))`), and don't call `setState` directly inside `useEffect`.
 - **Animations**: shared helpers are in `src/hooks/use-entrance.ts` (`useEntrance`, `useLoop`, `useReduceMotion`, `EASE_OUT`, `EASE_POP`) and `src/components/rise.tsx`. Respect Reduce motion.
 - **Bottom sheets** use `src/components/bottom-sheet.tsx` (slide up, fade, drag down to close).
+- **Tabs** are native (`NativeTabs` from `expo-router/native-tabs`): Liquid Glass on iOS 26, Material on Android. Each set is a route group with its own `_layout.tsx`: `(caregiver)/` and `(self)/`. Group folders don't change URLs (`/caregiverHome` still works). Tab screens use `<SafeAreaView edges={["top", "left", "right"]}>` and a small `paddingBottom`, because iOS insets the first ScrollView under the glass bar. Keep `minimizeBehavior="never"` so the bar never hides.
+- **Every `Stack.Protected` in `src/app/_layout.tsx` needs `redirectTo={home}`.** Without it, a blocked screen redirects to the first allowed route, and for a group that builds `/(caregiver)`, which is "Unmatched Route" (Nov 2026). Any new protected block or group gets it too.
 - **Accessibility**: real `accessibilityRole` / `accessibilityLabel` on pressables, touch targets at least 44px. The users are older adults: clear words, big targets, no jargon in error messages.
 - Don't create or edit `ios/` or `android/` by hand.
 

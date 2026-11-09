@@ -1,7 +1,6 @@
 import { AlertsCard } from "@/components/alerts-prompt";
 import { AppText } from "@/components/app-test";
 import { BottomSheet } from "@/components/bottom-sheet";
-import { SelfTabBar } from "@/components/caregiver-tab-bar";
 import { DemoSheet } from "@/components/demo-sheet";
 import { Dot } from "@/components/dot";
 import MessageIcon from "@/components/icons/MessageIcon";
@@ -220,7 +219,7 @@ export default function SelfHome() {
   });
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={["top", "left", "right"]}>
       <ScrollView
         style={styles.content}
         contentContainerStyle={styles.scrollContent}
@@ -375,7 +374,6 @@ export default function SelfHome() {
           <AppText style={styles.helpText}>I need help</AppText>
         </Pressable>
       </ScrollView>
-      <SelfTabBar />
 
       <BottomSheet
         visible={helpOpen}
@@ -493,7 +491,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingBottom: 108, // room for the tab bar
+    paddingBottom: 32,
   },
   header: {
     marginTop: 12,

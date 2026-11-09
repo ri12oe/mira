@@ -5,7 +5,6 @@ import { ConfirmSheet } from "@/components/confirm-sheet";
 import { deleteAccount } from "@/lib/account";
 import { AlertsStatus, useAlerts } from "@/hooks/use-alerts";
 import { BottomSheet } from "@/components/bottom-sheet";
-import { SelfTabBar } from "@/components/caregiver-tab-bar";
 import ArrowRightIcon from "@/components/icons/ArrowRightIcon";
 import ClockIcon from "@/components/icons/ClockIcon";
 import PhoneSquareIcon from "@/components/icons/PhoneSquareIcon";
@@ -115,7 +114,7 @@ export default function SelfSetting() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={["top", "left", "right"]}>
       <ScrollView
         style={styles.content}
         contentContainerStyle={styles.scrollContent}
@@ -322,7 +321,6 @@ export default function SelfSetting() {
           <AppText style={styles.deleteButtonText}>Delete my account</AppText>
         </Pressable>
       </ScrollView>
-      <SelfTabBar active="settings" />
 
       <BottomSheet
         visible={sheet === "time"}
@@ -406,7 +404,7 @@ const styles = StyleSheet.create({
     gap: 16,
     paddingHorizontal: 24,
     paddingTop: 24,
-    paddingBottom: 108,
+    paddingBottom: 32,
     marginTop: 56,
   },
   title: {
