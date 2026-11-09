@@ -21,6 +21,7 @@ import {
   ScrollView,
   StyleSheet,
   TextInput,
+  type TextInputInstance,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -101,7 +102,7 @@ export default function VerifyCode() {
   const [openedExisting, setOpenedExisting] = useState(false);
   const [now, setNow] = useState(() => Date.now());
   const [shake] = useState(() => new Animated.Value(0));
-  const inputRef = useRef<TextInput>(null);
+  const inputRef = useRef<TextInputInstance>(null);
   const sentOnMount = useRef(false);
 
   const send = async () => {

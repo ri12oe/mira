@@ -129,6 +129,35 @@ npx supabase db query --linked -f supabase/tests/security-check.sql
 
 They cover security (people can't see each other's data), privacy, the scheduler (a whole day replayed minute by minute), replies, invites, Check in now, push tokens, account deletion, and the self and invited flows.
 
+## Demo
+
+Mira is a class project and isn't released; it's shown as a demo, with delivery in test mode.
+
+### Reset the demo data
+
+```bash
+npx supabase db query --linked -f supabase/seed-demo.sql
+npx supabase db query --linked -f supabase/tests/seed-demo-check.sql
+```
+
+The seed can be run any time. It deletes and rebuilds only the demo people (four weeks of history, today left for the scheduler), and keeps the demo accounts so demo phones stay signed in.
+
+### Demo accounts
+
+All numbers are fictional (555-01xx) and in Chicago time.
+
+| Number | Who | Sign in with | Lands on |
+|---|---|---|---|
+| +1 312 555 0101 | Jordan, caregiver for Lin and Mo | I already have an account | Caregiver Home |
+| +1 312 555 0103 | Mo, Jordan's dad (checks in with the app) | I already have an account | Mo's check-in screen |
+| +1 312 555 0105 | Ana, checks in for herself | I already have an account | Ana's Home |
+| +1 312 555 0102 | Lin, Jordan's mom (checks in by text) | Someone invited me | Lin's check-in screen (her first sign-in creates her account) |
+| +1 312 555 0104 | Sam, Ana's backup | Someone invited me | "You're Ana's backup" (first sign-in creates his account) |
+
+### Demo sign-in codes
+
+Sign-in uses Supabase **test phone numbers**: no text is sent and the code is always the same. Set them up once in the Supabase dashboard → **Authentication** → **Sign In / Providers** → **Phone** → **Test Phone Numbers and OTPs**, one `number=code` pair per number with no `+`, comma-separated, e.g. `13125550101=<6-digit code>`. Set **Test OTPs valid until** to a date after the demo. The codes are kept only in the dashboard, never in git.
+
 ## Project structure
 
 ```
