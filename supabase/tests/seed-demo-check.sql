@@ -1,6 +1,6 @@
 -- Demo data check: run after supabase/seed-demo.sql. Read-only (rolled back).
 -- Run: npx supabase db query --linked -f supabase/tests/seed-demo-check.sql
--- Prints ALL CHECKS PASSED, or an error naming the failed check (D1-D9).
+-- Prints ALL CHECKS PASSED, or an error naming the failed check (D1-D10).
 -- Running the seed twice and then this check also shows the reset works:
 -- the counts would double if it didn't wipe the old demo first.
 
@@ -101,6 +101,10 @@ begin
   select count(*) into n from public.check_ins where taker_id in (lin, mo);
   reset role;
   assert n = 0, 'D9 Ana can see Jordan''s people';
+
+  -- D10 Jordan and Ana get the demo controls; Mo doesn't
+  select array_agg(id order by id) into ids from public.demo_accounts where id in (jordan, mo_acct, ana_acct);
+  assert ids = array[jordan, ana_acct], 'D10 demo_accounts should be exactly Jordan and Ana';
 end $$;
 
 select 'ALL CHECKS PASSED' as result;

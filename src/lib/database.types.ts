@@ -175,6 +175,18 @@ export type Database = {
           },
         ]
       }
+      demo_accounts: {
+        Row: {
+          id: string
+        }
+        Insert: {
+          id: string
+        }
+        Update: {
+          id?: string
+        }
+        Relationships: []
+      }
       invites: {
         Row: {
           accepted_at: string | null
@@ -484,6 +496,44 @@ export type Database = {
           taker_window_start: number
         }[]
       }
+      demo_advance: {
+        Args: { p_step: string; p_taker_id: string }
+        Returns: Json
+      }
+      demo_kick: { Args: never; Returns: undefined }
+      demo_reply: { Args: { p_taker_id: string }; Returns: Json }
+      demo_taker: {
+        Args: { p_taker_id: string }
+        Returns: {
+          caregiver_id: string
+          caregiver_relationship: string | null
+          created_at: string
+          days: number[]
+          extra_minutes: number
+          first_name: string
+          id: string
+          is_self: boolean
+          joined_at: string | null
+          method: Database["public"]["Enums"]["check_in_method"]
+          paused: boolean
+          phone: string
+          status: Database["public"]["Enums"]["taker_status"]
+          time_zone: string
+          updated_at: string
+          window_end: number
+          window_start: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "takers"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      demo_today: {
+        Args: { p_taker: Database["public"]["Tables"]["takers"]["Row"] }
+        Returns: Json
+      }
       finish_send: {
         Args: {
           p_error: string
@@ -542,6 +592,7 @@ export type Database = {
       }
       invited_phone_of: { Args: { p_account_id: string }; Returns: string }
       invited_push_targets: { Args: { p_send_id: string }; Returns: Json }
+      is_demo_account: { Args: never; Returns: boolean }
       is_valid_time_zone: { Args: { tz: string }; Returns: boolean }
       join_as_invited: { Args: never; Returns: Json }
       mark_checked_in: { Args: { p_taker_id: string }; Returns: string }

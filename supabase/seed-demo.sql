@@ -84,6 +84,11 @@ begin
   update public.caregivers set first_name = 'Mo', email = null, photo_path = null where id = mo_acct;
   update public.caregivers set first_name = 'Ana', email = null, photo_path = null where id = ana_acct;
 
+  -- The accounts that get the demo controls (20261109120000_demo_controls.sql).
+  -- Not Mo: he looks after nobody, so there's nothing for him to fast-forward.
+  insert into public.demo_accounts (id) values (jordan), (ana_acct)
+  on conflict (id) do nothing;
+
   -- 3. The people being looked after. Lin and Mo joined five weeks ago.
   insert into public.takers (
     id, caregiver_id, first_name, phone, caregiver_relationship, method, time_zone,

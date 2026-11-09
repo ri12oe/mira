@@ -1,20 +1,10 @@
-import { randomUUID } from "expo-crypto";
 import { AlertOrder } from "@/components/alert-order";
+import { AlertsCard, AlertsSheet } from "@/components/alerts-prompt";
 import { AppText } from "@/components/app-test";
 import { BackButton } from "@/components/back-button";
-import { AlertsCard, AlertsSheet } from "@/components/alerts-prompt";
-import { SyncBanner } from "@/components/sync-banner";
-import { useAlerts } from "@/hooks/use-alerts";
-import { ALERTS_CARD_DISMISSED, readPreference, writePreference } from "@/lib/preferences";
-import { ThisWeek } from "@/components/this-week";
-import { TodayCard } from "@/components/today-card";
-import { useTakerActivity } from "@/hooks/use-taker-activity";
-import { markCheckedIn } from "@/lib/check-ins";
-import { confirmJoined, defaultInviteMessage } from "@/lib/invites";
-import { weekKeys } from "@/utils/local-date";
-import { nextCheckInLabel, todayState } from "@/utils/today-state";
 import { BackupSheet } from "@/components/backup-sheet";
 import { BottomSheet } from "@/components/bottom-sheet";
+import { DemoSheet } from "@/components/demo-sheet";
 import { CaregiverTabBar } from "@/components/caregiver-tab-bar";
 import { Chip } from "@/components/chip";
 import {
@@ -39,7 +29,10 @@ import {
 import { InviteMessage } from "@/components/invite-message";
 import { SegmentedSlider } from "@/components/segmented-slider";
 import { StepProgress } from "@/components/step-progress";
+import { SyncBanner } from "@/components/sync-banner";
+import { ThisWeek } from "@/components/this-week";
 import { TimeWindowPicker } from "@/components/time-window-picker";
+import { TodayCard } from "@/components/today-card";
 import { WhichDays } from "@/components/which-days";
 import { WINDOWS } from "@/constants/check-in-windows";
 import { FigtreeFont, FontFamily } from "@/constants/fonts";
@@ -49,17 +42,24 @@ import {
   PRIMARY_PERSON_ID as PRIMARY_ID,
   useCaregiverSetup,
 } from "@/context/caregiver-setup";
+import { useAlerts } from "@/hooks/use-alerts";
+import { useDemoAccount } from "@/hooks/use-demo-account";
+import { useTakerActivity } from "@/hooks/use-taker-activity";
+import { markCheckedIn } from "@/lib/check-ins";
+import { confirmJoined, defaultInviteMessage } from "@/lib/invites";
+import {
+  ALERTS_CARD_DISMISSED,
+  readPreference,
+  writePreference,
+} from "@/lib/preferences";
 import { formatTime } from "@/utils/format-time";
+import { weekKeys } from "@/utils/local-date";
+import { nextCheckInLabel, todayState } from "@/utils/today-state";
+import { randomUUID } from "expo-crypto";
 import * as Linking from "expo-linking";
 import { router } from "expo-router";
 import { useState } from "react";
-import {
-  Alert,
-  Pressable,
-  StyleSheet,
-  TextInput,
-  View,
-} from "react-native";
+import { Alert, Pressable, StyleSheet, TextInput, View } from "react-native";
 // Gesture Handler's ScrollView coordinates with the drag/swipe gestures inside it
 import { ScrollView } from "react-native-gesture-handler";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -97,7 +97,8 @@ const METHOD_OPTIONS = [
 ];
 
 const MARK_MESSAGES = {
-  nothing_open: "There's no check-in open right now, so there's nothing to mark.",
+  nothing_open:
+    "There's no check-in open right now, so there's nothing to mark.",
   offline: "We couldn't reach Mira. Check that you're online, then try again.",
   failed: "Something went wrong. Please try again.",
 };
@@ -135,6 +136,9 @@ export default function CaregiverHome() {
     setAlertsCardDismissed(true);
   };
   const alertsOn = alerts.status === "on";
+  // Demo accounts only: fast-forward today's check-in
+  const isDemo = useDemoAccount();
+  const [demoOpen, setDemoOpen] = useState(false);
   const [sheet, setSheet] = useState<
     | "person"
     | "time"
@@ -185,15 +189,26 @@ export default function CaregiverHome() {
   const backups = selectedPerson?.backups ?? primaryBackups;
 
   // Today and this week, from the database (live)
-  const { activity, now, todayKey, reload } = useTakerActivity(takerId, timeZone, { kind: "week" });
+  const { activity, now, todayKey, reload } = useTakerActivity(
+    takerId,
+    timeZone,
+    { kind: "week" },
+  );
   const schedule = { paused, days, windowEnd, timeZone };
   const today = todayState(activity, schedule, todayKey, now);
   // After today's check-in, the next one is on a later day
-  const nextAfterToday = nextCheckInLabel({ ...schedule, windowEnd: -1 }, todayKey, now);
+  const nextAfterToday = nextCheckInLabel(
+    { ...schedule, windowEnd: -1 },
+    todayKey,
+    now,
+  );
 
   // "Lin checked in" / "I reached Lin, Lin is okay"
   const [marking, setMarking] = useState(false);
-  const [markMessage, setMarkMessage] = useState<{ id: string; text: string } | null>(null);
+  const [markMessage, setMarkMessage] = useState<{
+    id: string;
+    text: string;
+  } | null>(null);
   const markIn = async () => {
     if (marking) return;
     setMarking(true);
@@ -207,13 +222,17 @@ export default function CaregiverHome() {
   // "Send the invite again": a fresh invite, on the same invite screen as setup
   const resendInvite = () => {
     queueInvite(takerId, defaultInviteMessage(displayName, yourFirstName));
-    if (selectedPerson) router.push({ pathname: "/connected2", params: { personId: takerId } });
+    if (selectedPerson)
+      router.push({ pathname: "/connected2", params: { personId: takerId } });
     else router.push("/connected");
   };
 
   // Free mode: "Lin replied YES" (the invite went from your phone)
   const [confirming, setConfirming] = useState(false);
-  const [confirmMessage, setConfirmMessage] = useState<{ id: string; text: string } | null>(null);
+  const [confirmMessage, setConfirmMessage] = useState<{
+    id: string;
+    text: string;
+  } | null>(null);
   const confirmYes = async () => {
     if (confirming) return;
     setConfirming(true);
@@ -327,6 +346,17 @@ export default function CaregiverHome() {
               {caregiverName ? `, ${caregiverName}` : ""}
             </AppText>
           </View>
+          {isDemo && (
+            <Pressable
+              style={styles.demoButton}
+              onPress={() => setDemoOpen(true)}
+              accessibilityRole="button"
+              accessibilityLabel="Demo controls"
+              accessibilityHint="Fast-forwards today's check-in for the demo"
+            >
+              <AppText style={styles.demoButtonText}>Demo</AppText>
+            </Pressable>
+          )}
           <Pressable
             style={[
               styles.notifications,
@@ -353,7 +383,9 @@ export default function CaregiverHome() {
         )}
         <View style={styles.peopleChips}>
           {[
-            ...(primaryFirstName.trim() ? [{ id: PRIMARY_ID, name: primaryName }] : []),
+            ...(primaryFirstName.trim()
+              ? [{ id: PRIMARY_ID, name: primaryName }]
+              : []),
             ...people.map((p) => ({ id: p.id, name: p.firstName })),
           ].map((person) => {
             const selected = person.id === selectedId;
@@ -389,12 +421,16 @@ export default function CaregiverHome() {
               nextLabel={nextAfterToday}
               onMarkCheckedIn={markIn}
               marking={marking}
-              markMessage={markMessage?.id === takerId ? markMessage.text : null}
+              markMessage={
+                markMessage?.id === takerId ? markMessage.text : null
+              }
               onCall={callPerson}
               onConfirmJoined={confirmYes}
-          onResendInvite={resendInvite}
+              onResendInvite={resendInvite}
               confirming={confirming}
-              confirmMessage={confirmMessage?.id === takerId ? confirmMessage.text : null}
+              confirmMessage={
+                confirmMessage?.id === takerId ? confirmMessage.text : null
+              }
               onOpenSettings={() => router.push("/caregiverSetting")}
             />
             {today.kind !== "notJoined" && (
@@ -420,7 +456,9 @@ export default function CaregiverHome() {
                 <View style={[styles.iconTile, { backgroundColor: LILAC }]}>
                   <PhoneIcon size={20} color={PRIMARY} />
                 </View>
-                <AppText style={styles.iconTileLabel}>Call {displayName}</AppText>
+                <AppText style={styles.iconTileLabel}>
+                  Call {displayName}
+                </AppText>
               </Pressable>
               <Pressable
                 style={({ pressed }) => [
@@ -757,6 +795,16 @@ export default function CaregiverHome() {
           setSheet("alert");
         }}
       />
+      {isDemo && (
+        <DemoSheet
+          visible={demoOpen}
+          onClose={() => setDemoOpen(false)}
+          takerId={takerId}
+          name={displayName}
+          method={method}
+          onChanged={reload}
+        />
+      )}
     </SafeAreaView>
   );
 }
@@ -767,7 +815,8 @@ function EmptyHome({ onAdd }: { onAdd: () => void }) {
     <View style={styles.emptyCard}>
       <AppText style={styles.emptyTitle}>Add someone to look after</AppText>
       <AppText style={styles.emptyBody}>
-        Mira checks in with them every day and lets you know if they don&apos;t answer.
+        Mira checks in with them every day and lets you know if they don&apos;t
+        answer.
       </AppText>
       <Pressable
         style={({ pressed }) => [styles.emptyButton, pressed && styles.pressed]}
@@ -1132,5 +1181,18 @@ const styles = StyleSheet.create({
     fontSize: 17,
     lineHeight: 22.1,
     fontFamily: FigtreeFont.extraBold,
+  },
+    demoButton: {
+    height: 48,
+    paddingHorizontal: 16,
+    justifyContent: "center",
+    alignItems: "center",
+    borderRadius: 16,
+    backgroundColor: LILAC,
+  },
+  demoButtonText: {
+    color: PRIMARY,
+    fontFamily: FigtreeFont.bold,
+    fontSize: 16,
   },
 });

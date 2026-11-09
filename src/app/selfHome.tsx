@@ -1,17 +1,25 @@
 import { AlertsCard } from "@/components/alerts-prompt";
 import { AppText } from "@/components/app-test";
-import { useAlerts } from "@/hooks/use-alerts";
-import { REMINDERS_CARD_DISMISSED, readPreference, writePreference } from "@/lib/preferences";
 import { BottomSheet } from "@/components/bottom-sheet";
 import { SelfTabBar } from "@/components/caregiver-tab-bar";
-import { SyncBanner } from "@/components/sync-banner";
+import { DemoSheet } from "@/components/demo-sheet";
 import { Dot } from "@/components/dot";
+import MessageIcon from "@/components/icons/MessageIcon";
+import PhoneIcon from "@/components/icons/PhoneIcon";
 import { SelfCheckInCard } from "@/components/self-check-in-card";
+import { SyncBanner } from "@/components/sync-banner";
 import { FigtreeFont, FontFamily } from "@/constants/fonts";
 import { Backup, useCaregiverSetup } from "@/context/caregiver-setup";
-import { backupConfirmations, openMessages } from "@/lib/invites";
-import { checkInMyself } from "@/lib/check-ins";
+import { useAlerts } from "@/hooks/use-alerts";
+import { useDemoAccount } from "@/hooks/use-demo-account";
 import { useTakerActivity } from "@/hooks/use-taker-activity";
+import { checkInMyself } from "@/lib/check-ins";
+import { backupConfirmations, openMessages } from "@/lib/invites";
+import {
+  REMINDERS_CARD_DISMISSED,
+  readPreference,
+  writePreference,
+} from "@/lib/preferences";
 import { avatarColors } from "@/utils/avatar-colors";
 import { joinNames } from "@/utils/day-period";
 import { localDateKey, localMinutes } from "@/utils/local-date";
@@ -22,8 +30,6 @@ import { useCallback, useEffect, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Circle, Path } from "react-native-svg";
-import PhoneIcon from "@/components/icons/PhoneIcon";
-import MessageIcon from "@/components/icons/MessageIcon";
 
 const INK = "#15163A";
 const SUBTITLE = "#54566E";
@@ -45,7 +51,12 @@ function HelpIcon() {
   return (
     <Svg width={22} height={22} viewBox="0 0 22 22" fill="none">
       <Circle cx={11} cy={11} r={8.5} stroke={HELP} strokeWidth={2} />
-      <Path d="M11 6.5V11.5" stroke={HELP} strokeWidth={2} strokeLinecap="round" />
+      <Path
+        d="M11 6.5V11.5"
+        stroke={HELP}
+        strokeWidth={2}
+        strokeLinecap="round"
+      />
       <Circle cx={11} cy={15} r={1.2} fill={HELP} />
     </Svg>
   );
@@ -105,7 +116,12 @@ export default function SelfHome() {
   const todayKey = localDateKey(now, timeZone);
 
   // Today's check-in from the server (this week; refreshes live)
-  const { activity, failed, reload } = useTakerActivity(takerId, timeZone, { kind: "week" });
+  const { activity, failed, reload } = useTakerActivity(takerId, timeZone, {
+    kind: "week",
+  });
+  // Demo accounts only: fast-forward today's check-in
+  const isDemo = useDemoAccount();
+  const [demoOpen, setDemoOpen] = useState(false);
   // Only the very first load (nothing remembered yet); if it fails, show the
   // button anyway: a tap still goes to the server, which knows best
   const loading = !activity && !failed;
@@ -115,8 +131,8 @@ export default function SelfHome() {
     : null;
 
   // The tap shows straight away; it's undone if the server couldn't save it
-  const [tapped, setTapped] = useState<{ day: string; minutes: number } | null>(() =>
-    lastTap?.takerId === takerId ? lastTap : null,
+  const [tapped, setTapped] = useState<{ day: string; minutes: number } | null>(
+    () => (lastTap?.takerId === takerId ? lastTap : null),
   );
   const [saving, setSaving] = useState(false);
   const [checkInProblem, setCheckInProblem] = useState<string | null>(null);
@@ -131,7 +147,10 @@ export default function SelfHome() {
   const checkInNow = async () => {
     if (saving) return;
     const at = new Date();
-    const tap = { day: localDateKey(at, timeZone), minutes: localMinutes(at, timeZone) };
+    const tap = {
+      day: localDateKey(at, timeZone),
+      minutes: localMinutes(at, timeZone),
+    };
     setTapped(tap);
     setSaving(true);
     setCheckInProblem(null);
@@ -230,7 +249,22 @@ export default function SelfHome() {
               {name ? `, ${name}` : ""}
             </AppText>
           </View>
-          <Dot size={64} pose={checkedInMinutes !== null ? "cheer" : "wave"} label={null} />
+          {isDemo && (
+            <Pressable
+              style={styles.demoButton}
+              onPress={() => setDemoOpen(true)}
+              accessibilityRole="button"
+              accessibilityLabel="Demo controls"
+              accessibilityHint="Fast-forwards today's check-in for the demo"
+            >
+              <AppText style={styles.demoButtonText}>Demo</AppText>
+            </Pressable>
+          )}
+          <Dot
+            size={64}
+            pose={checkedInMinutes !== null ? "cheer" : "wave"}
+            label={null}
+          />
         </View>
 
         <SelfCheckInCard
@@ -291,7 +325,10 @@ export default function SelfHome() {
                     ]}
                   >
                     <AppText
-                      style={[styles.avatarText, { color: avatarColors(index).text }]}
+                      style={[
+                        styles.avatarText,
+                        { color: avatarColors(index).text },
+                      ]}
                     >
                       {backup.name.charAt(0).toUpperCase()}
                     </AppText>
@@ -306,7 +343,10 @@ export default function SelfHome() {
                     onPress={() => call(backup)}
                     accessibilityRole="button"
                     accessibilityLabel={`Call ${backup.name}`}
-                    style={({ pressed }) => [styles.callButton, pressed && styles.pressed]}
+                    style={({ pressed }) => [
+                      styles.callButton,
+                      pressed && styles.pressed,
+                    ]}
                   >
                     <PhoneIcon size={18} color={PRIMARY} />
                     <AppText style={styles.callText}>Call</AppText>
@@ -326,7 +366,10 @@ export default function SelfHome() {
           onPress={() => setHelpOpen(true)}
           accessibilityRole="button"
           accessibilityLabel="I need help"
-          style={({ pressed }) => [styles.helpButton, pressed && styles.pressed]}
+          style={({ pressed }) => [
+            styles.helpButton,
+            pressed && styles.pressed,
+          ]}
         >
           <HelpIcon />
           <AppText style={styles.helpText}>I need help</AppText>
@@ -355,7 +398,10 @@ export default function SelfHome() {
                   ]}
                 >
                   <AppText
-                    style={[styles.avatarText, { color: avatarColors(index).text }]}
+                    style={[
+                      styles.avatarText,
+                      { color: avatarColors(index).text },
+                    ]}
                   >
                     {backup.name.charAt(0).toUpperCase()}
                   </AppText>
@@ -367,7 +413,10 @@ export default function SelfHome() {
                   </AppText>
                 </View>
                 <Pressable
-                  style={({ pressed }) => [styles.helpCall, pressed && styles.pressed]}
+                  style={({ pressed }) => [
+                    styles.helpCall,
+                    pressed && styles.pressed,
+                  ]}
                   accessibilityRole="button"
                   accessibilityLabel={`Call ${backup.name}`}
                   onPress={() => {
@@ -379,7 +428,10 @@ export default function SelfHome() {
                   <AppText style={styles.helpCallText}>Call</AppText>
                 </Pressable>
                 <Pressable
-                  style={({ pressed }) => [styles.helpText2, pressed && styles.pressed]}
+                  style={({ pressed }) => [
+                    styles.helpText2,
+                    pressed && styles.pressed,
+                  ]}
                   accessibilityRole="button"
                   accessibilityLabel={`Text ${backup.name}`}
                   onPress={() => {
@@ -395,7 +447,10 @@ export default function SelfHome() {
           </View>
         ) : (
           <Pressable
-            style={({ pressed }) => [styles.sheetPrimary, pressed && styles.pressed]}
+            style={({ pressed }) => [
+              styles.sheetPrimary,
+              pressed && styles.pressed,
+            ]}
             accessibilityRole="button"
             onPress={() => {
               setHelpOpen(false);
@@ -413,6 +468,17 @@ export default function SelfHome() {
           <AppText style={styles.sheetCancelText}>Not now</AppText>
         </Pressable>
       </BottomSheet>
+      {isDemo && (
+        <DemoSheet
+          visible={demoOpen}
+          onClose={() => setDemoOpen(false)}
+          takerId={takerId}
+          name={yourFirstName}
+          method="app"
+          forSelf
+          onChanged={reload}
+        />
+      )}
     </SafeAreaView>
   );
 }
@@ -640,5 +706,18 @@ const styles = StyleSheet.create({
     color: SUBTITLE,
     fontSize: 17,
     fontFamily: FigtreeFont.bold,
+  },
+  demoButton: {
+    height: 48,
+    paddingHorizontal: 16,
+    justifyContent: "center",
+    alignItems: "center",
+    borderRadius: 16,
+    backgroundColor: LILAC,
+  },
+  demoButtonText: {
+    color: PRIMARY,
+    fontFamily: FigtreeFont.bold,
+    fontSize: 16,
   },
 });
