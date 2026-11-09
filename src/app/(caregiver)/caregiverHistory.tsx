@@ -1,5 +1,4 @@
 import { AppText } from "@/components/app-test";
-import { CaregiverTabBar } from "@/components/caregiver-tab-bar";
 import { Chip } from "@/components/chip";
 import { HistoryCalendar } from "@/components/history-calendar";
 import { FontFamily } from "@/constants/fonts";
@@ -54,7 +53,7 @@ export default function CaregiverHistory() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={["top", "left", "right"]}>
       <ScrollView
         style={styles.content}
         contentContainerStyle={styles.scrollContent}
@@ -83,7 +82,6 @@ export default function CaregiverHistory() {
           emptyText={activity ? `No check-ins for ${selectedName} yet.` : "Loading…"}
         />
       </ScrollView>
-      <CaregiverTabBar active="history" />
     </SafeAreaView>
   );
 }
@@ -101,7 +99,7 @@ const styles = StyleSheet.create({
     gap: 16,
     paddingHorizontal: 24,
     paddingTop: 24,
-    paddingBottom: 108,
+    paddingBottom: 32,
     marginTop: 56,
   },
   title: {
