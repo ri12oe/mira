@@ -6,6 +6,7 @@ import {
     NativeSyntheticEvent,
     Platform,
     ScrollView,
+    type ScrollViewInstance,
     StyleSheet,
     View,
 } from "react-native";
@@ -30,7 +31,7 @@ export function WheelColumn({
   width = 70,
   format = String,
 }: Props) {
-  const ref = useRef<ScrollView>(null);
+  const ref = useRef<ScrollViewInstance>(null);
   const settleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const didInit = useRef(false);
 
