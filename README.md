@@ -55,7 +55,7 @@ Real texts and calls turn on with the `SMS_MODE=live` Edge Function secret plus 
 
 ## Tech stack
 
-- [Expo SDK 57](https://docs.expo.dev/versions/v57.0.0/) with [Expo Router](https://docs.expo.dev/router/introduction) (file-based routing, typed routes), React 19, React Native 0.86, React Compiler, TypeScript
+- [Expo SDK 58](https://docs.expo.dev/versions/v58.0.0/) with [Expo Router](https://docs.expo.dev/router/introduction) (file-based routing, typed routes), React 19, React Native 0.88, React Compiler, TypeScript
 - Reanimated and Gesture Handler for animation and gestures, `react-native-svg` for icons and the mascot (Dot)
 - Figtree and Bricolage Grotesque via `@expo-google-fonts`
 - Supabase: Postgres with Row Level Security, phone Auth, Edge Functions (Deno), `pg_cron`, Realtime, Storage (profile photos)
@@ -131,7 +131,7 @@ They cover security (people can't see each other's data), privacy, the scheduler
 
 ## Demo
 
-Mira is a class project and isn't released; it's shown as a demo, with delivery in test mode.
+Mira is a class project and isn't released; it's shown as a demo, with delivery in test mode. The step-by-step demo script, checklist and backup-video plan are in [DEMO.md](DEMO.md).
 
 ### Reset the demo data
 
