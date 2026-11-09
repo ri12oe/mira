@@ -5,7 +5,6 @@ import { BackButton } from "@/components/back-button";
 import { BackupSheet } from "@/components/backup-sheet";
 import { BottomSheet } from "@/components/bottom-sheet";
 import { DemoSheet } from "@/components/demo-sheet";
-import { CaregiverTabBar } from "@/components/caregiver-tab-bar";
 import { Chip } from "@/components/chip";
 import {
   ExtraTimePicker,
@@ -332,7 +331,7 @@ export default function CaregiverHome() {
   });
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={["top", "left", "right"]}>
       <ScrollView
         style={styles.content}
         contentContainerStyle={styles.scrollContent}
@@ -487,7 +486,7 @@ export default function CaregiverHome() {
           <EmptyHome onAdd={() => setSheet("person")} />
         )}
       </ScrollView>
-      <CaregiverTabBar />
+
       <AlertsSheet
         visible={alertsSheet}
         onClose={() => setAlertsSheet(false)}
@@ -880,7 +879,7 @@ const styles = StyleSheet.create({
     gap: 18,
     paddingHorizontal: 24,
     paddingTop: 24,
-    paddingBottom: 108,
+    paddingBottom: 32,
   },
   sheetHeader: {
     flexDirection: "row",

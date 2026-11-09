@@ -79,6 +79,17 @@ function RootStack({ fontsReady }: { fontsReady: boolean }) {
 
   if (!ready) return null;
 
+  // Where a screen you can't open sends you: your own Home (Welcome when
+  // signed out). Needed since the caregiver tabs are a group, (caregiver):
+  // the automatic redirect would build "/(caregiver)", which isn't a page.
+  const home = !signedIn
+    ? "/"
+    : isSelf
+      ? "/selfHome"
+      : isInvited
+        ? "/invitedHome"
+        : "/caregiverHome";
+
   // Screens not listed here (setup, sign-in code, help) are open to everyone
   return (
     <>
@@ -86,11 +97,9 @@ function RootStack({ fontsReady }: { fontsReady: boolean }) {
       <Stack screenOptions={{ headerShown: false }}>
         {/* Signed in, looking after someone. Listed first: a signed-in launch
             lands on caregiverHome (and moves to selfHome once a self account loads) */}
-        <Stack.Protected guard={signedIn && !isSelf && !isInvited}>
-          <Stack.Screen name="caregiverHome" />
-          <Stack.Screen name="caregiverHistory" />
-          <Stack.Screen name="caregiverPeople" />
-          <Stack.Screen name="caregiverSetting" />
+        <Stack.Protected guard={signedIn && !isSelf && !isInvited} redirectTo={home}>
+          {/* Home, History, People and Settings: the native tab bar in (caregiver)/_layout */}
+          <Stack.Screen name="(caregiver)" />
           <Stack.Screen name="caregiverProfile" />
           <Stack.Screen name="checkInNow" />
           <Stack.Screen name="waiting" />
@@ -98,19 +107,19 @@ function RootStack({ fontsReady }: { fontsReady: boolean }) {
           <Stack.Screen name="connected2" />
         </Stack.Protected>
         {/* Signed in, using Mira for themselves */}
-        <Stack.Protected guard={signedIn && isSelf}>
+        <Stack.Protected guard={signedIn && isSelf} redirectTo={home}>
           <Stack.Screen name="selfHome" />
           <Stack.Screen name="selfHistory" />
           <Stack.Screen name="selfPeople" />
           <Stack.Screen name="selfSetting" />
         </Stack.Protected>
         {/* Signed in, someone a caregiver set up ("Someone invited me") */}
-        <Stack.Protected guard={signedIn && isInvited}>
+        <Stack.Protected guard={signedIn && isInvited} redirectTo={home}>
           <Stack.Screen name="invitedHome" />
           <Stack.Screen name="invitedSetting" />
         </Stack.Protected>
         {/* Signed out only: Welcome and the phone screen */}
-        <Stack.Protected guard={!signedIn}>
+        <Stack.Protected guard={!signedIn} redirectTo={home}>
           <Stack.Screen name="index" />
           <Stack.Screen name="signIn" />
         </Stack.Protected>

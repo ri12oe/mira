@@ -1,7 +1,6 @@
 import { AppText } from "@/components/app-test";
 import { SyncBanner } from "@/components/sync-banner";
 import { BottomSheet } from "@/components/bottom-sheet";
-import { CaregiverTabBar } from "@/components/caregiver-tab-bar";
 import {
   CheckInMethodSheet,
   METHOD_LABELS,
@@ -89,7 +88,7 @@ export default function CaregiverSetting() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={["top", "left", "right"]}>
       <ScrollView
         style={styles.content}
         contentContainerStyle={styles.scrollContent}
@@ -262,7 +261,6 @@ export default function CaregiverSetting() {
           </View>
         </View>
       </ScrollView>
-      <CaregiverTabBar active="settings" />
 
       <BottomSheet
         visible={sheet === "window"}
@@ -346,7 +344,7 @@ const styles = StyleSheet.create({
     gap: 16,
     paddingHorizontal: 24,
     paddingTop: 24,
-    paddingBottom: 108,
+    paddingBottom: 32,
     marginTop: 56,
   },
   title: {
