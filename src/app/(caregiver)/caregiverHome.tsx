@@ -1151,7 +1151,7 @@ const styles = StyleSheet.create({
   },
   pillText: {
     color: GREEN,
-    fontSize: 12,
+    fontSize: 14,
     fontFamily: FigtreeFont.extraBold,
   },
   changeButtonText: {
@@ -1177,8 +1177,8 @@ const styles = StyleSheet.create({
   },
   frame2Text: {
     color: SUBTITLE,
-    fontSize: 13,
-    lineHeight: 16.9,
+    fontSize: 14,
+    lineHeight: 18,
     fontFamily: FigtreeFont.extraBold,
   },
   frame2Value: {

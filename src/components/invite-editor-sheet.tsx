@@ -316,7 +316,7 @@ const styles = StyleSheet.create({
   },
   tagText: {
     color: SUBTITLE,
-    fontSize: 12,
+    fontSize: 14,
     fontFamily: FigtreeFont.extraBold,
   },
   helper: {

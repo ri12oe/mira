@@ -402,7 +402,7 @@ const styles = StyleSheet.create({
   },
   pillText: {
     color: PRIMARY,
-    fontSize: 13,
+    fontSize: 14,
     fontFamily: FigtreeFont.extraBold,
   },
   divider: {

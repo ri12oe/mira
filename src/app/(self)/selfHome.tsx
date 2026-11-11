@@ -156,17 +156,17 @@ export default function SelfHome() {
     setTapped(tap);
     setSaving(true);
     setCheckInProblem(null);
-    feelTap(); // new
+    feelTap();
     const result = await checkInMyself();
     setSaving(false);
     if (result === "recorded" || result === "already") {
-      feelSuccess(); // new
+      feelSuccess();
       lastTap = { takerId, ...tap };
       reload();
       return;
     }
     // Not counted: put the button back and say why, in plain words
-    feelProblem(); // new
+    feelProblem();
     setTapped(null);
     setCheckInProblem(
       result === "notToday"

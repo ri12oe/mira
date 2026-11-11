@@ -145,7 +145,7 @@ Do these in order, one at a time, and confirm with me before moving on:
 - **Bottom sheets** use `src/components/bottom-sheet.tsx` (slide up, fade, drag down to close).
 - **Tabs** are native (`NativeTabs` from `expo-router/native-tabs`): Liquid Glass on iOS 26, Material on Android. Each set is a route group with its own `_layout.tsx`: `(caregiver)/` and `(self)/`. Group folders don't change URLs (`/caregiverHome` still works). Tab screens use `<SafeAreaView edges={["top", "left", "right"]}>` and a small `paddingBottom`, because iOS insets the first ScrollView under the glass bar. Keep `minimizeBehavior="never"` so the bar never hides.
 - **Every `Stack.Protected` in `src/app/_layout.tsx` needs `redirectTo={home}`.** Without it, a blocked screen redirects to the first allowed route, and for a group that builds `/(caregiver)`, which is "Unmatched Route" (Nov 2026). Any new protected block or group gets it too.
-- **Accessibility**: real `accessibilityRole` / `accessibilityLabel` on pressables, touch targets at least 44px. The users are older adults: clear words, big targets, no jargon in error messages.
+- **Accessibility**: real `accessibilityRole` / `accessibilityLabel` on pressables, touch targets at least 44px, **text at least 14px** (Nov 2026: nothing smaller is left). The users are older adults: clear words, big targets, no jargon in error messages.
 - Don't create or edit `ios/` or `android/` by hand.
 
 ## Design reference

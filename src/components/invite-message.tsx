@@ -106,7 +106,7 @@ const styles = StyleSheet.create({
   },
   phone: {
     color: SUBTITLE,
-    fontSize: 13,
+    fontSize: 14,
     letterSpacing: 0.4,
     fontFamily: FigtreeFont.extraBold,
   },

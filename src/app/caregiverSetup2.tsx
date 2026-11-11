@@ -428,7 +428,7 @@ const styles = StyleSheet.create({
     backgroundColor: MINT,
     color: GREEN,
     fontFamily: FigtreeFont.extraBold,
-    fontSize: 12,
+    fontSize: 14,
   },
   buttons: {
     marginTop: 49,

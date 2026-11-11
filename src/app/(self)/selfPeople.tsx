@@ -435,7 +435,7 @@ const styles = StyleSheet.create({
   },
   pillText: {
     color: GREEN,
-    fontSize: 13,
+    fontSize: 14,
     fontFamily: FigtreeFont.extraBold,
   },
   actions: {

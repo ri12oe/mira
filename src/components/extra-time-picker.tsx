@@ -99,7 +99,7 @@ export function ExtraTimePicker({ extraMinutes, onChange, windowEnd }: Props) {
 
       <View style={styles.timeSummary}>
         <View style={styles.timeSummaryEnds}>
-          <AppText style={styles.timeSummaryText}>Windows ends</AppText>
+          <AppText style={styles.timeSummaryText}>Window ends</AppText>
           <AppText style={styles.timeSummaryTime}>
             {formatTime(windowEnd)}
           </AppText>
@@ -147,7 +147,10 @@ const styles = StyleSheet.create({
     borderBottomColor: "#EFEDF5",
   },
   optionLabel: {
+    // Takes the space beside the radio circle; "Recommended" wraps below if it's tight
+    flex: 1,
     flexDirection: "row",
+    flexWrap: "wrap",
     alignItems: "center",
     gap: 8,
   },
@@ -164,7 +167,7 @@ const styles = StyleSheet.create({
     backgroundColor: MINT,
     color: GREEN,
     fontFamily: FigtreeFont.extraBold,
-    fontSize: 12,
+    fontSize: 14,
   },
   orCustom: {
     fontFamily: FigtreeFont.bold,
@@ -203,8 +206,8 @@ const styles = StyleSheet.create({
   },
   timeSummaryText: {
     fontFamily: FigtreeFont.extraBold,
-    fontSize: 13,
-    lineHeight: 16.9,
+    fontSize: 14,
+    lineHeight: 18,
     color: SUBTITLE,
   },
   timeSummaryTime: {
