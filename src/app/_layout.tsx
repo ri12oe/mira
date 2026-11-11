@@ -15,19 +15,26 @@ import {
   Figtree_800ExtraBold,
 } from "@expo-google-fonts/figtree";
 import { useFonts } from "expo-font";
-import { Stack } from "expo-router";
+import { type ErrorBoundaryProps, Stack } from "expo-router";
 import { StyleSheet } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import * as SplashScreen from "expo-splash-screen";
 import { useEffect } from "react";
 
+
 import { FigtreeFont, FontFamily } from "@/constants/fonts";
 import { NotificationsBridge } from "@/components/notifications-bridge";
+import { CrashScreen } from "@/components/crash-screen";
 import { AuthProvider, useAuth } from "@/context/auth";
 import { CaregiverSetupProvider, useCaregiverSetup } from "@/context/caregiver-setup";
 
 // Keep the splash screen up until the fonts, the saved sign-in and the caregiver's data are ready
 SplashScreen.preventAutoHideAsync();
+
+// If any screen crashes, Expo Router shows this instead of a blank or red screen
+export function ErrorBoundary(props: ErrorBoundaryProps) {
+  return <CrashScreen {...props} />;
+}
 
 export default function RootLayout() {
   const [loaded, error] = useFonts({
