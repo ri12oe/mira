@@ -21,6 +21,7 @@ import {
   writePreference,
 } from "@/lib/preferences";
 import { avatarColors } from "@/utils/avatar-colors";
+import { feelProblem, feelSuccess, feelTap } from "@/utils/haptics";
 import { joinNames } from "@/utils/day-period";
 import { localDateKey, localMinutes } from "@/utils/local-date";
 import { nextCheckInLabel } from "@/utils/today-state";
@@ -155,14 +156,17 @@ export default function SelfHome() {
     setTapped(tap);
     setSaving(true);
     setCheckInProblem(null);
+    feelTap(); // new
     const result = await checkInMyself();
     setSaving(false);
     if (result === "recorded" || result === "already") {
+      feelSuccess(); // new
       lastTap = { takerId, ...tap };
       reload();
       return;
     }
     // Not counted: put the button back and say why, in plain words
+    feelProblem(); // new
     setTapped(null);
     setCheckInProblem(
       result === "notToday"

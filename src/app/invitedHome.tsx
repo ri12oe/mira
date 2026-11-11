@@ -23,6 +23,7 @@ import {
   writePreference,
 } from "@/lib/preferences";
 import { joinNames, periodOf } from "@/utils/day-period";
+import { feelProblem, feelSuccess, feelTap } from "@/utils/haptics";
 import { dayIndex, localDateKey, localMinutes } from "@/utils/local-date";
 import { nextCheckInLabel } from "@/utils/today-state";
 import * as Linking from "expo-linking";
@@ -291,18 +292,23 @@ export default function InvitedHome() {
     if (phase !== "idle") return;
     setProblem(null);
     setPhase("pressed");
+    feelTap();
     const started = Date.now();
     const result = await checkInAsInvited();
     if (result === "recorded" || result === "already") {
       // Let the press be seen for a moment, then say thanks
       setTappedDay(todayKey);
       setTimeout(
-        () => setPhase("done"),
+        () => {
+          setPhase("done");
+          feelSuccess();
+        },
         Math.max(0, 900 - (Date.now() - started)),
       );
       load();
       return;
     }
+    feelProblem();
     setPhase("idle");
     setProblem(
       result === "notToday"
