@@ -11,6 +11,7 @@ import { FigtreeFont, FontFamily } from "@/constants/fonts";
 import { Backup, useCaregiverSetup } from "@/context/caregiver-setup";
 import { useAlerts } from "@/hooks/use-alerts";
 import { useDemoAccount } from "@/hooks/use-demo-account";
+import { usePullToRefresh } from "@/hooks/use-pull-to-refresh";
 import { useTakerActivity } from "@/hooks/use-taker-activity";
 import { checkInMyself } from "@/lib/check-ins";
 import { backupConfirmations, openMessages } from "@/lib/invites";
@@ -26,7 +27,7 @@ import { nextCheckInLabel } from "@/utils/today-state";
 import * as Linking from "expo-linking";
 import { router, useFocusEffect } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, View, RefreshControl } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Circle, Path } from "react-native-svg";
 
@@ -115,9 +116,10 @@ export default function SelfHome() {
   const todayKey = localDateKey(now, timeZone);
 
   // Today's check-in from the server (this week; refreshes live)
-  const { activity, failed, reload } = useTakerActivity(takerId, timeZone, {
+    const { activity, failed, reload, refresh } = useTakerActivity(takerId, timeZone, {
     kind: "week",
   });
+  const pull = usePullToRefresh(refresh);
   // Demo accounts only: fast-forward today's check-in
   const isDemo = useDemoAccount();
   const [demoOpen, setDemoOpen] = useState(false);
@@ -224,6 +226,9 @@ export default function SelfHome() {
         style={styles.content}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={pull.refreshing} onRefresh={pull.refresh} />
+        }
       >
         <SyncBanner />
         {(reminders.status === "off" || reminders.status === "denied") &&

@@ -43,6 +43,7 @@ import {
 } from "@/context/caregiver-setup";
 import { useAlerts } from "@/hooks/use-alerts";
 import { useDemoAccount } from "@/hooks/use-demo-account";
+import { usePullToRefresh } from "@/hooks/use-pull-to-refresh";
 import { useTakerActivity } from "@/hooks/use-taker-activity";
 import { markCheckedIn } from "@/lib/check-ins";
 import { confirmJoined, defaultInviteMessage } from "@/lib/invites";
@@ -60,7 +61,7 @@ import { router } from "expo-router";
 import { useState } from "react";
 import { Alert, Pressable, StyleSheet, TextInput, View } from "react-native";
 // Gesture Handler's ScrollView coordinates with the drag/swipe gestures inside it
-import { ScrollView } from "react-native-gesture-handler";
+import { RefreshControl, ScrollView } from "react-native-gesture-handler";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
 const INK = "#15163A";
@@ -188,11 +189,13 @@ export default function CaregiverHome() {
   const backups = selectedPerson?.backups ?? primaryBackups;
 
   // Today and this week, from the database (live)
-  const { activity, now, todayKey, reload } = useTakerActivity(
+    const { activity, now, todayKey, reload, refresh } = useTakerActivity(
     takerId,
     timeZone,
     { kind: "week" },
   );
+  const pull = usePullToRefresh(refresh);
+
   const schedule = { paused, days, windowEnd, timeZone };
   const today = todayState(activity, schedule, todayKey, now);
   // After today's check-in, the next one is on a later day
@@ -336,6 +339,9 @@ export default function CaregiverHome() {
         style={styles.content}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={pull.refreshing} onRefresh={pull.refresh} />
+        }
       >
         <View style={styles.header}>
           <View style={styles.frame}>

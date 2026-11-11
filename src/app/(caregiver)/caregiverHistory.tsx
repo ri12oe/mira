@@ -6,13 +6,15 @@ import {
   PRIMARY_PERSON_ID as PRIMARY_ID,
   useCaregiverSetup,
 } from "@/context/caregiver-setup";
+import { usePullToRefresh } from "@/hooks/use-pull-to-refresh";
 import { useTakerActivity } from "@/hooks/use-taker-activity";
 import { entriesByDay } from "@/utils/check-in-history";
 import { useState } from "react";
-import { ScrollView, StyleSheet, View } from "react-native";
+import { RefreshControl, ScrollView, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const INK = "#15163A";
+const PRIMARY = "#4338CA";
 const BACKGROUND = "#F5F4FA";
 
 export default function CaregiverHistory() {
@@ -44,7 +46,12 @@ export default function CaregiverHistory() {
 
   const { year, month } = view;
   // Real check-ins from the database (this month + the last 60 days, live)
-  const { activity, todayKey } = useTakerActivity(takerId, timeZone, { kind: "month", year, month });
+  const { activity, todayKey, refresh } = useTakerActivity(takerId, timeZone, {
+    kind: "month",
+    year,
+    month,
+  });
+  const pull = usePullToRefresh(refresh);
   const entries = entriesByDay(activity?.checkIns ?? [], timeZone);
 
   const changeMonth = (delta: number) => {
@@ -58,6 +65,14 @@ export default function CaregiverHistory() {
         style={styles.content}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={pull.refreshing}
+            onRefresh={pull.refresh}
+            tintColor={PRIMARY}
+            colors={[PRIMARY]}
+          />
+        }
       >
         <AppText style={styles.title}>History</AppText>
         <View style={styles.chips}>
@@ -79,7 +94,9 @@ export default function CaregiverHistory() {
           year={year}
           month={month}
           onChangeMonth={changeMonth}
-          emptyText={activity ? `No check-ins for ${selectedName} yet.` : "Loading…"}
+          emptyText={
+            activity ? `No check-ins for ${selectedName} yet.` : "Loading…"
+          }
         />
       </ScrollView>
     </SafeAreaView>

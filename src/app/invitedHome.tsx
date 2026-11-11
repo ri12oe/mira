@@ -9,6 +9,7 @@ import { FigtreeFont, FontFamily } from "@/constants/fonts";
 import { useCaregiverSetup } from "@/context/caregiver-setup";
 import { useAlerts } from "@/hooks/use-alerts";
 import { EASE_OUT, EASE_POP, useEntrance, useLoop } from "@/hooks/use-entrance";
+import { usePullToRefresh } from "@/hooks/use-pull-to-refresh";
 import {
   checkInAsInvited,
   fetchMyInvitedDay,
@@ -16,14 +17,26 @@ import {
   rememberedInvitedDay,
 } from "@/lib/invited";
 import { openMessages } from "@/lib/invites";
-import { REMINDERS_CARD_DISMISSED, readPreference, writePreference } from "@/lib/preferences";
+import {
+  readPreference,
+  REMINDERS_CARD_DISMISSED,
+  writePreference,
+} from "@/lib/preferences";
 import { joinNames, periodOf } from "@/utils/day-period";
 import { dayIndex, localDateKey, localMinutes } from "@/utils/local-date";
 import { nextCheckInLabel } from "@/utils/today-state";
 import * as Linking from "expo-linking";
 import { router, useFocusEffect } from "expo-router";
 import { ReactNode, useCallback, useState } from "react";
-import { ActivityIndicator, Animated, Pressable, ScrollView, StyleSheet, View } from "react-native";
+import {
+  ActivityIndicator,
+  Animated,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
 
@@ -54,7 +67,13 @@ const BUTTON = 216;
 function CheckMark({ size, color = "#fff" }: { size: number; color?: string }) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <Path d="M5 12.5l4.5 4.5L19 7.5" stroke={color} strokeWidth={2.6} strokeLinecap="round" strokeLinejoin="round" />
+      <Path
+        d="M5 12.5l4.5 4.5L19 7.5"
+        stroke={color}
+        strokeWidth={2.6}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </Svg>
   );
 }
@@ -62,7 +81,12 @@ function CheckMark({ size, color = "#fff" }: { size: number; color?: string }) {
 function PauseMark() {
   return (
     <Svg width={64} height={64} viewBox="0 0 20 20" fill="none">
-      <Path d="M7.5 5.5V14.5M12.5 5.5V14.5" stroke={PRIMARY} strokeWidth={2.2} strokeLinecap="round" />
+      <Path
+        d="M7.5 5.5V14.5M12.5 5.5V14.5"
+        stroke={PRIMARY}
+        strokeWidth={2.2}
+        strokeLinecap="round"
+      />
     </Svg>
   );
 }
@@ -70,7 +94,10 @@ function PauseMark() {
 /** The big "I'm okay": a peach circle that gently breathes, around the button */
 function OkayButton({ onPress, busy }: { onPress: () => void; busy: boolean }) {
   const breathe = useLoop({ duration: 2800 });
-  const scale = breathe.interpolate({ inputRange: [0, 0.5, 1], outputRange: [1, 1.05, 1] });
+  const scale = breathe.interpolate({
+    inputRange: [0, 0.5, 1],
+    outputRange: [1, 1.05, 1],
+  });
   return (
     <View style={styles.rings}>
       <Animated.View style={[styles.outer, { transform: [{ scale }] }]} />
@@ -81,7 +108,10 @@ function OkayButton({ onPress, busy }: { onPress: () => void; busy: boolean }) {
         accessibilityRole="button"
         accessibilityLabel="I'm okay. Check in for today."
         accessibilityState={{ busy }}
-        style={({ pressed }) => [styles.button, pressed && styles.buttonPressed]}
+        style={({ pressed }) => [
+          styles.button,
+          pressed && styles.buttonPressed,
+        ]}
       >
         <CheckMark size={56} />
         <AppText style={styles.buttonText}>I&apos;m okay</AppText>
@@ -101,8 +131,18 @@ function DoneCircle() {
         style={[
           styles.ripple,
           {
-            opacity: ripple.interpolate({ inputRange: [0, 1], outputRange: [0.6, 0] }),
-            transform: [{ scale: ripple.interpolate({ inputRange: [0, 1], outputRange: [1, 1.5] }) }],
+            opacity: ripple.interpolate({
+              inputRange: [0, 1],
+              outputRange: [0.6, 0],
+            }),
+            transform: [
+              {
+                scale: ripple.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [1, 1.5],
+                }),
+              },
+            ],
           },
         ]}
       />
@@ -110,7 +150,16 @@ function DoneCircle() {
         style={[
           styles.button,
           styles.buttonDone,
-          { transform: [{ scale: pop.interpolate({ inputRange: [0, 1], outputRange: [0.9, 1] }) }] },
+          {
+            transform: [
+              {
+                scale: pop.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [0.9, 1],
+                }),
+              },
+            ],
+          },
         ]}
       >
         <CheckMark size={92} />
@@ -120,7 +169,13 @@ function DoneCircle() {
 }
 
 /** A calm circle for "taking a break", "no check-in today" and "loading" */
-function QuietCircle({ children, color = LILAC }: { children: ReactNode; color?: string }) {
+function QuietCircle({
+  children,
+  color = LILAC,
+}: {
+  children: ReactNode;
+  color?: string;
+}) {
   return (
     <View style={styles.rings}>
       <View style={[styles.inner, { backgroundColor: color }]}>{children}</View>
@@ -135,7 +190,9 @@ function QuietCircle({ children, color = LILAC }: { children: ReactNode; color?:
  */
 export default function InvitedHome() {
   const { invitedBackupFor } = useCaregiverSetup();
-  const [rows, setRows] = useState<InvitedDayRow[] | null>(rememberedInvitedDay);
+  const [rows, setRows] = useState<InvitedDayRow[] | null>(
+    rememberedInvitedDay,
+  );
   const [failed, setFailed] = useState(false);
   const [now, setNow] = useState(() => new Date());
   /** "pressed": the tap shows at once, before the server answers */
@@ -166,6 +223,8 @@ export default function InvitedHome() {
   }, []);
 
   // Fresh each time Home shows, and once a minute while it's open
+  // Pull down to reload (load already resolves once the new day is in)
+  const pull = usePullToRefresh(load);
   useFocusEffect(
     useCallback(() => {
       load();
@@ -180,9 +239,12 @@ export default function InvitedHome() {
   // ---- what to show
   const backupFor = joinNames(invitedBackupFor);
   const checksIn = (rows?.length ?? 0) > 0;
-  const timeZone = rows?.[0]?.timeZone ?? Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const timeZone =
+    rows?.[0]?.timeZone ?? Intl.DateTimeFormat().resolvedOptions().timeZone;
   const name = rows?.[0]?.firstName.trim() ?? "";
-  const caregiverNames = [...new Set((rows ?? []).map((r) => r.caregiverName.trim()).filter(Boolean))];
+  const caregiverNames = [
+    ...new Set((rows ?? []).map((r) => r.caregiverName.trim()).filter(Boolean)),
+  ];
   const told = joinNames(caregiverNames) || "your family";
   const active = (rows ?? []).filter((r) => !r.paused);
   // Texts and calls reach her anyway; only "Mira app" needs this phone
@@ -193,21 +255,34 @@ export default function InvitedHome() {
   const todayKey = localDateKey(now, timeZone);
   const isToday = (r: InvitedDayRow) => r.days.includes(dayIndex(todayKey));
   const done =
-    (phase === "done" && tappedDay === todayKey) || (rows ?? []).some((r) => !!r.respondedAt);
+    (phase === "done" && tappedDay === todayKey) ||
+    (rows ?? []).some((r) => !!r.respondedAt);
   const onBreak = checksIn && active.length === 0;
   const dayOff = checksIn && !onBreak && !done && !active.some(isToday);
   const hour = Math.floor(localMinutes(now, timeZone) / 60);
-  const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
-  const dateLabel = now.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric", timeZone });
+  const greeting =
+    hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
+  const dateLabel = now.toLocaleDateString(undefined, {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    timeZone,
+  });
 
   // The next check-in among the caregivers still checking in
   const next = active
     .map((r) => ({
-      label: nextCheckInLabel({ paused: false, days: r.days, windowEnd: -1, timeZone: r.timeZone }, todayKey, now),
+      label: nextCheckInLabel(
+        { paused: false, days: r.days, windowEnd: -1, timeZone: r.timeZone },
+        todayKey,
+        now,
+      ),
       period: periodOf(r.windowStart),
     }))
     .find((n) => n.label);
-  const nextText = next ? `${next.label === "Tomorrow" ? "tomorrow" : next.label} ${next.period}` : null;
+  const nextText = next
+    ? `${next.label === "Tomorrow" ? "tomorrow" : next.label} ${next.period}`
+    : null;
 
   const firstCaregiver = (rows ?? []).find((r) => r.caregiverPhone);
 
@@ -221,7 +296,10 @@ export default function InvitedHome() {
     if (result === "recorded" || result === "already") {
       // Let the press be seen for a moment, then say thanks
       setTappedDay(todayKey);
-      setTimeout(() => setPhase("done"), Math.max(0, 900 - (Date.now() - started)));
+      setTimeout(
+        () => setPhase("done"),
+        Math.max(0, 900 - (Date.now() - started)),
+      );
       load();
       return;
     }
@@ -250,14 +328,29 @@ export default function InvitedHome() {
     openMessages(
       row.caregiverPhone,
       `Hi ${row.caregiverName.trim() || "there"}, it's ${name || "me"}. I need help. Please call me back.`,
-    ).catch(() => setProblem(`We couldn't open Messages. You can text ${row.caregiverPhone}.`));
+    ).catch(() =>
+      setProblem(
+        `We couldn't open Messages. You can text ${row.caregiverPhone}.`,
+      ),
+    );
   };
 
   // ---- a self user's backup (nothing to check in)
   if (rows && !checksIn && backupFor) {
     return (
       <SafeAreaView style={styles.container}>
-        <ScrollView contentContainerStyle={styles.content}>
+        <ScrollView
+          contentContainerStyle={styles.content}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={pull.refreshing}
+              onRefresh={pull.refresh}
+              tintColor={PRIMARY}
+              colors={[PRIMARY]}
+            />
+          }
+        >
           <View style={styles.top}>
             <Dot size={76} pose="cheer" label={null} />
             <AppText style={styles.date}>{dateLabel}</AppText>
@@ -269,10 +362,13 @@ export default function InvitedHome() {
             <QuietCircle color={MINT}>
               <CheckMark size={92} color={TEAL} />
             </QuietCircle>
-            <AppText style={styles.caption}>You&apos;re {backupFor}&apos;s backup.</AppText>
+            <AppText style={styles.caption}>
+              You&apos;re {backupFor}&apos;s backup.
+            </AppText>
             <AppText style={styles.captionSmall}>
-              There&apos;s nothing else to do here. Mira only texts you if {backupFor} misses a
-              check-in, and tells you when they&apos;re okay again.
+              There&apos;s nothing else to do here. Mira only texts you if{" "}
+              {backupFor} misses a check-in, and tells you when they&apos;re
+              okay again.
             </AppText>
           </View>
           <SettingsLink />
@@ -283,7 +379,10 @@ export default function InvitedHome() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
         {showRemindersCard && (
           <AlertsCard
             self
@@ -300,7 +399,9 @@ export default function InvitedHome() {
           <Dot size={76} pose={done ? "cheer" : "wave"} label={null} />
           <AppText style={styles.date}>{dateLabel}</AppText>
           <AppText style={styles.heading} accessibilityRole="header">
-            {done ? `Thanks${name ? `, ${name}` : ""}!` : `${greeting}${name ? `, ${name}` : ""}`}
+            {done
+              ? `Thanks${name ? `, ${name}` : ""}!`
+              : `${greeting}${name ? `, ${name}` : ""}`}
           </AppText>
         </Rise>
 
@@ -309,7 +410,9 @@ export default function InvitedHome() {
           {rows === null ? (
             failed ? (
               <QuietCircle>
-                <AppText style={styles.quietText}>Can&apos;t reach Mira</AppText>
+                <AppText style={styles.quietText}>
+                  Can&apos;t reach Mira
+                </AppText>
               </QuietCircle>
             ) : (
               <QuietCircle>
@@ -326,7 +429,9 @@ export default function InvitedHome() {
             </QuietCircle>
           ) : dayOff ? (
             <QuietCircle color={AMBER_BG}>
-              <AppText style={[styles.quietText, { color: AMBER_TEXT }]}>No check-in{"\n"}today</AppText>
+              <AppText style={[styles.quietText, { color: AMBER_TEXT }]}>
+                No check-in{"\n"}today
+              </AppText>
             </QuietCircle>
           ) : (
             <OkayButton onPress={checkIn} busy={phase === "pressed"} />
@@ -358,7 +463,12 @@ export default function InvitedHome() {
               <View style={styles.nextPill}>
                 <View style={styles.nextIcon}>
                   <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
-                    <Path d="M12 7v5l3 2" stroke={AMBER_TEXT} strokeWidth={2.2} strokeLinecap="round" />
+                    <Path
+                      d="M12 7v5l3 2"
+                      stroke={AMBER_TEXT}
+                      strokeWidth={2.2}
+                      strokeLinecap="round"
+                    />
                     <Path
                       d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z"
                       stroke={AMBER_TEXT}
@@ -366,7 +476,9 @@ export default function InvitedHome() {
                     />
                   </Svg>
                 </View>
-                <AppText style={styles.nextText}>Next check-in {nextText}</AppText>
+                <AppText style={styles.nextText}>
+                  Next check-in {nextText}
+                </AppText>
               </View>
             </Rise>
           )}
@@ -376,7 +488,11 @@ export default function InvitedHome() {
               {problem}
             </AppText>
           )}
-          {backupFor ? <AppText style={styles.captionSmall}>You&apos;re also {backupFor}&apos;s backup.</AppText> : null}
+          {backupFor ? (
+            <AppText style={styles.captionSmall}>
+              You&apos;re also {backupFor}&apos;s backup.
+            </AppText>
+          ) : null}
         </Rise>
 
         {/* Reach someone: always here, also after checking in */}
@@ -384,7 +500,10 @@ export default function InvitedHome() {
           <Rise delay={300} style={styles.bottom}>
             {firstCaregiver && (
               <Pressable
-                style={({ pressed }) => [styles.callButton, pressed && styles.pressed]}
+                style={({ pressed }) => [
+                  styles.callButton,
+                  pressed && styles.pressed,
+                ]}
                 onPress={() => call(firstCaregiver.caregiverPhone)}
                 accessibilityRole="button"
                 accessibilityLabel={`Call ${firstCaregiver.caregiverName}`}
@@ -398,7 +517,10 @@ export default function InvitedHome() {
               </Pressable>
             )}
             <Pressable
-              style={({ pressed }) => [styles.helpButton, pressed && styles.pressed]}
+              style={({ pressed }) => [
+                styles.helpButton,
+                pressed && styles.pressed,
+              ]}
               onPress={() => setHelpOpen(true)}
               accessibilityRole="button"
               accessibilityLabel="I need help"
@@ -421,7 +543,11 @@ export default function InvitedHome() {
         <View style={styles.helpList}>
           {(rows ?? [])
             .filter((r) => r.caregiverPhone)
-            .filter((r, i, all) => all.findIndex((o) => o.caregiverPhone === r.caregiverPhone) === i)
+            .filter(
+              (r, i, all) =>
+                all.findIndex((o) => o.caregiverPhone === r.caregiverPhone) ===
+                i,
+            )
             .map((row) => (
               <View key={row.takerId} style={styles.helpRow}>
                 <View style={styles.avatar}>
@@ -433,7 +559,10 @@ export default function InvitedHome() {
                   {row.caregiverName.trim() || "Family"}
                 </AppText>
                 <Pressable
-                  style={({ pressed }) => [styles.helpCall, pressed && styles.pressed]}
+                  style={({ pressed }) => [
+                    styles.helpCall,
+                    pressed && styles.pressed,
+                  ]}
                   accessibilityRole="button"
                   accessibilityLabel={`Call ${row.caregiverName}`}
                   onPress={() => {
@@ -445,7 +574,10 @@ export default function InvitedHome() {
                   <AppText style={styles.helpCallText}>Call</AppText>
                 </Pressable>
                 <Pressable
-                  style={({ pressed }) => [styles.helpMessage, pressed && styles.pressed]}
+                  style={({ pressed }) => [
+                    styles.helpMessage,
+                    pressed && styles.pressed,
+                  ]}
                   accessibilityRole="button"
                   accessibilityLabel={`Text ${row.caregiverName}`}
                   onPress={() => {
@@ -459,7 +591,11 @@ export default function InvitedHome() {
               </View>
             ))}
         </View>
-        <Pressable style={styles.sheetCancel} accessibilityRole="button" onPress={() => setHelpOpen(false)}>
+        <Pressable
+          style={styles.sheetCancel}
+          accessibilityRole="button"
+          onPress={() => setHelpOpen(false)}
+        >
           <AppText style={styles.sheetCancelText}>Not now</AppText>
         </Pressable>
       </BottomSheet>

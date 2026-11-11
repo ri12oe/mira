@@ -3,14 +3,16 @@ import { HistoryCalendar } from "@/components/history-calendar";
 import { MonthSummaryCard } from "@/components/month-summary-card";
 import { FontFamily } from "@/constants/fonts";
 import { useCaregiverSetup } from "@/context/caregiver-setup";
+import { usePullToRefresh } from "@/hooks/use-pull-to-refresh";
 import { useTakerActivity } from "@/hooks/use-taker-activity";
 import { dayKey, entriesByDay } from "@/utils/check-in-history";
 import { useState } from "react";
-import { ScrollView, StyleSheet } from "react-native";
+import { ScrollView, StyleSheet, RefreshControl } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const INK = "#15163A";
 const BACKGROUND = "#F5F4FA";
+const PRIMARY = "#4338CA";
 
 export default function SelfHistory() {
   const { days, timeZone, takerId } = useCaregiverSetup();
@@ -23,7 +25,8 @@ export default function SelfHistory() {
 
   // Check-ins from the server (this month + the last 60 days, live). Missed
   // days are real rows too: the scheduler marks them
-  const { activity, todayKey } = useTakerActivity(takerId, timeZone, { kind: "month", year, month });
+    const { activity, todayKey, refresh } = useTakerActivity(takerId, timeZone, { kind: "month", year, month });
+  const pull = usePullToRefresh(refresh);
   const entries = entriesByDay(activity?.checkIns ?? [], timeZone);
   const isCurrentMonth = todayKey.startsWith(dayKey(year, month, 1).slice(0, 8));
 
@@ -38,6 +41,14 @@ export default function SelfHistory() {
         style={styles.content}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={pull.refreshing}
+            onRefresh={pull.refresh}
+            tintColor={PRIMARY}
+            colors={[PRIMARY]}
+          />
+        }
       >
         <AppText style={styles.title}>History</AppText>
         <HistoryCalendar

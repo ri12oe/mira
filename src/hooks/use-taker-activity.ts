@@ -19,7 +19,9 @@ export function forgetLoadedActivity() {
 }
 
 /** Which days to load: this week (Home), or a month plus the last 60 days (History) */
-export type ActivityRange = { kind: "week" } | { kind: "month"; year: number; month: number };
+export type ActivityRange =
+  | { kind: "week" }
+  | { kind: "month"; year: number; month: number };
 
 /**
  * One person's check-ins (and today's sends), kept fresh: it reloads whenever
@@ -28,10 +30,18 @@ export type ActivityRange = { kind: "week" } | { kind: "month"; year: number; mo
  *
  * "Today" is the person's own day, in their time zone.
  */
-export function useTakerActivity(takerId: string | undefined, timeZone: string, range: ActivityRange) {
+export function useTakerActivity(
+  takerId: string | undefined,
+  timeZone: string,
+  range: ActivityRange,
+) {
   const [version, setVersion] = useState(0);
   const [now, setNow] = useState(() => new Date());
-  const [result, setResult] = useState<{ key: string; data: Activity | null; failed: boolean } | null>(null);
+  const [result, setResult] = useState<{
+    key: string;
+    data: Activity | null;
+    failed: boolean;
+  } | null>(null);
 
   const todayKey = localDateKey(now, timeZone);
   let fromKey: string;
@@ -42,9 +52,10 @@ export function useTakerActivity(takerId: string | undefined, timeZone: string, 
     toKey = week[6];
   } else {
     const first = `${range.year}-${String(range.month + 1).padStart(2, "0")}-01`;
-    const nextFirst = range.month === 11
-      ? `${range.year + 1}-01-01`
-      : `${range.year}-${String(range.month + 2).padStart(2, "0")}-01`;
+    const nextFirst =
+      range.month === 11
+        ? `${range.year + 1}-01-01`
+        : `${range.year}-${String(range.month + 2).padStart(2, "0")}-01`;
     const last = addDays(nextFirst, -1);
     const recentStart = addDays(todayKey, -60);
     fromKey = first < recentStart ? first : recentStart;
@@ -66,7 +77,11 @@ export function useTakerActivity(takerId: string | undefined, timeZone: string, 
         console.warn("Couldn't load check-ins", error);
         // Keep showing what we had; just note that this refresh failed
         if (!cancelled) {
-          setResult((prev) => ({ key: thisKey, data: prev?.key === thisKey ? prev.data : null, failed: true }));
+          setResult((prev) => ({
+            key: thisKey,
+            data: prev?.key === thisKey ? prev.data : null,
+            failed: true,
+          }));
         }
       });
     return () => {
@@ -88,6 +103,24 @@ export function useTakerActivity(takerId: string | undefined, timeZone: string, 
   }, [takerId]);
 
   const current = result?.key === key ? result : null;
+
+  /** Pull to refresh: loads now, and resolves once the new data is in (so the spinner can stop) */
+  const refresh = async () => {
+    if (!takerId) return;
+    try {
+      const data = await fetchActivity(takerId, fromKey, toKey, todayKey);
+      lastLoaded.set(key, data);
+      setResult({ key, data, failed: false });
+    } catch (error) {
+      console.warn("Couldn't refresh check-ins", error);
+      setResult((prev) => ({
+        key,
+        data: prev?.key === key ? prev.data : null,
+        failed: true,
+      }));
+    }
+  };
+
   return {
     activity: current?.data ?? lastLoaded.get(key) ?? null,
     /** Loaded, but the last refresh failed (offline?) */
@@ -95,5 +128,6 @@ export function useTakerActivity(takerId: string | undefined, timeZone: string, 
     now,
     todayKey,
     reload: () => setVersion((v) => v + 1),
+    refresh,
   };
 }
